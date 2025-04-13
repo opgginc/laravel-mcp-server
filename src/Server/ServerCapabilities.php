@@ -7,6 +7,7 @@ use stdClass;
 /**
  * Represents the server's capabilities according to the MCP specification.
  * This class defines what features the MCP server supports, such as tools.
+ *
  * @see https://modelcontextprotocol.io/docs/concepts/architecture
  */
 final class ServerCapabilities
@@ -14,6 +15,7 @@ final class ServerCapabilities
     /**
      * Indicates whether the server supports the MCP tools feature.
      * If true, the server can register and expose tools to the client.
+     *
      * @see https://modelcontextprotocol.io/docs/concepts/tools
      */
     private bool $supportsTools = false;
@@ -30,9 +32,10 @@ final class ServerCapabilities
      * Enables the tools capability for the server instance.
      * Allows specifying optional configuration details for the tools feature.
      *
-     * @param array|null $config Optional configuration data specific to the tools capability.
-     *                           Defaults to an empty array if not provided.
+     * @param  array|null  $config  Optional configuration data specific to the tools capability.
+     *                              Defaults to an empty array if not provided.
      * @return self Returns the instance for method chaining.
+     *
      * @see https://modelcontextprotocol.io/docs/concepts/tools
      */
     public function withTools(?array $config = []): self

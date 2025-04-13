@@ -14,24 +14,20 @@ class JsonRpcErrorResource
 {
     /**
      * The exception containing the JSON-RPC error details.
-     *
-     * @var \OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException
      */
     protected JsonRpcErrorException $exception;
 
     /**
      * The request ID. Should be the same as the ID of the Request object that caused the error.
      * Null for notifications or if the ID could not be determined.
-     *
-     * @var string|int|null
      */
     protected string|int|null $id;
 
     /**
      * Constructor for JsonRpcErrorResource.
      *
-     * @param \OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException $exception The exception representing the JSON-RPC error.
-     * @param string|int|null $id The ID of the original request, if available.
+     * @param  \OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException  $exception  The exception representing the JSON-RPC error.
+     * @param  string|int|null  $id  The ID of the original request, if available.
      */
     public function __construct(JsonRpcErrorException $exception, string|int|null $id = null)
     {

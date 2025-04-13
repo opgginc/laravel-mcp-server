@@ -17,20 +17,18 @@ final class SseAdapterFactory
 {
     /**
      * The adapter type to use.
-     * @var string
      */
     private string $adapterType;
 
     /**
      * The adapter instance cache.
-     * @var SseAdapterInterface|null
      */
-    private SseAdapterInterface|null $adapter = null;
+    private ?SseAdapterInterface $adapter = null;
 
     /**
      * Constructor.
      *
-     * @param string $adapterType The type of SSE adapter to create (e.g., 'redis').
+     * @param  string  $adapterType  The type of SSE adapter to create (e.g., 'redis').
      * @return void
      */
     public function __construct(string $adapterType)
@@ -42,6 +40,7 @@ final class SseAdapterFactory
      * Create and initialize the SSE adapter.
      *
      * @return SseAdapterInterface The created and initialized SSE adapter instance.
+     *
      * @throws Exception If the adapter type is not supported or initialization fails.
      */
     public function createAdapter(): SseAdapterInterface
@@ -49,13 +48,13 @@ final class SseAdapterFactory
         if ($this->adapter === null) {
             $this->initializeAdapter();
         }
+
         return $this->adapter;
     }
 
     /**
      * Initialize the adapter based on the configured type.
      *
-     * @return void
      * @throws Exception If the adapter type is not supported or initialization fails.
      */
     private function initializeAdapter(): void
@@ -64,7 +63,7 @@ final class SseAdapterFactory
 
         switch ($this->adapterType) {
             case 'redis':
-                $this->adapter = new RedisAdapter();
+                $this->adapter = new RedisAdapter;
                 break;
             default:
                 throw new Exception('Unsupported SSE adapter type: '.$this->adapterType);
@@ -78,7 +77,7 @@ final class SseAdapterFactory
      *
      * @return SseAdapterInterface|null The created adapter instance, or null if not created yet.
      */
-    public function getAdapter(): SseAdapterInterface|null
+    public function getAdapter(): ?SseAdapterInterface
     {
         return $this->adapter;
     }

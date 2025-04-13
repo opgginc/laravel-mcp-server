@@ -22,24 +22,26 @@ final class SseTransport implements TransportInterface
 {
     /**
      * Tracks if the server-side connection is considered active.
-     * @var bool
      */
     protected bool $connected = false;
 
     /**
      * Callbacks executed when the connection is closed via `close()`.
+     *
      * @var array<callable>
      */
     protected array $closeHandlers = [];
 
     /**
      * Callbacks executed on transport errors, typically via `triggerError()`.
+     *
      * @var array<callable>
      */
     protected array $errorHandlers = [];
 
     /**
      * Callbacks executed via `processMessage()` for adapter-mediated messages.
+     *
      * @var array<callable>
      */
     protected array $messageHandlers = [];
@@ -47,13 +49,11 @@ final class SseTransport implements TransportInterface
     /**
      * Optional adapter for message persistence and retrieval (e.g., Redis).
      * Enables simulation of request/response patterns over SSE.
-     * @var SseAdapterInterface|null
      */
     protected ?SseAdapterInterface $adapter = null;
 
     /**
      * Unique identifier for the client connection, generated during initialization.
-     * @var string|null
      */
     protected ?string $clientId = null;
 
@@ -61,7 +61,6 @@ final class SseTransport implements TransportInterface
      * Starts the SSE transport connection.
      * Sets the connected flag and initializes the transport. Idempotent.
      *
-     * @return void
      * @throws Exception If initialization fails.
      */
     public function start(): void
@@ -78,7 +77,6 @@ final class SseTransport implements TransportInterface
      * Initializes the transport: generates client ID and sends the initial 'endpoint' event.
      * Adapter-specific initialization might occur here or externally.
      *
-     * @return void
      * @throws Exception If sending the initial event fails.
      */
     public function initialize(): void
@@ -93,14 +91,13 @@ final class SseTransport implements TransportInterface
     /**
      * Sends a formatted SSE event to the client and flushes output buffers.
      *
-     * @param string $event The event name.
-     * @param string $data  The event data payload.
-     * @return void
+     * @param  string  $event  The event name.
+     * @param  string  $data  The event data payload.
      */
     private function sendEvent(string $event, string $data): void
     {
-        echo sprintf('event: %s', $event) . PHP_EOL;
-        echo sprintf('data: %s', $data) . PHP_EOL;
+        echo sprintf('event: %s', $event).PHP_EOL;
+        echo sprintf('data: %s', $data).PHP_EOL;
         echo PHP_EOL;
 
         if (ob_get_level() > 0 && ob_get_length() !== false) {
@@ -113,8 +110,8 @@ final class SseTransport implements TransportInterface
      * Sends a message payload as a 'message' type SSE event.
      * Encodes array messages to JSON.
      *
-     * @param string|array $message The message content.
-     * @return void
+     * @param  string|array  $message  The message content.
+     *
      * @throws Exception If JSON encoding fails or sending the event fails.
      */
     public function send(string|array $message): void
@@ -130,12 +127,11 @@ final class SseTransport implements TransportInterface
      * Closes the connection, notifies handlers, cleans up adapter resources, and attempts a final 'close' event.
      * Idempotent. Errors during cleanup/final event are logged.
      *
-     * @return void
      * @throws Exception From handlers if they throw exceptions.
      */
     public function close(): void
     {
-        if (!$this->connected) {
+        if (! $this->connected) {
             return;
         }
 
@@ -145,7 +141,7 @@ final class SseTransport implements TransportInterface
             try {
                 call_user_func($handler);
             } catch (Exception $e) {
-                Log::error('Error in SSE close handler: ' . $e->getMessage());
+                Log::error('Error in SSE close handler: '.$e->getMessage());
             }
         }
 
@@ -153,22 +149,21 @@ final class SseTransport implements TransportInterface
             try {
                 $this->adapter->removeAllMessages($this->clientId);
             } catch (Exception $e) {
-                Log::error('Error cleaning up SSE adapter resources on close: ' . $e->getMessage());
+                Log::error('Error cleaning up SSE adapter resources on close: '.$e->getMessage());
             }
         }
 
         try {
             $this->sendEvent(event: 'close', data: '{"reason":"server_closed"}');
         } catch (Exception $e) {
-            Log::info('Could not send final SSE close event: ' . $e->getMessage());
+            Log::info('Could not send final SSE close event: '.$e->getMessage());
         }
     }
 
     /**
      * Registers a callback to execute when `close()` is called.
      *
-     * @param callable $handler The callback (takes no arguments).
-     * @return void
+     * @param  callable  $handler  The callback (takes no arguments).
      */
     public function onClose(callable $handler): void
     {
@@ -178,8 +173,7 @@ final class SseTransport implements TransportInterface
     /**
      * Registers a callback to execute on transport errors triggered by `triggerError()`.
      *
-     * @param callable $handler The callback (receives string error message).
-     * @return void
+     * @param  callable  $handler  The callback (receives string error message).
      */
     public function onError(callable $handler): void
     {
@@ -189,8 +183,7 @@ final class SseTransport implements TransportInterface
     /**
      * Registers a callback for processing adapter-mediated messages via `processMessage()`.
      *
-     * @param callable $handler The callback (receives string clientId, array message).
-     * @return void
+     * @param  callable  $handler  The callback (receives string clientId, array message).
      */
     public function onMessage(callable $handler): void
     {
@@ -219,9 +212,10 @@ final class SseTransport implements TransportInterface
         if ($this->adapter !== null && $this->clientId !== null && $this->connected) {
             try {
                 $messages = $this->adapter->receiveMessages($this->clientId);
+
                 return $messages ?: [];
             } catch (Exception $e) {
-                $this->triggerError('SSE Failed to receive messages via adapter: ' . $e->getMessage());
+                $this->triggerError('SSE Failed to receive messages via adapter: '.$e->getMessage());
             }
         } elseif ($this->adapter === null) {
             Log::info('SSE Transport::receive called but no adapter is configured.');
@@ -234,18 +228,17 @@ final class SseTransport implements TransportInterface
      * Logs an error and invokes all registered error handlers.
      * Catches exceptions within error handlers themselves.
      *
-     * @param string $message The error message.
-     * @return void
+     * @param  string  $message  The error message.
      */
     protected function triggerError(string $message): void
     {
-        Log::error('SSE Transport error: ' . $message);
+        Log::error('SSE Transport error: '.$message);
 
         foreach ($this->errorHandlers as $handler) {
             try {
                 call_user_func($handler, $message);
             } catch (Exception $e) {
-                Log::error('Error in SSE error handler itself: ' . $e->getMessage());
+                Log::error('Error in SSE error handler itself: '.$e->getMessage());
             }
         }
     }
@@ -253,8 +246,7 @@ final class SseTransport implements TransportInterface
     /**
      * Sets the adapter instance used for message persistence/retrieval.
      *
-     * @param SseAdapterInterface $adapter The adapter implementation.
-     * @return void
+     * @param  SseAdapterInterface  $adapter  The adapter implementation.
      */
     public function setAdapter(SseAdapterInterface $adapter): void
     {
@@ -265,9 +257,8 @@ final class SseTransport implements TransportInterface
      * Processes a message payload by invoking all registered message handlers.
      * Typically called after `receive()`. Catches exceptions within handlers.
      *
-     * @param string $clientId The client ID associated with the message.
-     * @param array  $message  The message payload (usually an array).
-     * @return void
+     * @param  string  $clientId  The client ID associated with the message.
+     * @param  array  $message  The message payload (usually an array).
      */
     public function processMessage(string $clientId, array $message): void
     {
@@ -275,7 +266,7 @@ final class SseTransport implements TransportInterface
             try {
                 $handler($clientId, $message);
             } catch (Exception $e) {
-                Log::error("Error processing SSE message via handler: " . $e->getMessage(), [
+                Log::error('Error processing SSE message via handler: '.$e->getMessage(), [
                     'clientId' => $clientId,
                     // Avoid logging potentially sensitive message content in production
                     // 'message_summary' => is_array($message) ? json_encode(array_keys($message)) : substr($message, 0, 100)
@@ -288,9 +279,9 @@ final class SseTransport implements TransportInterface
      * Pushes a message to the adapter for later retrieval by the target client.
      * Encodes the message to JSON before pushing.
      *
-     * @param string $clientId The target client ID.
-     * @param array  $message  The message payload (as an array).
-     * @return void
+     * @param  string  $clientId  The target client ID.
+     * @param  array  $message  The message payload (as an array).
+     *
      * @throws Exception If adapter is not set, JSON encoding fails, or adapter push fails.
      */
     public function pushMessage(string $clientId, array $message): void
@@ -301,7 +292,7 @@ final class SseTransport implements TransportInterface
 
         $messageString = json_encode($message);
         if ($messageString === false) {
-            throw new Exception('Failed to JSON encode message for pushing: ' . json_last_error_msg());
+            throw new Exception('Failed to JSON encode message for pushing: '.json_last_error_msg());
         }
 
         $this->adapter->pushMessage(clientId: $clientId, message: $messageString);

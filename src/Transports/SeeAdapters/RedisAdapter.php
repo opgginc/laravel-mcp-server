@@ -34,7 +34,7 @@ final class RedisAdapter implements SseAdapterInterface
     /**
      * Initialize the adapter with any required configuration
      *
-     * @param array $config Configuration options for the adapter
+     * @param  array  $config  Configuration options for the adapter
      *
      * @throws Exception If initialization fails
      */
@@ -50,19 +50,19 @@ final class RedisAdapter implements SseAdapterInterface
             }
 
             if (isset($config['ttl'])) {
-                $this->messageTtl = (int)$config['ttl'];
+                $this->messageTtl = (int) $config['ttl'];
             }
         } catch (Exception $e) {
-            Log::error('Failed to initialize Redis SSE Adapter: ' . $e->getMessage());
-            throw new Exception('Failed to initialize Redis SSE Adapter: ' . $e->getMessage());
+            Log::error('Failed to initialize Redis SSE Adapter: '.$e->getMessage());
+            throw new Exception('Failed to initialize Redis SSE Adapter: '.$e->getMessage());
         }
     }
 
     /**
      * Add a message to the queue for a specific client
      *
-     * @param string $clientId The unique identifier for the client
-     * @param string $message The message to be queued
+     * @param  string  $clientId  The unique identifier for the client
+     * @param  string  $message  The message to be queued
      *
      * @throws Exception If the message cannot be added to the queue
      */
@@ -76,15 +76,15 @@ final class RedisAdapter implements SseAdapterInterface
             $this->redis->expire($key, $this->messageTtl);
 
         } catch (Exception $e) {
-            Log::error('Failed to add message to Redis queue: ' . $e->getMessage());
-            throw new Exception('Failed to add message to Redis queue: ' . $e->getMessage());
+            Log::error('Failed to add message to Redis queue: '.$e->getMessage());
+            throw new Exception('Failed to add message to Redis queue: '.$e->getMessage());
         }
     }
 
     /**
      * Get the Redis key for a client's message queue
      *
-     * @param string $clientId The client ID
+     * @param  string  $clientId  The client ID
      * @return string The Redis key
      */
     protected function getQueueKey(string $clientId): string
@@ -97,7 +97,7 @@ final class RedisAdapter implements SseAdapterInterface
     /**
      * Remove all messages for a specific client
      *
-     * @param string $clientId The unique identifier for the client
+     * @param  string  $clientId  The unique identifier for the client
      *
      * @throws Exception If the messages cannot be removed
      */
@@ -109,15 +109,15 @@ final class RedisAdapter implements SseAdapterInterface
             $this->redis->del($key);
 
         } catch (Exception $e) {
-            Log::error('Failed to remove messages from Redis queue: ' . $e->getMessage());
-            throw new Exception('Failed to remove messages from Redis queue: ' . $e->getMessage());
+            Log::error('Failed to remove messages from Redis queue: '.$e->getMessage());
+            throw new Exception('Failed to remove messages from Redis queue: '.$e->getMessage());
         }
     }
 
     /**
      * Receive and remove all messages for a specific client
      *
-     * @param string $clientId The unique identifier for the client
+     * @param  string  $clientId  The unique identifier for the client
      * @return array<string> Array of messages
      *
      * @throws Exception If the messages cannot be retrieved
@@ -134,14 +134,14 @@ final class RedisAdapter implements SseAdapterInterface
 
             return $messages;
         } catch (Exception $e) {
-            throw new Exception('Failed to receive messages from Redis queue: ' . $e->getMessage());
+            throw new Exception('Failed to receive messages from Redis queue: '.$e->getMessage());
         }
     }
 
     /**
      * Pop the oldest message from the queue for a specific client
      *
-     * @param string $clientId The unique identifier for the client
+     * @param  string  $clientId  The unique identifier for the client
      * @return string|null The message or null if the queue is empty
      *
      * @throws Exception If the message cannot be popped
@@ -159,15 +159,15 @@ final class RedisAdapter implements SseAdapterInterface
 
             return $message;
         } catch (Exception $e) {
-            Log::error('Failed to pop message from Redis queue: ' . $e->getMessage());
-            throw new Exception('Failed to pop message from Redis queue: ' . $e->getMessage());
+            Log::error('Failed to pop message from Redis queue: '.$e->getMessage());
+            throw new Exception('Failed to pop message from Redis queue: '.$e->getMessage());
         }
     }
 
     /**
      * Check if there are any messages in the queue for a specific client
      *
-     * @param string $clientId The unique identifier for the client
+     * @param  string  $clientId  The unique identifier for the client
      * @return bool True if there are messages, false otherwise
      */
     public function hasMessages(string $clientId): bool
@@ -179,7 +179,7 @@ final class RedisAdapter implements SseAdapterInterface
 
             return $count > 0;
         } catch (Exception $e) {
-            Log::error('Failed to check for messages in Redis queue: ' . $e->getMessage());
+            Log::error('Failed to check for messages in Redis queue: '.$e->getMessage());
 
             return false;
         }
@@ -188,7 +188,7 @@ final class RedisAdapter implements SseAdapterInterface
     /**
      * Get the number of messages in the queue for a specific client
      *
-     * @param string $clientId The unique identifier for the client
+     * @param  string  $clientId  The unique identifier for the client
      * @return int The number of messages
      */
     public function getMessageCount(string $clientId): int
@@ -198,9 +198,9 @@ final class RedisAdapter implements SseAdapterInterface
 
             $count = $this->redis->llen($key);
 
-            return (int)$count;
+            return (int) $count;
         } catch (Exception $e) {
-            Log::error('Failed to get message count from Redis queue: ' . $e->getMessage());
+            Log::error('Failed to get message count from Redis queue: '.$e->getMessage());
 
             return 0;
         }

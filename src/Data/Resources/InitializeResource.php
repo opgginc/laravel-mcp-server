@@ -13,16 +13,12 @@ class InitializeResource
     /**
      * The version of the Model Context Protocol being used.
      * Defaults to the version defined in MCPProtocol.
-     *
-     * @var string
      */
     public string $protocolVersion = MCPProtocol::PROTOCOL_VERSION;
 
     /**
      * An array describing the capabilities of the server.
      * This typically includes information about supported features or tools.
-     *
-     * @var array
      */
     public array $capabilities;
 
@@ -37,10 +33,10 @@ class InitializeResource
     /**
      * Constructs a new InitializeResource instance.
      *
-     * @param string $name The name of the server.
-     * @param string $version The version of the server.
-     * @param array $capabilities The capabilities supported by the server.
-     * @param string $protocolVersion The protocol version being used.
+     * @param  string  $name  The name of the server.
+     * @param  string  $version  The version of the server.
+     * @param  array  $capabilities  The capabilities supported by the server.
+     * @param  string  $protocolVersion  The protocol version being used.
      */
     public function __construct(string $name, string $version, array $capabilities, string $protocolVersion = '2024-11-05')
     {
@@ -56,7 +52,7 @@ class InitializeResource
      * Creates an InitializeResource instance from an array.
      * Useful for hydrating the object from serialized data.
      *
-     * @param array $data The data array, expected to contain 'name', 'version', and 'capabilities'.
+     * @param  array  $data  The data array, expected to contain 'name', 'version', and 'capabilities'.
      * @return self A new instance of InitializeResource.
      */
     public static function fromArray(array $data): self

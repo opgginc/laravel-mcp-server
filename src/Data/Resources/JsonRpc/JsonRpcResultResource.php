@@ -19,16 +19,14 @@ class JsonRpcResultResource
      * The identifier established by the client for the JSON-RPC request.
      * Must be the same as the value of the id member in the Request Object.
      * If there was an error in detecting the id in the Request object (e.g. Parse error/Invalid Request), it MUST be Null.
-     *
-     * @var string|int
      */
     protected string|int $id;
 
     /**
      * JsonRpcResultResource constructor.
      *
-     * @param string|int $id The identifier established by the client.
-     * @param array<mixed> $result The result data from the method execution.
+     * @param  string|int  $id  The identifier established by the client.
+     * @param  array<mixed>  $result  The result data from the method execution.
      */
     public function __construct(string|int $id, array $result)
     {

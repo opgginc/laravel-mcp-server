@@ -17,6 +17,7 @@ use OPGG\LaravelMcpServer\Utils\DataUtil;
 
 /**
  * MCPProtocol
+ *
  * @see https://modelcontextprotocol.io/docs/concepts/architecture
  */
 final class MCPProtocol
@@ -36,7 +37,7 @@ final class MCPProtocol
     private array $notificationHandlers = [];
 
     /**
-     * @param TransportInterface $transport The transport implementation to use for communication
+     * @param  TransportInterface  $transport  The transport implementation to use for communication
      * @return void
      */
     public function __construct(TransportInterface $transport)
@@ -91,17 +92,19 @@ final class MCPProtocol
     {
         $messageId = $message['id'] ?? null;
         try {
-            if (!isset($message['jsonrpc']) || $message['jsonrpc'] !== '2.0') {
+            if (! isset($message['jsonrpc']) || $message['jsonrpc'] !== '2.0') {
                 throw new JsonRpcErrorException(message: 'Invalid Request: Not a valid JSON-RPC 2.0 message', code: JsonRpcErrorCode::INVALID_REQUEST);
             }
 
             $requestData = DataUtil::makeRequestData(message: $message);
             if ($requestData instanceof RequestData) {
                 $this->handleRequestProcess(clientId: $clientId, requestData: $requestData);
+
                 return;
             }
             if ($requestData instanceof NotificationData) {
                 $this->handleNotificationProcess(clientId: $clientId, notificationData: $requestData);
+
                 return;
             }
 
@@ -118,9 +121,8 @@ final class MCPProtocol
      * Finds a matching request handler and executes it.
      * Sends the result or an error back to the client.
      *
-     * @param string $clientId The identifier of the client sending the request.
-     * @param RequestData $requestData The parsed request data object.
-     * @return void
+     * @param  string  $clientId  The identifier of the client sending the request.
+     * @param  RequestData  $requestData  The parsed request data object.
      */
     private function handleRequestProcess(string $clientId, RequestData $requestData): void
     {
@@ -154,9 +156,8 @@ final class MCPProtocol
      * Finds a matching notification handler and executes it.
      * Does not send a response back to the client for notifications.
      *
-     * @param string $clientId The identifier of the client sending the notification.
-     * @param NotificationData $notificationData The parsed notification data object.
-     * @return void
+     * @param  string  $clientId  The identifier of the client sending the notification.
+     * @param  NotificationData  $notificationData  The parsed notification data object.
      */
     private function handleNotificationProcess(string $clientId, NotificationData $notificationData): void
     {
@@ -185,6 +186,7 @@ final class MCPProtocol
     {
         if ($message instanceof JsonRpcResultResource || $message instanceof JsonRpcErrorResource) {
             $this->transport->pushMessage(clientId: $clientId, message: $message->toResponse());
+
             return;
         }
 

@@ -15,8 +15,6 @@ class JsonRpcErrorException extends Exception
 {
     /**
      * The JSON-RPC error code.
-     *
-     * @var JsonRpcErrorCode
      */
     private JsonRpcErrorCode $jsonRpcErrorCode;
 
@@ -30,9 +28,9 @@ class JsonRpcErrorException extends Exception
     /**
      * JsonRpcErrorException constructor.
      *
-     * @param string $message A human-readable description of the error.
-     * @param JsonRpcErrorCode $code The JSON-RPC error code enum value.
-     * @param mixed|null $data Additional data associated with the error (optional).
+     * @param  string  $message  A human-readable description of the error.
+     * @param  JsonRpcErrorCode  $code  The JSON-RPC error code enum value.
+     * @param  mixed|null  $data  Additional data associated with the error (optional).
      */
     public function __construct(string $message, JsonRpcErrorCode $code, mixed $data = null)
     {

@@ -30,10 +30,10 @@ class RequestData
     /**
      * Constructor for RequestData.
      *
-     * @param string $method The method name.
-     * @param string $jsonRpc The JSON-RPC version.
-     * @param int $id The request identifier.
-     * @param array<string, mixed> $params The request parameters.
+     * @param  string  $method  The method name.
+     * @param  string  $jsonRpc  The JSON-RPC version.
+     * @param  int  $id  The request identifier.
+     * @param  array<string, mixed>  $params  The request parameters.
      */
     public function __construct(string $method, string $jsonRpc, int $id, array $params)
     {
@@ -46,7 +46,7 @@ class RequestData
     /**
      * Creates a RequestData instance from an array.
      *
-     * @param array<string, mixed> $data The data array, typically from a decoded JSON request.
+     * @param  array<string, mixed>  $data  The data array, typically from a decoded JSON request.
      * @return self A new instance of RequestData.
      */
     public static function fromArray(array $data): self

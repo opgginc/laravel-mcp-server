@@ -61,9 +61,9 @@ final class MCPServer
      * Initializes the server with the communication protocol, server information,
      * and capabilities. Registers the mandatory 'initialize' request handler.
      *
-     * @param MCPProtocol $protocol The protocol handler instance (e.g., for JSON-RPC over SSE).
-     * @param array{name: string, version: string} $serverInfo Associative array containing the server's name and version.
-     * @param ServerCapabilities|null $capabilities Optional server capabilities configuration. If null, default capabilities are used.
+     * @param  MCPProtocol  $protocol  The protocol handler instance (e.g., for JSON-RPC over SSE).
+     * @param  array{name: string, version: string}  $serverInfo  Associative array containing the server's name and version.
+     * @param  ServerCapabilities|null  $capabilities  Optional server capabilities configuration. If null, default capabilities are used.
      */
     public function __construct(MCPProtocol $protocol, array $serverInfo, ?ServerCapabilities $capabilities = null)
     {
@@ -79,8 +79,7 @@ final class MCPServer
      * Registers a request handler with the protocol layer.
      * Request handlers process incoming method calls from the client.
      *
-     * @param RequestHandler $handler The request handler instance to register.
-     * @return void
+     * @param  RequestHandler  $handler  The request handler instance to register.
      */
     public function registerRequestHandler(RequestHandler $handler): void
     {
@@ -90,10 +89,10 @@ final class MCPServer
     /**
      * Static factory method to create a new MCPServer instance with simplified parameters.
      *
-     * @param MCPProtocol $protocol The protocol handler instance.
-     * @param string $name The server name.
-     * @param string $version The server version.
-     * @param ServerCapabilities|null $capabilities Optional server capabilities configuration.
+     * @param  MCPProtocol  $protocol  The protocol handler instance.
+     * @param  string  $name  The server name.
+     * @param  string  $version  The server version.
+     * @param  ServerCapabilities|null  $capabilities  Optional server capabilities configuration.
      * @return self A new MCPServer instance.
      */
     public static function create(
@@ -112,7 +111,7 @@ final class MCPServer
      * Registers the necessary request handlers for MCP Tools functionality.
      * This typically includes handlers for 'tools/list' and 'tools/call'.
      *
-     * @param ToolRepository $toolRepository The repository containing available tools.
+     * @param  ToolRepository  $toolRepository  The repository containing available tools.
      * @return self The current MCPServer instance for method chaining.
      */
     public function registerToolRepository(ToolRepository $toolRepository): self
@@ -126,8 +125,6 @@ final class MCPServer
     /**
      * Initiates the connection process via the protocol handler.
      * Depending on the transport (e.g., SSE), this might start listening for client connections.
-     *
-     * @return void
      */
     public function connect(): void
     {
@@ -136,8 +133,6 @@ final class MCPServer
 
     /**
      * Initiates the disconnection process via the protocol handler.
-     *
-     * @return void
      */
     public function disconnect(): void
     {
@@ -148,8 +143,7 @@ final class MCPServer
      * Registers a notification handler with the protocol layer.
      * Notification handlers process incoming notifications from the client (requests without an ID).
      *
-     * @param NotificationHandler $handler The notification handler instance to register.
-     * @return void
+     * @param  NotificationHandler  $handler  The notification handler instance to register.
      */
     public function registerNotificationHandler(NotificationHandler $handler): void
     {
@@ -161,8 +155,9 @@ final class MCPServer
      * Stores client capabilities, checks protocol version, and marks the server as initialized.
      * Throws an error if the server is already initialized.
      *
-     * @param InitializeData $data The data object containing initialization parameters from the client.
+     * @param  InitializeData  $data  The data object containing initialization parameters from the client.
      * @return InitializeResource A resource object containing the server's initialization response.
+     *
      * @throws JsonRpcErrorException If the server has already been initialized (JSON-RPC error code -32600).
      */
     public function initialize(InitializeData $data): InitializeResource
@@ -190,9 +185,8 @@ final class MCPServer
      * Forwards a request message to a specific client via the protocol handler.
      * Used for server-initiated requests to the client (if supported by the protocol/transport).
      *
-     * @param string $clientId The identifier of the target client.
-     * @param array<string, mixed> $message The request message payload (following JSON-RPC structure).
-     * @return void
+     * @param  string  $clientId  The identifier of the target client.
+     * @param  array<string, mixed>  $message  The request message payload (following JSON-RPC structure).
      */
     public function requestMessage(string $clientId, array $message): void
     {
