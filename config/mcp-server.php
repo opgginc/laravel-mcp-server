@@ -7,8 +7,7 @@ return [
     /*
     |--------------------------------------------------------------------------
     | MCP Server
-    | mcp path를 지정합니다.
-    | https://modelcontextprotocol.io/specification/2024-11-05
+    | Specify the MCP path.
     |--------------------------------------------------------------------------
     */
     'default_path' => 'mcp',
@@ -34,7 +33,7 @@ return [
     | Each adapter has its own configuration options.
     |
     */
-    'see_adapter' => 'redis',
+    'sse_adapter' => 'redis',
     'adapters' => [
         'redis' => [
             'prefix' => 'mcp_sse_',
