@@ -1,0 +1,27 @@
+This package is a Laravel Model Context Protocol Server.
+
+Laravel
+- Add `use` statements for all Facade classes to call them more concisely.
+- Use Facade classes or original Laravel classes in all files instead of helper functions.
+
+Features
+- https://modelcontextprotocol.io/docs/concepts/architecture
+- https://modelcontextprotocol.io/docs/concepts/tools
+- https://modelcontextprotocol.io/docs/concepts/transports
+- https://modelcontextprotocol.io/sdk/java/mcp-server
+
+Documentation Guidelines
+- Document all public methods and classes with PHPDoc annotations.
+- Include `@param`, `@return`, and `@throws` tags for all methods.
+- Document configuration options with sample values and explanations.
+- Keep documentation up-to-date when changing functionality.
+- Use descriptive variable and method names to improve self-documentation.
+- Add inline comments for complex logic explaining the "why" not just the "what".
+- Create markdown documentation for end-users in the docs/ directory.
+- Include version compatibility information in all documentation.
+- Document breaking changes prominently in CHANGELOG.md and README.md.
+- Add type hints and return types to all methods for better IDE support.
+- Document expected environment variables and their purposes.
+- Maintain a FAQ section in the documentation for common issues.
+- Document how the package integrates with Laravel's existing features.
+- When specifying types, especially for nullable types, do not use ?string. Always write string|null instead of using ?, and make sure null is placed at the end.
