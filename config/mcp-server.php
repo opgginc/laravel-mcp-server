@@ -3,6 +3,17 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | MCP Server Activation
+    |--------------------------------------------------------------------------
+    |
+    | Enable or disable the MCP server functionality. When disabled, no routes
+    | will be registered and the server will not respond to any requests.
+    |
+    */
+    'enabled' => env('MCP_SERVER_ENABLED', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Server Information
     |--------------------------------------------------------------------------
     |
@@ -46,9 +57,7 @@ return [
     | Server-Sent Events Provider
     |--------------------------------------------------------------------------
     |
-    | When set to true, the MCPServer will be registered as a singleton in the
-    | application container. This allows for easy access to the server instance
-    | throughout the application when using the SSE transport.
+    | The type of server provider to use. Currently only 'sse' is supported.
     |
     */
     'server_provider' => 'sse',

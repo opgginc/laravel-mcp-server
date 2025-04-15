@@ -79,6 +79,13 @@ class MakeMcpToolCommand extends Command
             $this->comment("        {$fullClassName}::class,");
             $this->comment("    ],");
         }
+        
+        // Display testing instructions
+        $this->newLine();
+        $this->info("You can now test your tool with the following command:");
+        $this->comment("    php artisan mcp:test-tool " . $className);
+        $this->info("Or view all available tools:");
+        $this->comment("    php artisan mcp:test-tool --list");
 
         return 0;
     }

@@ -92,6 +92,28 @@ class MyCustomTool implements ToolInterface
 }
 ```
 
+### Testing MCP Tools
+
+The package includes a special command for testing your MCP tools without needing a real MCP client:
+
+```bash
+# Test a specific tool interactively
+php artisan mcp:test-tool MyCustomTool
+
+# List all available tools
+php artisan mcp:test-tool --list
+
+# Test with specific JSON input
+php artisan mcp:test-tool MyCustomTool --input='{"param":"value"}'
+```
+
+This helps you rapidly develop and debug tools by:
+
+- Showing the tool's input schema and validating inputs
+- Executing the tool with your provided input
+- Displaying formatted results or detailed error information
+- Supporting complex input types including objects and arrays
+
 ## Advanced Features
 
 ### Pub/Sub Architecture with SSE Adapters
@@ -124,6 +146,25 @@ The default Redis adapter can be configured as follows:
         'ttl' => 100,              // Message TTL in seconds
     ],
 ],
+```
+
+## Environment Variables
+
+The package supports the following environment variables to allow configuration without modifying the config files:
+
+| Variable | Description | Default |
+|----------|-------------|--------|
+| `MCP_SERVER_ENABLED` | Enable or disable the MCP server | `true` |
+| `MCP_REDIS_CONNECTION` | Redis connection name from database.php | `default` |
+
+### Example .env Configuration
+
+```
+# Disable MCP server in specific environments
+MCP_SERVER_ENABLED=false
+
+# Use a specific Redis connection for MCP
+MCP_REDIS_CONNECTION=mcp
 ```
 
 ## License
