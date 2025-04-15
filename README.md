@@ -15,6 +15,16 @@
 <a href="https://op.gg/open-source/laravel-mcp-server">Official Website</a>
 </p>
 
+<p align="center">
+  <a href="README.md">English</a> |
+  <a href="README.pt-BR.md">Português do Brasil</a> |
+  <a href="README.ko.md">한국어</a> |
+  <a href="README.ru.md">Русский</a> |
+  <a href="README.zh-CN.md">简体中文</a> |
+  <a href="README.zh-TW.md">繁體中文</a> |
+  <a href="README.pl.md">Polski</a>
+</p>
+
 ## Overview
 
 Laravel MCP Server is a powerful package designed to streamline the implementation of Model Context Protocol (MCP) servers in Laravel applications. **Unlike most Laravel MCP packages that use Standard Input/Output (stdio) transport**, this package **utilizes Server-Sent Events (SSE)** transport, providing a more secure and controlled integration method.
@@ -113,6 +123,23 @@ This helps you rapidly develop and debug tools by:
 - Executing the tool with your provided input
 - Displaying formatted results or detailed error information
 - Supporting complex input types including objects and arrays
+
+### Visualizing MCP Tools with Inspector
+
+You can also use the Model Context Protocol Inspector to visualize and test your MCP tools:
+
+```bash
+# Run the MCP Inspector without installation
+npx @modelcontextprotocol/inspector node build/index.js
+```
+
+This will typically open a web interface at `localhost:6274`. To test your MCP server:
+
+1. Start your Laravel development server (e.g., `php artisan serve`)  
+2. In the Inspector interface, enter your Laravel server's MCP SSE URL (e.g., `http://localhost:8000/mcp/sse`)  
+3. Connect and explore available tools visually
+
+The SSE URL follows the pattern: `http://[your-laravel-server]/[default_path]/sse` where `default_path` is defined in your `config/mcp-server.php` file.
 
 ## Advanced Features
 
