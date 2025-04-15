@@ -1,16 +1,29 @@
-This package is a Laravel Model Context Protocol Server.
+This is a packge for laravel which makes easier to build a Model Context Protocol Server.
 
-Laravel
+## Technical Specification
+
+- Support Laravel 10, 11, 12
+- Support PHP 8.2+
+
+## Laravel Package Development Guideline
+
 - Add `use` statements for all Facade classes to call them more concisely.
 - Use Facade classes or original Laravel classes in all files instead of helper functions.
+- Create new class and refactor if the file is getting too long. (more than 300 lines)
+- Use `env()` instead of `Config` facade in config file. (`/config/mcp-server.php`)
+  - They don't support most classes in Laravel.
+  - They support some of helpers: `storage_path()`, `resource_path()`, `env()`
+  - They support some classes: `Illuminate\Support\Str`
 
-Features
+## Features
+
 - https://modelcontextprotocol.io/docs/concepts/architecture
 - https://modelcontextprotocol.io/docs/concepts/tools
 - https://modelcontextprotocol.io/docs/concepts/transports
 - https://modelcontextprotocol.io/sdk/java/mcp-server
 
-Documentation Guidelines
+## Documentation Guidelines
+
 - Document all public methods and classes with PHPDoc annotations.
 - Include `@param`, `@return`, and `@throws` tags for all methods.
 - Document configuration options with sample values and explanations.
