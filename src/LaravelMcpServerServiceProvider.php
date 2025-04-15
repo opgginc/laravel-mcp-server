@@ -4,12 +4,11 @@ namespace OPGG\LaravelMcpServer;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
 use OPGG\LaravelMcpServer\Http\Controllers\MessageController;
 use OPGG\LaravelMcpServer\Http\Controllers\SseController;
 use OPGG\LaravelMcpServer\Providers\SseServiceProvider;
 use OPGG\LaravelMcpServer\Server\MCPServer;
-use OPGG\LaravelMcpServer\Console\Commands\MakeMcpCommandCommand;
-use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -48,7 +47,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
      */
     protected function registerRoutes(): void
     {
-        if (!app()->has(MCPServer::class)) {
+        if (! app()->has(MCPServer::class)) {
             return;
         }
 
