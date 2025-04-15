@@ -1,12 +1,12 @@
 {
-    "name": "opgginc/laravel-mcp-sse-server",
-    "description": "This is my package laravel-mcp-sse-server",
+    "name": "opgginc/laravel-mcp-server",
+    "description": "This is my package laravel-mcp-server",
     "keywords": [
         "opgginc",
         "laravel",
-        "laravel-mcp-sse-server"
+        "laravel-mcp-server"
     ],
-    "homepage": "https://github.com/opgginc/laravel-mcp-sse-server",
+    "homepage": "https://github.com/opgginc/laravel-mcp-server",
     "license": "MIT",
     "require": {
         "php": "^8.4",
