@@ -1,8 +1,5 @@
 <?php
 
-use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
-use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
-
 return [
     /*
     |--------------------------------------------------------------------------
@@ -94,9 +91,10 @@ return [
     | generating the tool list for the client.
     |
     */
+    // Register your tools here
     'tools' => [
-        HelloWorldTool::class,
-        VersionCheckTool::class,
+        \OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool::class,
+        \OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool::class,
     ],
 
     /*

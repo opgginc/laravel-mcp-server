@@ -66,14 +66,27 @@ Key benefits:
 
 ## Basic Usage
 
-### Adding Custom Tools
+### Creating and Adding Custom Tools
 
-To develop your own tools, create a new class and register it in `config/mcp-server.php`:
+The package provides convenient Artisan commands to generate new tools:
+
+```bash
+php artisan make:mcp-tool MyCustomTool
+```
+
+This command:
+
+- Handles various input formats (spaces, hyphens, mixed case)
+- Automatically converts the name to proper case format
+- Creates a properly structured tool class in `app/MCP/Tools`
+- Offers to automatically register the tool in your configuration
+
+You can also manually create and register tools in `config/mcp-server.php`:
 
 ```php
-use OPGG\LaravelMcpServer\Services\ToolService\BaseTool;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
-class MyCustomTool extends BaseTool
+class MyCustomTool implements ToolInterface
 {
     // Tool implementation
 }
@@ -92,6 +105,7 @@ The package implements a publish/subscribe (pub/sub) messaging pattern through i
 3. **Subscriber (SSE Connection)**: Long-lived SSE connections subscribe to messages for their respective clients and deliver them in real-time.
 
 This architecture enables:
+
 - Scalable real-time communication
 - Reliable message delivery even during temporary disconnections
 - Efficient handling of multiple concurrent client connections
@@ -111,10 +125,6 @@ The default Redis adapter can be configured as follows:
     ],
 ],
 ```
-
-## Contributing
-
-Bug reports and feature improvement suggestions can be submitted through the GitHub repository. For detailed information on how to contribute, please refer to the CONTRIBUTING.md file.
 
 ## License
 

@@ -7,6 +7,7 @@ use Illuminate\Support\ServiceProvider;
 use OPGG\LaravelMcpServer\Protocol\MCPProtocol;
 use OPGG\LaravelMcpServer\Server\MCPServer;
 use OPGG\LaravelMcpServer\Server\ServerCapabilities;
+use OPGG\LaravelMcpServer\Services\CommandService\CommandRepository;
 use OPGG\LaravelMcpServer\Services\SseAdapterFactory;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 use OPGG\LaravelMcpServer\Transports\SseTransport;
