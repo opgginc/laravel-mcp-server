@@ -43,7 +43,6 @@ final class RedisAdapter implements SseAdapterInterface
         try {
             $connection = $config['connection'] ?? 'default';
             $this->redis = Redis::connection($connection);
-            $this->redis->setOption(2, null);
 
             if (isset($config['prefix'])) {
                 $this->keyPrefix = $config['prefix'];
