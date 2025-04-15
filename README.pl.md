@@ -27,27 +27,27 @@
 
 ## Przegląd
 
-Laravel MCP Server to potężny pakiet zaprojektowany, aby uprościć implementację serwerów Protokołu Kontekstu Modelu (MCP) w aplikacjach Laravel. **W przeciwieństwie do większości pakietów Laravel MCP, które używają transportu Standardowego Wejścia/Wyjścia (stdio)**, ten pakiet **wykorzystuje transport Server-Sent Events (SSE)**, zapewniając bezpieczniejszą i bardziej kontrolowaną metodę integracji.
+Laravel MCP Server to konkretne narzędzie, które ułatwia stworzenie serwerów MCP w Laravelu. **W odróżnieniu od większości innych pakietów, które bazują na stdio**, ten pakiet **korzysta z SSE (Server-Sent Events)**, co daje Ci większe bezpieczeństwo i kontrolę nad integracją.
 
-### Dlaczego SSE zamiast STDIO?
+### Czemu SSE zamiast STDIO?
 
-Chociaż stdio jest proste i szeroko stosowane w implementacjach MCP, ma znaczące implikacje bezpieczeństwa dla środowisk korporacyjnych:
+Stdio jest proste i popularne w implementacjach MCP, ale w firmowych środowiskach stwarza spore problemy z bezpieczeństwem:
 
-- **Ryzyko bezpieczeństwa**: Transport STDIO potencjalnie ujawnia wewnętrzne szczegóły systemu i specyfikacje API
-- **Ochrona danych**: Organizacje muszą chronić własnościowe punkty końcowe API i wewnętrzną architekturę systemu
-- **Kontrola**: SSE oferuje lepszą kontrolę nad kanałem komunikacji między klientami LLM a Twoją aplikacją
+- **Bezpieczeństwo**: STDIO może wyciec poufne szczegóły systemu i API
+- **Ochrona danych**: Firmy muszą chronić swoje endpointy API i wewnętrzną architekturę
+- **Kontrola**: SSE daje Ci lepszą kontrolę nad komunikacją między klientami LLM a Twoją aplikacją
 
-Implementując serwer MCP z transportem SSE, przedsiębiorstwa mogą:
+Z serwerem MCP opartym na SSE możesz:
 
-- Eksponować tylko niezbędne narzędzia i zasoby, zachowując prywatność własnościowych szczegółów API
-- Utrzymać kontrolę nad procesami uwierzytelniania i autoryzacji
+- Udostępnić tylko potrzebne narzędzia, chroniąc poufne szczegóły API
+- Lepiej kontrolować procesy uwierzytelniania i autoryzacji
 
-Kluczowe korzyści:
+Główne zalety:
 
-- Bezproblemowa i szybka implementacja SSE w istniejących projektach Laravel
-- Wsparcie dla najnowszych wersji Laravel i PHP
-- Wydajna komunikacja serwera i przetwarzanie danych w czasie rzeczywistym
-- Zwiększone bezpieczeństwo dla środowisk korporacyjnych
+- Szybka i łatwa integracja SSE w istniejących projektach Laravel
+- Pełne wsparcie dla najnowszych wersji Laravel i PHP
+- Wydajna komunikacja i przetwarzanie danych na żywo
+- Lepsze bezpieczeństwo dla środowisk firmowych
 
 ## Główne funkcje
 
@@ -104,42 +104,42 @@ class MyCustomTool implements ToolInterface
 
 ### Testowanie narzędzi MCP
 
-Pakiet zawiera specjalną komendę do testowania twoich narzędzi MCP bez potrzeby posiadania prawdziwego klienta MCP:
+Masz tu fajną komendę do testowania swoich narzędzi MCP bez potrzeby posiadania klienta MCP:
 
 ```bash
-# Testuj interaktywnie konkretne narzędzie
+# Testuj narzędzie interaktywnie
 php artisan mcp:test-tool MyCustomTool
 
-# Wylistuj wszystkie dostępne narzędzia
+# Zobacz listę wszystkich narzędzi
 php artisan mcp:test-tool --list
 
-# Testuj z określonym wejściem JSON
+# Testuj z konkretnym JSON-em
 php artisan mcp:test-tool MyCustomTool --input='{"param":"wartosc"}'
 ```
 
-Pomaga to szybko rozwijać i debugować narzędzia dzięki:
+Dzięki temu możesz szybko rozwijać i debugować narzędzia:
 
-- Pokazywaniu schematu wejściowego narzędzia i walidacji danych wejściowych
-- Wykonywaniu narzędzia z podanymi przez Ciebie danymi wejściowymi
-- Wyświetlaniu sformatowanych wyników lub szczegółowych informacji o błędach
-- Obsłudze złożonych typów wejściowych, w tym obiektów i tablic
+- Widzisz schemat wejściowy i walidację danych
+- Testujesz narzędzie z własnymi danymi
+- Dostajesz sformatowane wyniki lub szczegółowe błędy
+- Obsługujesz złożone dane wejściowe, w tym obiekty i tablice
 
-### Wizualizacja narzędzi MCP za pomocą Inspektora
+### Wizualizacja narzędzi MCP z Inspektorem
 
-Możesz również użyć Inspektora Protokołu Kontekstu Modelu (Model Context Protocol Inspector) do wizualizacji i testowania swoich narzędzi MCP:
+Możesz też użyć MCP Inspectora do wizualnej pracy z narzędziami:
 
 ```bash
-# Uruchom MCP Inspector bez instalacji
+# Odpal Inspektora bez instalacji
 npx @modelcontextprotocol/inspector node build/index.js
 ```
 
-Zazwyczaj otworzy to interfejs webowy na `localhost:6274`. Aby przetestować swój serwer MCP:
+To otworzy interfejs w przeglądarce na `localhost:6274`. Żeby przetestować swój serwer:
 
-1. Uruchom serwer deweloperski Laravel (np. `php artisan serve`)
-2. W interfejsie Inspektora wprowadź adres URL SSE swojego serwera Laravel (np. `http://localhost:8000/mcp/sse`)
-3. Połącz się i przeglądaj dostępne narzędzia wizualnie
+1. Uruchom Laravel (`php artisan serve`)
+2. W Inspektorze wklej URL swojego serwera SSE (np. `http://localhost:8000/mcp/sse`)
+3. Połącz się i testuj narzędzia wizualnie
 
-Adres URL SSE ma następujący format: `http://[twój-serwer-laravel]/[default_path]/sse`, gdzie `default_path` jest zdefiniowany w pliku `config/mcp-server.php`.
+Format URL SSE to: `http://[twój-serwer]/[default_path]/sse`, gdzie `default_path` ustawiasz w `config/mcp-server.php`.
 
 ## Zaawansowane funkcje
 

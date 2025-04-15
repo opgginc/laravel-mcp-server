@@ -27,27 +27,27 @@
 
 ## 概述
 
-Laravel MCP Server 是一个强大的包，旨在简化 Laravel 应用中模型上下文协议（MCP）服务器的实现。**与大多数使用标准输入/输出（stdio）传输的 Laravel MCP 包不同**，本包**利用服务器发送事件（SSE）传输**，提供更安全、更可控的集成方式。
+Laravel MCP Server 是个很牛的包，可以让你在 Laravel 项目里轻松搭建 MCP 服务器。**不像其他大多数 Laravel MCP 包用的是 stdio**，这个包**用的是 SSE**，这样更安全，也更好管理。
 
-### 为什么选择 SSE 而非 STDIO？
+### 为啥用 SSE 而不用 STDIO？
 
-虽然 stdio 简单直接且在 MCP 实现中广泛使用，但在企业环境中存在显著的安全隐患：
+Stdio 虽然简单，在 MCP 实现中也很常见，但在企业环境里会带来不少安全问题：
 
 - **安全风险**：STDIO 传输可能会暴露内部系统细节和 API 规范
 - **数据保护**：组织需要保护专有 API 端点和内部系统架构
 - **控制能力**：SSE 提供对 LLM 客户端与应用程序之间通信通道的更好控制
 
-通过使用 SSE 传输实现 MCP 服务器，企业可以：
+用 SSE 来搭建 MCP 服务器，企业可以：
 
-- 只暴露必要的工具和资源，同时保持专有 API 细节的私密性
-- 保持对认证和授权过程的控制
+- 只开放必要的工具和资源，保护专有 API 的细节
+- 简单管理认证和授权过程
 
-主要优势：
+最大优势：
 
-- 在现有 Laravel 项目中无缝快速实现 SSE
-- 支持最新的 Laravel 和 PHP 版本
-- 高效的服务器通信和实时数据处理
-- 为企业环境提供增强的安全性
+- 快速易用，直接在现有 Laravel 项目里接入 SSE
+- 完全支持最新版 Laravel 和 PHP
+- 运行高效，实时数据处理性能好
+- 企业级安全性，更适合商业用途
 
 ## 主要特性
 
@@ -78,18 +78,18 @@ Laravel MCP Server 是一个强大的包，旨在简化 Laravel 应用中模型�
 
 ### 创建和添加自定义工具
 
-该包提供了便捷的 Artisan 命令来生成新工具：
+这个包提供了特别方便的 Artisan 命令来生成新工具：
 
 ```bash
 php artisan make:mcp-tool MyCustomTool
 ```
 
-此命令：
+这个命令能帮你：
 
-- 处理各种输入格式（空格、连字符、混合大小写）
-- 自动将名称转换为适当的大小写格式
-- 在 `app/MCP/Tools` 中创建结构良好的工具类
-- 提供自动在配置中注册工具的选项
+- 处理各种输入格式（空格、连字符、大小写混用）
+- 自动转换名称成正确的大小写格式
+- 在 `app/MCP/Tools` 目录下创建一个结构良好的工具类
+- 自动帮你把工具注册到配置文件中
 
 你也可以在 `config/mcp-server.php` 中手动创建和注册工具：
 
@@ -124,22 +124,22 @@ php artisan mcp:test-tool MyCustomTool --input='{"param":"值"}'
 - 显示格式化结果或详细错误信息
 - 支持包括对象和数组在内的复杂输入类型
 
-### 使用检查器可视化 MCP 工具
+### 用 MCP Inspector 可视化查看工具
 
-你还可以使用模型上下文协议检查器（Model Context Protocol Inspector）来可视化和测试你的 MCP 工具：
+你还可以用 MCP Inspector 来直观地查看和测试你的 MCP 工具：
 
 ```bash
-# 无需安装即可运行 MCP 检查器
+# 不用安装，直接用 npx 运行
 npx @modelcontextprotocol/inspector node build/index.js
 ```
 
-这通常会在 `localhost:6274` 打开一个网页界面。要测试你的 MCP 服务器：
+这个命令会在 `localhost:6274` 打开一个可视化界面。要测试你的 MCP 服务器：
 
-1. 启动你的 Laravel 开发服务器（例如：`php artisan serve`）
-2. 在检查器界面中，输入你的 Laravel 服务器的 MCP SSE URL（例如：`http://localhost:8000/mcp/sse`）
-3. 连接并直观地探索可用工具
+1. 跑起你的 Laravel 服务器（比如 `php artisan serve`）
+2. 在 Inspector 界面中，输入你的 SSE URL（比如 `http://localhost:8000/mcp/sse`）
+3. 连接后就能直观地查看和测试所有工具了
 
-SSE URL 遵循以下模式：`http://[你的Laravel服务器]/[default_path]/sse`，其中 `default_path` 在你的 `config/mcp-server.php` 文件中定义。
+SSE URL 的格式是：`http://[你的服务器地址]/[default_path]/sse`，其中 `default_path` 在 `config/mcp-server.php` 文件里设置。
 
 ## 高级功能
 

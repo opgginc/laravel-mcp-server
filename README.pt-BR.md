@@ -27,27 +27,27 @@
 
 ## Visão Geral
 
-Laravel MCP Server é um pacote robusto desenvolvido para facilitar a implementação de servidores de Protocolo de Contexto de Modelo (MCP) em aplicações Laravel. **Diferente da maioria dos pacotes Laravel MCP que usam transporte de Entrada/Saída Padrão (stdio)**, este pacote **utiliza transporte de Eventos Enviados pelo Servidor (SSE)**, oferecendo um método de integração mais seguro e controlado.
+O Laravel MCP Server é um pacote poderoso feito pra facilitar a implementação de servidores MCP (Model Context Protocol) em apps Laravel. **Ao contrário da maioria dos pacotes MCP pro Laravel que usam stdio (entrada/saída padrão)**, este pacote **usa SSE (Server-Sent Events)**, proporcionando uma integração mais segura e com melhor controle.
 
-### Por que SSE ao invés de STDIO?
+### Por que SSE em vez de STDIO?
 
-Embora o stdio seja direto e amplamente usado em implementações MCP, ele apresenta implicações significativas de segurança para ambientes empresariais:
+Apesar do stdio ser simples e muito usado nas implementações de MCP, ele traz problemas sérios de segurança em ambientes corporativos:
 
-- **Risco de Segurança**: O transporte STDIO potencialmente expõe detalhes internos do sistema e especificações de API
-- **Proteção de Dados**: Organizações precisam proteger endpoints de API proprietários e arquitetura interna do sistema
-- **Controle**: SSE oferece melhor controle sobre o canal de comunicação entre clientes LLM e sua aplicação
+- **Risco de Segurança**: O STDIO pode expor detalhes internos do sistema e especificações de API
+- **Proteção de Dados**: Empresas precisam proteger seus endpoints de API e a arquitetura interna
+- **Controle**: O SSE dá um controle muito melhor sobre a comunicação entre clientes LLM e sua app
 
-Ao implementar o servidor MCP com transporte SSE, empresas podem:
+Usando SSE pro servidor MCP, as empresas conseguem:
 
-- Expor apenas as ferramentas e recursos necessários mantendo privados os detalhes proprietários da API
-- Manter controle sobre processos de autenticação e autorização
+- Expor só as ferramentas e recursos necessários, mantendo os detalhes da API privados
+- Controlar melhor os processos de autenticação e autorização
 
-Principais benefícios:
+Principais vantagens:
 
-- Implementação rápida e simples de SSE em projetos Laravel existentes
-- Suporte para as versões mais recentes de Laravel e PHP
-- Comunicação eficiente do servidor e processamento de dados em tempo real
-- Segurança aprimorada para ambientes empresariais
+- Implementação rápida e fácil de SSE em projetos Laravel já existentes
+- Suporte às versões mais recentes do Laravel e PHP
+- Comunicação eficiente e processamento de dados em tempo real
+- Segurança reforçada pra ambientes corporativos
 
 ## Recursos Principais
 
@@ -84,12 +84,12 @@ O pacote fornece comandos Artisan convenientes para gerar novas ferramentas:
 php artisan make:mcp-tool MyCustomTool
 ```
 
-Este comando:
+Esse comando:
 
-- Lida com vários formatos de entrada (espaços, hífens, case misto)
-- Converte automaticamente o nome para o formato de case adequado
-- Cria uma classe de ferramenta estruturada corretamente em `app/MCP/Tools`
-- Oferece a opção de registrar automaticamente a ferramenta na sua configuração
+- Aceita vários formatos de entrada (com espaços, hífens, caixa mista)
+- Converte o nome pro formato de case correto automaticamente
+- Cria uma classe bem estruturada em `app/MCP/Tools`
+- Oferece pra registrar a ferramenta na sua configuração automaticamente
 
 Você também pode criar e registrar ferramentas manualmente no `config/mcp-server.php`:
 
@@ -124,22 +124,22 @@ Isso ajuda você a desenvolver e depurar ferramentas rapidamente:
 - Exibindo resultados formatados ou informações detalhadas de erro
 - Suportando tipos complexos de entrada, incluindo objetos e arrays
 
-### Visualizando Ferramentas MCP com o Inspector
+### Visualização de Ferramentas MCP com o Inspector
 
-Você também pode usar o Model Context Protocol Inspector para visualizar e testar suas ferramentas MCP:
+Dá pra usar o Inspector do MCP pra visualizar e testar suas ferramentas:
 
 ```bash
-# Execute o MCP Inspector sem instalação
+# Roda o MCP Inspector sem precisar instalar
 npx @modelcontextprotocol/inspector node build/index.js
 ```
 
-Isso normalmente abrirá uma interface web em `localhost:6274`. Para testar seu servidor MCP:
+Isso vai abrir uma interface web em `localhost:6274`. Pra testar seu servidor MCP:
 
-1. Inicie seu servidor de desenvolvimento Laravel (ex: `php artisan serve`)
-2. Na interface do Inspector, insira a URL SSE do seu servidor Laravel (ex: `http://localhost:8000/mcp/sse`)
-3. Conecte-se e explore visualmente as ferramentas disponíveis
+1. Inicie seu servidor Laravel (`php artisan serve`)
+2. No Inspector, coloque a URL SSE do seu servidor (tipo `http://localhost:8000/mcp/sse`)
+3. Conecte e explore as ferramentas visualmente
 
-A URL SSE segue o padrão: `http://[seu-servidor-laravel]/[default_path]/sse` onde `default_path` é definido no seu arquivo `config/mcp-server.php`.
+A URL SSE segue o formato: `http://[seu-servidor]/[default_path]/sse` onde o `default_path` tá configurado no seu `config/mcp-server.php`.
 
 ## Recursos Avançados
 

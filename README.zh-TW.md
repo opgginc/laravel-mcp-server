@@ -27,7 +27,7 @@
 
 ## 概述
 
-Laravel MCP Server 是一個強大的套件，專為簡化 Laravel 應用程式中模型上下文協議（MCP）伺服器的實作而設計。**與大多數使用標準輸入/輸出（stdio）傳輸的 Laravel MCP 套件不同**，本套件**採用伺服器傳送事件（SSE）傳輸**，提供更安全、更可控的整合方式。
+Laravel MCP Server 是個超強的套件，讓你在 Laravel 簡單建立 MCP 伺服器。**跟其他用 stdio 的 Laravel MCP 套件不一樣**，這個套件**用的是 SSE**，提供更安全又好管的方式。
 
 ### 為什麼選擇 SSE 而非 STDIO？
 
@@ -37,17 +37,17 @@ Laravel MCP Server 是一個強大的套件，專為簡化 Laravel 應用程式�
 - **資料保護**：組織需要保護專有 API 端點和內部系統架構
 - **控制能力**：SSE 提供對 LLM 客戶端與應用程式之間通訊通道的更佳控制
 
-透過使用 SSE 傳輸實作 MCP 伺服器，企業可以：
+用 SSE 建立 MCP 伺服器，公司可以：
 
-- 只暴露必要的工具和資源，同時保持專有 API 細節的私密性
-- 保持對身份驗證和授權程序的控制
+- 只開放需要的工具和資源，保護自家 API 的細節
+- 更好地控制驗證和授權流程
 
-主要優勢：
+主要優點：
 
-- 在現有 Laravel 專案中無縫快速實作 SSE
-- 支援最新的 Laravel 和 PHP 版本
-- 高效的伺服器通訊和即時資料處理
-- 為企業環境提供增強的安全性
+- 快速簡單，直接在現有 Laravel 專案整合 SSE
+- 完全支援最新版 Laravel 和 PHP
+- 跑得快，即時資料處理效能好
+- 企業級安全性，適合商業用途
 
 ## 主要特色
 
@@ -124,22 +124,22 @@ php artisan mcp:test-tool MyCustomTool --input='{"param":"值"}'
 - 顯示格式化結果或詳細錯誤資訊
 - 支援包括物件和陣列在內的複雜輸入類型
 
-### 使用檢查器視覺化 MCP 工具
+### 用 MCP Inspector 視覺化查看工具
 
-你還可以使用模型上下文協議檢查器（Model Context Protocol Inspector）來視覺化和測試你的 MCP 工具：
+你還可以用 MCP Inspector 來直覺地查看和測試你的 MCP 工具：
 
 ```bash
-# 無需安裝即可執行 MCP 檢查器
+# 不用安裝，直接用 npx 執行
 npx @modelcontextprotocol/inspector node build/index.js
 ```
 
-這通常會在 `localhost:6274` 開啟一個網頁介面。要測試你的 MCP 伺服器：
+這會在 `localhost:6274` 開一個網頁界面。測試 MCP 伺服器的方法：
 
-1. 啟動你的 Laravel 開發伺服器（例如：`php artisan serve`）
-2. 在檢查器介面中，輸入你的 Laravel 伺服器的 MCP SSE URL（例如：`http://localhost:8000/mcp/sse`）
-3. 連線並直觀地探索可用工具
+1. 先跑起 Laravel 開發伺服器（比如用 `php artisan serve`）
+2. 在 Inspector 界面輸入你的 SSE URL（比如 `http://localhost:8000/mcp/sse`）
+3. 連上後就能超直覺地查看所有工具了
 
-SSE URL 遵循以下模式：`http://[你的Laravel伺服器]/[default_path]/sse`，其中 `default_path` 在你的 `config/mcp-server.php` 檔案中定義。
+SSE URL 格式是：`http://[你的伺服器位址]/[default_path]/sse`，其中 `default_path` 在 `config/mcp-server.php` 檔案裡設定。
 
 ## 進階功能
 
