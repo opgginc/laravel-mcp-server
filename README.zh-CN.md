@@ -135,7 +135,25 @@ npx @modelcontextprotocol/inspector node build/index.js
 
 这个命令会在 `localhost:6274` 打开一个可视化界面。要测试你的 MCP 服务器：
 
-1. 跑起你的 Laravel 服务器（比如 `php artisan serve`）
+1. **警告**: 无法使用 `php artisan serve` 运行此包，因为它无法同时处理多个 PHP 连接。由于 MCP SSE 需要同时处理多个连接，你必须使用以下替代方案之一：
+
+   * **Laravel Octane** (最简单选项):
+     ```bash
+     # 安装和设置 Laravel Octane
+     composer require laravel/octane
+     php artisan octane:install
+     
+     # 启动 Octane 服务器
+     php artisan octane:start
+     ```
+     详细信息请参考 [Laravel Octane 文档](https://laravel.com/docs/12.x/octane)
+     
+   * **生产级选项**:
+     - Nginx + PHP-FPM
+     - Apache + PHP-FPM
+     - 自定义 Docker 配置
+     - 任何正确支持 SSE 流式传输的 Web 服务器
+
 2. 在 Inspector 界面中，输入你的 SSE URL（比如 `http://localhost:8000/mcp/sse`）
 3. 连接后就能直观地查看和测试所有工具了
 

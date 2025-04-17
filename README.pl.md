@@ -135,7 +135,25 @@ npx @modelcontextprotocol/inspector node build/index.js
 
 To otworzy interfejs w przeglądarce na `localhost:6274`. Żeby przetestować swój serwer:
 
-1. Uruchom Laravel (`php artisan serve`)
+1. **UWAGA**: NIE MOŻNA używać `php artisan serve` z tym pakietem, ponieważ nie może on obsługiwać wielu połączeń PHP jednocześnie. Ponieważ MCP SSE wymaga przetwarzania wielu połączeń równocześnie, należy użyć jednej z tych alternatyw:
+
+   * **Laravel Octane** (najłatwiejsza opcja):
+     ```bash
+     # Instalacja i konfiguracja Laravel Octane
+     composer require laravel/octane
+     php artisan octane:install
+     
+     # Uruchom serwer Octane
+     php artisan octane:start
+     ```
+     Szczegóły znajdziesz w [dokumentacji Laravel Octane](https://laravel.com/docs/12.x/octane)
+     
+   * **Opcje produkcyjne**:
+     - Nginx + PHP-FPM
+     - Apache + PHP-FPM
+     - Własna konfiguracja Docker
+     - Dowolny serwer internetowy z prawidłową obsługą streamingu SSE
+
 2. W Inspektorze wklej URL swojego serwera SSE (np. `http://localhost:8000/mcp/sse`)
 3. Połącz się i testuj narzędzia wizualnie
 

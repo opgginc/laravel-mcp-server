@@ -135,7 +135,25 @@ npx @modelcontextprotocol/inspector node build/index.js
 
 이 명령어는 보통 `localhost:6274`에 웹 인터페이스를 띄워줍니다. MCP 서버 테스트 방법:
 
-1. Laravel 개발 서버를 시작합니다(예: `php artisan serve`)
+1. **주의사항**: `php artisan serve`는 여러 개의 PHP 커넥션을 동시에 처리할 수 없기 때문에 이 패키지에서 사용할 수 없습니다. MCP SSE는 여러 커넥션을 동시에 처리해야 하므로 다음 대안 중 하나를 반드시 사용해야 합니다:
+
+   * **Laravel Octane** (가장 쉬운 방법):
+     ```bash
+     # Laravel Octane 설치 및 설정
+     composer require laravel/octane
+     php artisan octane:install
+     
+     # Octane 서버 시작
+     php artisan octane:start
+     ```
+     자세한 내용은 [Laravel Octane 문서](https://laravel.com/docs/12.x/octane)를 참고하세요.
+     
+   * **프로덕션급 옵션**:
+     - Nginx + PHP-FPM
+     - Apache + PHP-FPM
+     - 커스텀 Docker 설정
+     - SSE 스트리밍을 제대로 지원하는 모든 웹 서버
+
 2. 인스펙터 인터페이스에서 Laravel 서버의 MCP SSE URL을 입력합니다(예: `http://localhost:8000/mcp/sse`)
 3. 연결하고 사용 가능한 도구를 시각적으로 탐색합니다
 
