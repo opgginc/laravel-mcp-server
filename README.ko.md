@@ -1,4 +1,4 @@
-<h1 align="center">OP.GG의 Laravel MCP 서버</h1>
+<h1 align="center">Laravel MCP 서버 by OP.GG</h1>
 
 <p align="center">
   Model Context Protocol 서버를 쉬운 구축을 위한 강력한 라라벨 패키지

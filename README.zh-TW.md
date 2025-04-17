@@ -1,4 +1,4 @@
-<h1 align="center">OP.GG 的 Laravel MCP 伺服器</h1>
+<h1 align="center">Laravel MCP Server by OP.GG</h1>
 
 <p align="center">
   一個強大的 Laravel 套件，用於無縫建構模型上下文協議伺服器
