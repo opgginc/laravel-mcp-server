@@ -59,14 +59,14 @@ final class SseAdapterFactory
      */
     private function initializeAdapter(): void
     {
-        $adapterConfig = Config::get('mcp-server.adapters.' . $this->adapterType, []);
+        $adapterConfig = Config::get('mcp-server.adapters.'.$this->adapterType, []);
 
         switch ($this->adapterType) {
             case 'redis':
                 $this->adapter = new RedisAdapter;
                 break;
             default:
-                throw new Exception('Unsupported SSE adapter type: ' . $this->adapterType);
+                throw new Exception('Unsupported SSE adapter type: '.$this->adapterType);
         }
 
         $this->adapter->initialize($adapterConfig);

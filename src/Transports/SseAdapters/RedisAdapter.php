@@ -52,8 +52,8 @@ final class RedisAdapter implements SseAdapterInterface
                 $this->messageTtl = (int) $config['ttl'];
             }
         } catch (Exception $e) {
-            Log::error('Failed to initialize Redis SSE Adapter: ' . $e->getMessage());
-            throw new Exception('Failed to initialize Redis SSE Adapter: ' . $e->getMessage());
+            Log::error('Failed to initialize Redis SSE Adapter: '.$e->getMessage());
+            throw new Exception('Failed to initialize Redis SSE Adapter: '.$e->getMessage());
         }
     }
 
@@ -75,8 +75,8 @@ final class RedisAdapter implements SseAdapterInterface
             $this->redis->expire($key, $this->messageTtl);
 
         } catch (Exception $e) {
-            Log::error('Failed to add message to Redis queue: ' . $e->getMessage());
-            throw new Exception('Failed to add message to Redis queue: ' . $e->getMessage());
+            Log::error('Failed to add message to Redis queue: '.$e->getMessage());
+            throw new Exception('Failed to add message to Redis queue: '.$e->getMessage());
         }
     }
 
@@ -108,8 +108,8 @@ final class RedisAdapter implements SseAdapterInterface
             $this->redis->del($key);
 
         } catch (Exception $e) {
-            Log::error('Failed to remove messages from Redis queue: ' . $e->getMessage());
-            throw new Exception('Failed to remove messages from Redis queue: ' . $e->getMessage());
+            Log::error('Failed to remove messages from Redis queue: '.$e->getMessage());
+            throw new Exception('Failed to remove messages from Redis queue: '.$e->getMessage());
         }
     }
 
@@ -133,7 +133,7 @@ final class RedisAdapter implements SseAdapterInterface
 
             return $messages;
         } catch (Exception $e) {
-            throw new Exception('Failed to receive messages from Redis queue: ' . $e->getMessage());
+            throw new Exception('Failed to receive messages from Redis queue: '.$e->getMessage());
         }
     }
 
@@ -158,8 +158,8 @@ final class RedisAdapter implements SseAdapterInterface
 
             return $message;
         } catch (Exception $e) {
-            Log::error('Failed to pop message from Redis queue: ' . $e->getMessage());
-            throw new Exception('Failed to pop message from Redis queue: ' . $e->getMessage());
+            Log::error('Failed to pop message from Redis queue: '.$e->getMessage());
+            throw new Exception('Failed to pop message from Redis queue: '.$e->getMessage());
         }
     }
 
@@ -178,7 +178,7 @@ final class RedisAdapter implements SseAdapterInterface
 
             return $count > 0;
         } catch (Exception $e) {
-            Log::error('Failed to check for messages in Redis queue: ' . $e->getMessage());
+            Log::error('Failed to check for messages in Redis queue: '.$e->getMessage());
 
             return false;
         }
@@ -199,7 +199,7 @@ final class RedisAdapter implements SseAdapterInterface
 
             return (int) $count;
         } catch (Exception $e) {
-            Log::error('Failed to get message count from Redis queue: ' . $e->getMessage());
+            Log::error('Failed to get message count from Redis queue: '.$e->getMessage());
 
             return 0;
         }
