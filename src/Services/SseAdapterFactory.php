@@ -4,8 +4,8 @@ namespace OPGG\LaravelMcpServer\Services;
 
 use Exception;
 use Illuminate\Support\Facades\Config;
-use OPGG\LaravelMcpServer\Transports\SeeAdapters\RedisAdapter;
-use OPGG\LaravelMcpServer\Transports\SeeAdapters\SseAdapterInterface;
+use OPGG\LaravelMcpServer\Transports\SseAdapters\RedisAdapter;
+use OPGG\LaravelMcpServer\Transports\SseAdapters\SseAdapterInterface;
 
 /**
  * Factory for creating and managing SSE adapters.
@@ -59,14 +59,14 @@ final class SseAdapterFactory
      */
     private function initializeAdapter(): void
     {
-        $adapterConfig = Config::get('mcp-server.adapters.'.$this->adapterType, []);
+        $adapterConfig = Config::get('mcp-server.adapters.' . $this->adapterType, []);
 
         switch ($this->adapterType) {
             case 'redis':
                 $this->adapter = new RedisAdapter;
                 break;
             default:
-                throw new Exception('Unsupported SSE adapter type: '.$this->adapterType);
+                throw new Exception('Unsupported SSE adapter type: ' . $this->adapterType);
         }
 
         $this->adapter->initialize($adapterConfig);

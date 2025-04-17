@@ -5,7 +5,7 @@ namespace OPGG\LaravelMcpServer\Transports;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use OPGG\LaravelMcpServer\Transports\SeeAdapters\SseAdapterInterface;
+use OPGG\LaravelMcpServer\Transports\SseAdapters\SseAdapterInterface;
 use OPGG\LaravelMcpServer\Utils\StringUtil;
 
 /**
@@ -96,13 +96,28 @@ final class SseTransport implements TransportInterface
      */
     private function sendEvent(string $event, string $data): void
     {
-        echo sprintf('event: %s', $event).PHP_EOL;
-        echo sprintf('data: %s', $data).PHP_EOL;
+        // 헤더 설정이 이미 전송되었는지 확인
+        if (!headers_sent()) {
+            // 버퍼링 비활성화
+            ini_set('output_buffering', 'off');
+            ini_set('zlib.output_compression', false);
+
+            // 필수 SSE 헤더 추가
+            header('Content-Type: text/event-stream');
+            header('Cache-Control: no-cache');
+            header('X-Accel-Buffering: no');
+            header('Connection: keep-alive');
+        }
+
+        // 모든 버퍼 비우기
+        while (ob_get_level() > 0) {
+            ob_end_flush();
+        }
+
+        echo sprintf("event: %s", $event) . PHP_EOL;
+        echo sprintf("data: %s", $data) . PHP_EOL;
         echo PHP_EOL;
 
-        if (ob_get_level() > 0 && ob_get_length() !== false) {
-            ob_flush();
-        }
         flush();
     }
 
@@ -131,7 +146,7 @@ final class SseTransport implements TransportInterface
      */
     public function close(): void
     {
-        if (! $this->connected) {
+        if (!$this->connected) {
             return;
         }
 
@@ -141,7 +156,7 @@ final class SseTransport implements TransportInterface
             try {
                 call_user_func($handler);
             } catch (Exception $e) {
-                Log::error('Error in SSE close handler: '.$e->getMessage());
+                Log::error('Error in SSE close handler: ' . $e->getMessage());
             }
         }
 
@@ -149,14 +164,14 @@ final class SseTransport implements TransportInterface
             try {
                 $this->adapter->removeAllMessages($this->clientId);
             } catch (Exception $e) {
-                Log::error('Error cleaning up SSE adapter resources on close: '.$e->getMessage());
+                Log::error('Error cleaning up SSE adapter resources on close: ' . $e->getMessage());
             }
         }
 
         try {
             $this->sendEvent(event: 'close', data: '{"reason":"server_closed"}');
         } catch (Exception $e) {
-            Log::info('Could not send final SSE close event: '.$e->getMessage());
+            Log::info('Could not send final SSE close event: ' . $e->getMessage());
         }
     }
 
@@ -215,7 +230,7 @@ final class SseTransport implements TransportInterface
 
                 return $messages ?: [];
             } catch (Exception $e) {
-                $this->triggerError('SSE Failed to receive messages via adapter: '.$e->getMessage());
+                $this->triggerError('SSE Failed to receive messages via adapter: ' . $e->getMessage());
             }
         } elseif ($this->adapter === null) {
             Log::info('SSE Transport::receive called but no adapter is configured.');
@@ -232,13 +247,13 @@ final class SseTransport implements TransportInterface
      */
     protected function triggerError(string $message): void
     {
-        Log::error('SSE Transport error: '.$message);
+        Log::error('SSE Transport error: ' . $message);
 
         foreach ($this->errorHandlers as $handler) {
             try {
                 call_user_func($handler, $message);
             } catch (Exception $e) {
-                Log::error('Error in SSE error handler itself: '.$e->getMessage());
+                Log::error('Error in SSE error handler itself: ' . $e->getMessage());
             }
         }
     }
@@ -266,7 +281,7 @@ final class SseTransport implements TransportInterface
             try {
                 $handler($clientId, $message);
             } catch (Exception $e) {
-                Log::error('Error processing SSE message via handler: '.$e->getMessage(), [
+                Log::error('Error processing SSE message via handler: ' . $e->getMessage(), [
                     'clientId' => $clientId,
                     // Avoid logging potentially sensitive message content in production
                     // 'message_summary' => is_array($message) ? json_encode(array_keys($message)) : substr($message, 0, 100)
@@ -292,7 +307,7 @@ final class SseTransport implements TransportInterface
 
         $messageString = json_encode($message);
         if ($messageString === false) {
-            throw new Exception('Failed to JSON encode message for pushing: '.json_last_error_msg());
+            throw new Exception('Failed to JSON encode message for pushing: ' . json_last_error_msg());
         }
 
         $this->adapter->pushMessage(clientId: $clientId, message: $messageString);
