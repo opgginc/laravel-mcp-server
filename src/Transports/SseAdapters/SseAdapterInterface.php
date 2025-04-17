@@ -1,6 +1,6 @@
 <?php
 
-namespace OPGG\LaravelMcpServer\Transports\SseAdapters;
+namespace OPGG\LaravelMcpServer\Transports\SseAdapters;
 
 /**
  * Interface SseAdapterInterface
