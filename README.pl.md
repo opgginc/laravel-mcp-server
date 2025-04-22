@@ -138,15 +138,18 @@ To otworzy interfejs w przeglądarce na `localhost:6274`. Żeby przetestować sw
 1. **UWAGA**: NIE MOŻNA używać `php artisan serve` z tym pakietem, ponieważ nie może on obsługiwać wielu połączeń PHP jednocześnie. Ponieważ MCP SSE wymaga przetwarzania wielu połączeń równocześnie, należy użyć jednej z tych alternatyw:
 
    * **Laravel Octane** (najłatwiejsza opcja):
-     ```bash
-     # Instalacja i konfiguracja Laravel Octane
-     composer require laravel/octane
-     php artisan octane:install
-     
-     # Uruchom serwer Octane
-     php artisan octane:start
-     ```
-     Szczegóły znajdziesz w [dokumentacji Laravel Octane](https://laravel.com/docs/12.x/octane)
+      ```bash
+      # Instalacja i konfiguracja Laravel Octane z FrankenPHP (zalecane)
+      composer require laravel/octane
+      php artisan octane:install --server=frankenphp
+      
+      # Uruchom serwer Octane
+      php artisan octane:start
+      ```
+      
+      > **Ważne**: Podczas instalacji Laravel Octane, upewnij się, że używasz FrankenPHP jako serwera. Pakiet może nie działać poprawnie z RoadRunnerem z powodu problemów z kompatybilnością połączeń SSE. Jeśli możesz pomóc naprawić ten problem kompatybilności z RoadRunnerem, prosimy o zgłoszenie Pull Requesta - Twój wkład będzie bardzo doceniony!
+      
+      Szczegóły znajdziesz w [dokumentacji Laravel Octane](https://laravel.com/docs/12.x/octane)
      
    * **Opcje produkcyjne**:
      - Nginx + PHP-FPM

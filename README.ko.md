@@ -138,15 +138,18 @@ npx @modelcontextprotocol/inspector node build/index.js
 1. **주의사항**: `php artisan serve`는 여러 개의 PHP 커넥션을 동시에 처리할 수 없기 때문에 이 패키지에서 사용할 수 없습니다. MCP SSE는 여러 커넥션을 동시에 처리해야 하므로 다음 대안 중 하나를 반드시 사용해야 합니다:
 
    * **Laravel Octane** (가장 쉬운 방법):
-     ```bash
-     # Laravel Octane 설치 및 설정
-     composer require laravel/octane
-     php artisan octane:install
-     
-     # Octane 서버 시작
-     php artisan octane:start
-     ```
-     자세한 내용은 [Laravel Octane 문서](https://laravel.com/docs/12.x/octane)를 참고하세요.
+      ```bash
+      # FrankenPHP를 사용하여 Laravel Octane 설치 및 설정 (권장)
+      composer require laravel/octane
+      php artisan octane:install --server=frankenphp
+      
+      # Octane 서버 시작
+      php artisan octane:start
+      ```
+      
+      > **중요**: Laravel Octane을 설치할 때 FrankenPHP를 서버로 사용해야 합니다. RoadRunner를 사용하면 SSE 연결 호환성 문제로 패키지가 제대로 작동하지 않을 수 있습니다. RoadRunner 호환성 문제를 해결할 수 있는 분은 Pull Request를 제출해 주시면 대단히 감사하겠습니다!
+      
+      자세한 내용은 [Laravel Octane 문서](https://laravel.com/docs/12.x/octane)를 참고하세요.
      
    * **프로덕션급 옵션**:
      - Nginx + PHP-FPM

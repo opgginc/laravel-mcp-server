@@ -139,13 +139,16 @@ npx @modelcontextprotocol/inspector node build/index.js
 
    * **Laravel Octane** (最簡單選項):
      ```bash
-     # 安裝和設定 Laravel Octane
+     # 使用 FrankenPHP 安裝和設定 Laravel Octane（推薦）
      composer require laravel/octane
-     php artisan octane:install
+     php artisan octane:install --server=frankenphp
      
      # 啟動 Octane 伺服器
      php artisan octane:start
      ```
+     
+     > **重要**: 安裝 Laravel Octane 時，請確保使用 FrankenPHP 作為伺服器。由於 SSE 連接相容性問題，該套件可能無法與 RoadRunner 正常運作。如果您能幫助解決這個 RoadRunner 相容性問題，請提交 Pull Request - 非常感謝您的貢獻！
+     
      詳細資訊請參考 [Laravel Octane 文件](https://laravel.com/docs/12.x/octane)
      
    * **生產級選項**:

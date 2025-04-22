@@ -139,13 +139,16 @@ This will typically open a web interface at `localhost:6274`. To test your MCP s
 
    * **Laravel Octane** (Easiest option):
      ```bash
-     # Install and set up Laravel Octane
+     # Install and set up Laravel Octane with FrankenPHP (recommended)
      composer require laravel/octane
-     php artisan octane:install
+     php artisan octane:install --server=frankenphp
      
      # Start the Octane server
      php artisan octane:start
      ```
+     
+     > **Important**: When installing Laravel Octane, make sure to use FrankenPHP as the server. The package may not work properly with RoadRunner due to compatibility issues with SSE connections. If you can help fix this RoadRunner compatibility issue, please submit a Pull Request - your contribution would be greatly appreciated!
+     
      For details, see the [Laravel Octane documentation](https://laravel.com/docs/12.x/octane)
      
    * **Production-grade options**:

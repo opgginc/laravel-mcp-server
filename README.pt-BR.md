@@ -138,15 +138,18 @@ Isso vai abrir uma interface web em `localhost:6274`. Pra testar seu servidor MC
 1. **ATENÇÃO**: NÃO É POSSÍVEL usar `php artisan serve` com este pacote porque ele não consegue processar múltiplas conexões PHP simultaneamente. Como o MCP SSE precisa processar várias conexões ao mesmo tempo, você deve usar uma destas alternativas:
 
    * **Laravel Octane** (opção mais fácil):
-     ```bash
-     # Instalar e configurar Laravel Octane
-     composer require laravel/octane
-     php artisan octane:install
-     
-     # Iniciar o servidor Octane
-     php artisan octane:start
-     ```
-     Para detalhes, consulte a [documentação do Laravel Octane](https://laravel.com/docs/12.x/octane)
+      ```bash
+      # Instalar e configurar Laravel Octane com FrankenPHP (recomendado)
+      composer require laravel/octane
+      php artisan octane:install --server=frankenphp
+      
+      # Iniciar o servidor Octane
+      php artisan octane:start
+      ```
+      
+      > **Importante**: Ao instalar o Laravel Octane, certifique-se de usar o FrankenPHP como servidor. O pacote pode não funcionar corretamente com o RoadRunner devido a problemas de compatibilidade com conexões SSE. Se você puder ajudar a resolver este problema de compatibilidade com o RoadRunner, por favor envie um Pull Request - sua contribuição seria muito apreciada!
+      
+      Para detalhes, consulte a [documentação do Laravel Octane](https://laravel.com/docs/12.x/octane)
      
    * **Opções para produção**:
      - Nginx + PHP-FPM
