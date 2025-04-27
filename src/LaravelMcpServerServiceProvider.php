@@ -24,7 +24,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
          */
         $package
             ->name('laravel-mcp-server')
-            ->hasConfigFile()
+            ->hasConfigFile('mcp-server')
             ->hasCommands([
                 MakeMcpToolCommand::class,
                 TestMcpToolCommand::class,
