@@ -37,7 +37,7 @@ final class MCPProtocol
     private array $notificationHandlers = [];
 
     /**
-     * @param  TransportInterface  $transport  The transport implementation to use for communication
+     * @param TransportInterface $transport The transport implementation to use for communication
      * @return void
      */
     public function __construct(TransportInterface $transport)
@@ -92,7 +92,7 @@ final class MCPProtocol
     {
         $messageId = $message['id'] ?? null;
         try {
-            if (! isset($message['jsonrpc']) || $message['jsonrpc'] !== '2.0') {
+            if (!isset($message['jsonrpc']) || $message['jsonrpc'] !== '2.0') {
                 throw new JsonRpcErrorException(message: 'Invalid Request: Not a valid JSON-RPC 2.0 message', code: JsonRpcErrorCode::INVALID_REQUEST);
             }
 
@@ -111,7 +111,15 @@ final class MCPProtocol
             throw new JsonRpcErrorException(message: 'Invalid Request: Message format not recognized', code: JsonRpcErrorCode::INVALID_REQUEST);
         } catch (JsonRpcErrorException $e) {
             $this->pushMessage(clientId: $clientId, message: new JsonRpcErrorResource(exception: $e, id: $messageId));
+            throw $e;
         } catch (Exception $e) {
+            $this->pushMessage(
+                clientId: $clientId,
+                message: new JsonRpcErrorResource(
+                    exception: new JsonRpcErrorException(message: 'INTERNAL_ERROR', code: JsonRpcErrorCode::INTERNAL_ERROR),
+                    id: $messageId
+                )
+            );
             throw $e;
         }
     }
@@ -121,8 +129,8 @@ final class MCPProtocol
      * Finds a matching request handler and executes it.
      * Sends the result or an error back to the client.
      *
-     * @param  string  $clientId  The identifier of the client sending the request.
-     * @param  RequestData  $requestData  The parsed request data object.
+     * @param string $clientId The identifier of the client sending the request.
+     * @param RequestData $requestData The parsed request data object.
      */
     private function handleRequestProcess(string $clientId, RequestData $requestData): void
     {
@@ -142,13 +150,30 @@ final class MCPProtocol
             throw new JsonRpcErrorException("Method not found: {$requestData->method}", JsonRpcErrorCode::METHOD_NOT_FOUND);
         } catch (JsonRpcErrorException $e) {
             $this->pushMessage(clientId: $clientId, message: new JsonRpcErrorResource(exception: $e, id: $messageId));
+            throw $e;
         } catch (ValidationException $e) {
             $jsonRpcErrorException = new JsonRpcErrorException(message: $e->getMessage(), code: JsonRpcErrorCode::INVALID_PARAMS);
             $this->pushMessage(clientId: $clientId, message: new JsonRpcErrorResource(exception: $jsonRpcErrorException, id: $messageId));
+            throw $e;
         } catch (Exception $e) {
             $jsonRpcErrorException = new JsonRpcErrorException(message: $e->getMessage(), code: JsonRpcErrorCode::INTERNAL_ERROR);
             $this->pushMessage(clientId: $clientId, message: new JsonRpcErrorResource(exception: $jsonRpcErrorException, id: $messageId));
+            throw $e;
         }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function pushMessage(string $clientId, array|JsonRpcResultResource|JsonRpcErrorResource $message): void
+    {
+        if ($message instanceof JsonRpcResultResource || $message instanceof JsonRpcErrorResource) {
+            $this->transport->pushMessage(clientId: $clientId, message: $message->toResponse());
+
+            return;
+        }
+
+        $this->transport->pushMessage(clientId: $clientId, message: $message);
     }
 
     /**
@@ -156,8 +181,8 @@ final class MCPProtocol
      * Finds a matching notification handler and executes it.
      * Does not send a response back to the client for notifications.
      *
-     * @param  string  $clientId  The identifier of the client sending the notification.
-     * @param  NotificationData  $notificationData  The parsed notification data object.
+     * @param string $clientId The identifier of the client sending the notification.
+     * @param NotificationData $notificationData The parsed notification data object.
      */
     private function handleNotificationProcess(string $clientId, NotificationData $notificationData): void
     {
@@ -177,20 +202,6 @@ final class MCPProtocol
             $jsonRpcErrorException = new JsonRpcErrorException(message: $e->getMessage(), code: JsonRpcErrorCode::INTERNAL_ERROR);
             $this->pushMessage(clientId: $clientId, message: new JsonRpcErrorResource(exception: $jsonRpcErrorException, id: null));
         }
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function pushMessage(string $clientId, array|JsonRpcResultResource|JsonRpcErrorResource $message): void
-    {
-        if ($message instanceof JsonRpcResultResource || $message instanceof JsonRpcErrorResource) {
-            $this->transport->pushMessage(clientId: $clientId, message: $message->toResponse());
-
-            return;
-        }
-
-        $this->transport->pushMessage(clientId: $clientId, message: $message);
     }
 
     public function requestMessage(string $clientId, array $message): void

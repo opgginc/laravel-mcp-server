@@ -286,6 +286,7 @@ final class SseTransport implements TransportInterface
                     // Avoid logging potentially sensitive message content in production
                     // 'message_summary' => is_array($message) ? json_encode(array_keys($message)) : substr($message, 0, 100)
                 ]);
+                throw $e;
             }
         }
     }

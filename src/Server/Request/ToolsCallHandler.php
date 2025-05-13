@@ -34,7 +34,6 @@ class ToolsCallHandler implements RequestHandler
         }
 
         $arguments = $params['arguments'] ?? [];
-
         $result = $tool->execute($arguments);
 
         if ($method === 'tools/call') {
