@@ -110,8 +110,11 @@ final class SseTransport implements TransportInterface
         }
 
         // 모든 버퍼 비우기
-        while (ob_get_level() > 0) {
-            ob_end_flush();
+        if (!extension_loaded('swoole')) {
+            // Limpa qualquer buffer de saída se não estiver usando Swoole
+            while (ob_get_level() > 0) {
+                ob_end_flush();
+            }
         }
 
         echo sprintf('event: %s', $event).PHP_EOL;
