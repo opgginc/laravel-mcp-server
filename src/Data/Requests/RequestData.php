@@ -22,7 +22,7 @@ class RequestData
     public string $jsonRpc;
 
     /** @var int An identifier established by the Client. */
-    public int $id;
+    public string $id;
 
     /** @var array<string, mixed> The parameters for the method invocation. */
     public array $params;
@@ -32,10 +32,10 @@ class RequestData
      *
      * @param  string  $method  The method name.
      * @param  string  $jsonRpc  The JSON-RPC version.
-     * @param  int  $id  The request identifier.
+     * @param  string  $id  The request identifier.
      * @param  array<string, mixed>  $params  The request parameters.
      */
-    public function __construct(string $method, string $jsonRpc, int $id, array $params)
+    public function __construct(string $method, string $jsonRpc, string $id, array $params)
     {
         $this->method = $method;
         $this->jsonRpc = $jsonRpc;

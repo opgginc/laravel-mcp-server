@@ -174,7 +174,12 @@ final class MCPServer
         $initializeResource = new InitializeResource(
             $this->serverInfo['name'],
             $this->serverInfo['version'],
-            $this->capabilities->toArray(),
+            [
+                'logging'=>(object)[],
+                'tools'=>[
+                    'listChanged'=>true,
+                ],
+            ],
             $protocolVersion
         );
 

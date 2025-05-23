@@ -1,6 +1,6 @@
 {
-    "name": "opgginc/laravel-mcp-server",
-    "description": "This is my package laravel-mcp-server",
+    "name": "leady/laravel-mcp-server",
+    "description": "来自于 OPGG，修改部分内容自用",
     "keywords": [
         "opgginc",
         "laravel",
