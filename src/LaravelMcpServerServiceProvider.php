@@ -8,7 +8,9 @@ use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
 use OPGG\LaravelMcpServer\Console\Commands\TestMcpToolCommand;
 use OPGG\LaravelMcpServer\Http\Controllers\MessageController;
 use OPGG\LaravelMcpServer\Http\Controllers\SseController;
+use OPGG\LaravelMcpServer\Http\Controllers\StreamableHttpController;
 use OPGG\LaravelMcpServer\Providers\SseServiceProvider;
+use OPGG\LaravelMcpServer\Providers\StreamableHttpServiceProvider;
 use OPGG\LaravelMcpServer\Server\MCPServer;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -34,7 +36,13 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
     public function register(): void
     {
         parent::register();
-        $this->app->register(SseServiceProvider::class);
+
+        $provider = match (Config::get('mcp-server.server_provider')) {
+            'streamable_http' => StreamableHttpServiceProvider::class,
+            default => SseServiceProvider::class,
+        };
+
+        $this->app->register($provider);
     }
 
     public function boot(): void
@@ -62,9 +70,14 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
         $path = Config::get('mcp-server.default_path');
         $middlewares = Config::get('mcp-server.middlewares', []);
 
-        Route::get("{$path}/sse", [SseController::class, 'handle'])
-            ->middleware($middlewares);
+        if (Config::get('mcp-server.server_provider') === 'streamable_http') {
+            Route::match(['GET', 'POST'], $path, [StreamableHttpController::class, 'handle'])
+                ->middleware($middlewares);
+        } else {
+            Route::get("{$path}/sse", [SseController::class, 'handle'])
+                ->middleware($middlewares);
 
-        Route::post("{$path}/message", [MessageController::class, 'handle']);
+            Route::post("{$path}/message", [MessageController::class, 'handle']);
+        }
     }
 }
