@@ -57,7 +57,8 @@ return [
     | Server-Sent Events Provider
     |--------------------------------------------------------------------------
     |
-    | The type of server provider to use. Currently only 'sse' is supported.
+    | The type of server provider to use. Supported values are 'sse' and
+    | 'streamable_http'.
     |
     */
     'server_provider' => 'sse',
