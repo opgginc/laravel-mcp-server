@@ -33,7 +33,7 @@ final class StreamableHttpServiceProvider extends ServiceProvider
             });
 
             $this->app->singleton(MCPServer::class, function ($app) {
-                $transport = new SseTransport();
+                $transport = new SseTransport;
 
                 $adapterType = Config::get('mcp-server.sse_adapter', 'redis');
                 $adapterFactory = new SseAdapterFactory(adapterType: $adapterType);
@@ -45,7 +45,7 @@ final class StreamableHttpServiceProvider extends ServiceProvider
 
                 $serverInfo = Config::get('mcp-server.server');
 
-                $capabilities = new ServerCapabilities();
+                $capabilities = new ServerCapabilities;
 
                 $toolRepository = app(ToolRepository::class);
                 $capabilities->withTools(['schemas' => $toolRepository->getToolSchemas()]);
