@@ -10,6 +10,7 @@ use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
 use OPGG\LaravelMcpServer\Protocol\Handlers\RequestHandler;
 use OPGG\LaravelMcpServer\Protocol\MCPProtocol;
 use OPGG\LaravelMcpServer\Server\Request\InitializeHandler;
+use OPGG\LaravelMcpServer\Server\Request\PingHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsListHandler;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
@@ -73,6 +74,9 @@ final class MCPServer
 
         // Register the handler for the mandatory 'initialize' method.
         $this->registerRequestHandler(new InitializeHandler($this));
+
+        // Initialize Default Handlers
+        $this->registerRequestHandler(new PingHandler());
     }
 
     /**
