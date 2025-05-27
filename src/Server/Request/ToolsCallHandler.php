@@ -29,7 +29,7 @@ class ToolsCallHandler implements RequestHandler
         }
 
         $tool = $this->toolRepository->getTool($name);
-        if (!$tool) {
+        if (! $tool) {
             throw new JsonRpcErrorException(message: "Tool '{$name}' not found", code: JsonRpcErrorCode::METHOD_NOT_FOUND);
         }
 
