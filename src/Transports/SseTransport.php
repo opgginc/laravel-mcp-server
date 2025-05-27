@@ -97,7 +97,7 @@ final class SseTransport implements TransportInterface
     private function sendEvent(string $event, string $data): void
     {
         // 헤더 설정이 이미 전송되었는지 확인
-        if (! headers_sent()) {
+        if (!headers_sent()) {
             // 버퍼링 비활성화
             ini_set('output_buffering', 'off');
             ini_set('zlib.output_compression', false);
@@ -146,7 +146,7 @@ final class SseTransport implements TransportInterface
      */
     public function close(): void
     {
-        if (! $this->connected) {
+        if (!$this->connected) {
             return;
         }
 
@@ -306,7 +306,7 @@ final class SseTransport implements TransportInterface
             throw new Exception('Cannot push message: SSE Adapter is not configured.');
         }
 
-        $messageString = json_encode($message);
+        $messageString = json_encode($message, JSON_UNESCAPED_UNICODE);
         if ($messageString === false) {
             throw new Exception('Failed to JSON encode message for pushing: '.json_last_error_msg());
         }
