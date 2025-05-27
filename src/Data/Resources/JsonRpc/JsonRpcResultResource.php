@@ -2,6 +2,8 @@
 
 namespace OPGG\LaravelMcpServer\Data\Resources\JsonRpc;
 
+use stdClass;
+
 /**
  * Represents a successful JSON-RPC 2.0 response structure.
  * This resource formats the result and ID according to the JSON-RPC specification.
@@ -11,9 +13,9 @@ class JsonRpcResultResource
     /**
      * The result data of the JSON-RPC request.
      *
-     * @var array<mixed>
+     * @var array|stdClass
      */
-    protected array $result;
+    protected array|stdClass $result;
 
     /**
      * The identifier established by the client for the JSON-RPC request.
@@ -26,9 +28,9 @@ class JsonRpcResultResource
      * JsonRpcResultResource constructor.
      *
      * @param  string|int  $id  The identifier established by the client.
-     * @param  array<mixed>  $result  The result data from the method execution.
+     * @param  array|stdClass  $result  The result data from the method execution.
      */
-    public function __construct(string|int $id, array $result)
+    public function __construct(string|int $id, array|stdClass $result)
     {
         $this->result = $result;
         $this->id = $id;
@@ -37,7 +39,7 @@ class JsonRpcResultResource
     /**
      * Formats the data into a JSON-RPC 2.0 compliant response array.
      *
-     * @return array{jsonrpc: string, id: string|int, result: array<mixed>} The JSON-RPC response array.
+     * @return array{jsonrpc: string, id: string|int, result: array|stdClass} The JSON-RPC response array.
      */
     public function toResponse(): array
     {
