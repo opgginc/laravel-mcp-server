@@ -14,6 +14,6 @@ class PingHandler implements RequestHandler
 
     public function execute(string $method, ?array $params = null): stdClass
     {
-        return new stdClass();
+        return new stdClass;
     }
 }

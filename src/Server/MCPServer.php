@@ -76,7 +76,7 @@ final class MCPServer
         $this->registerRequestHandler(new InitializeHandler($this));
 
         // Initialize Default Handlers
-        $this->registerRequestHandler(new PingHandler());
+        $this->registerRequestHandler(new PingHandler);
     }
 
     /**

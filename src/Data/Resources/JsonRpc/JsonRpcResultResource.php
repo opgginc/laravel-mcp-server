@@ -12,8 +12,6 @@ class JsonRpcResultResource
 {
     /**
      * The result data of the JSON-RPC request.
-     *
-     * @var array|stdClass
      */
     protected array|stdClass $result;
 
