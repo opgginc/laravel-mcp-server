@@ -24,7 +24,7 @@ use OPGG\LaravelMcpServer\Utils\DataUtil;
  */
 final class MCPProtocol
 {
-    public const PROTOCOL_VERSION = '2025-03-26';
+    public const PROTOCOL_VERSION = '2024-11-05';
 
     private TransportInterface $transport;
 
