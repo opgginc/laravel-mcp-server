@@ -3,16 +3,29 @@
 namespace {{ namespace }};
 
 use Illuminate\Support\Facades\Validator;
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
+use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
+use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
 class {{ className }} implements ToolInterface
 {
     /**
+     * Get the message type for the tool.
+     *
+     * @return ProcessMessageType
+     */
+    public function messageType(): ProcessMessageType
+    {
+        return ProcessMessageType::HTTP;
+    }
+
+    /**
      * Get the tool name.
      *
      * @return string
      */
-    public function getName(): string
+    public function name(): string
     {
         return '{{ toolName }}';
     }
@@ -22,7 +35,7 @@ class {{ className }} implements ToolInterface
      *
      * @return string
      */
-    public function getDescription(): string
+    public function description(): string
     {
         return 'Description of {{ className }}';
     }
@@ -32,7 +45,7 @@ class {{ className }} implements ToolInterface
      *
      * @return array
      */
-    public function getInputSchema(): array
+    public function inputSchema(): array
     {
         return [
             'type' => 'object',
@@ -52,7 +65,7 @@ class {{ className }} implements ToolInterface
      *
      * @return array
      */
-    public function getAnnotations(): array
+    public function annotations(): array
     {
         return [];
     }
@@ -61,18 +74,28 @@ class {{ className }} implements ToolInterface
      * Execute the tool.
      *
      * @param array $arguments Tool arguments
-     * @return mixed
+     * @return array
      */
-    public function execute(array $arguments): string
+    public function execute(array $arguments): array
     {
-        Validator::make($arguments, [
+        $validator = Validator::make($arguments, [
             'param1' => ['required', 'string'],
             // Add more validation rules as needed
-        ])->validate();
+        ]);
+
+        if ($validator->fails()) {
+            throw new JsonRpcErrorException(
+                message: $validator->errors()->toJson(),
+                code: JsonRpcErrorCode::INVALID_REQUEST
+            );
+        }
 
         $param1 = $arguments['param1'] ?? 'default';
 
         // Implement your tool logic here
-        return "Tool executed with parameter: {$param1}";
+        return [
+            'param1' => $param1,
+            'message' => "Tool executed with parameter: {$param1}",
+        ];
     }
 }

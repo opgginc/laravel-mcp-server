@@ -49,13 +49,6 @@ interface TransportInterface
     public function onError(callable $handler): void;
 
     /**
-     * Register a handler for incoming messages.
-     *
-     * @param  callable  $handler  Function to call when a message is received
-     */
-    public function onMessage(callable $handler): void;
-
-    /**
      * Initialize the transport before starting the connection.
      *
      * @throws Exception If initialization fails due to missing dependencies or invalid configuration
@@ -77,16 +70,6 @@ interface TransportInterface
      * @throws Exception If there is an error receiving messages
      */
     public function receive(): mixed;
-
-    /**
-     * Process an incoming message from a client.
-     *
-     * @param  string  $clientId  The unique identifier of the client
-     * @param  array  $message  The message data to process
-     *
-     * @throws Exception If the message cannot be processed
-     */
-    public function processMessage(string $clientId, array $message): void;
 
     /**
      * Push a message to a specific client.

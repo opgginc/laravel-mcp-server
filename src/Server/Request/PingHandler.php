@@ -2,15 +2,15 @@
 
 namespace OPGG\LaravelMcpServer\Server\Request;
 
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Protocol\Handlers\RequestHandler;
 use stdClass;
 
-class PingHandler implements RequestHandler
+class PingHandler extends RequestHandler
 {
-    public function isHandle(string $method): bool
-    {
-        return $method === 'ping';
-    }
+    protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+
+    protected const HANDLE_METHOD = 'ping';
 
     public function execute(string $method, ?array $params = null): stdClass
     {

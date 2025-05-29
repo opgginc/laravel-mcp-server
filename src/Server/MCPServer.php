@@ -2,6 +2,7 @@
 
 namespace OPGG\LaravelMcpServer\Server;
 
+use OPGG\LaravelMcpServer\Data\ProcessMessageData;
 use OPGG\LaravelMcpServer\Data\Requests\InitializeData;
 use OPGG\LaravelMcpServer\Data\Resources\InitializeResource;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
@@ -192,8 +193,8 @@ final class MCPServer
      * @param  string  $clientId  The identifier of the target client.
      * @param  array<string, mixed>  $message  The request message payload (following JSON-RPC structure).
      */
-    public function requestMessage(string $clientId, array $message): void
+    public function requestMessage(string $clientId, array $message): ProcessMessageData
     {
-        $this->protocol->requestMessage(clientId: $clientId, message: $message);
+        return $this->protocol->handleMessage(clientId: $clientId, message: $message);
     }
 }
