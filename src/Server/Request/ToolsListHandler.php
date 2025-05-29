@@ -9,6 +9,7 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 class ToolsListHandler extends RequestHandler
 {
     protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+
     protected const HANDLE_METHOD = 'tools/list';
 
     private ToolRepository $toolRepository;

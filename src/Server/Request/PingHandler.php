@@ -9,6 +9,7 @@ use stdClass;
 class PingHandler extends RequestHandler
 {
     protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+
     protected const HANDLE_METHOD = 'ping';
 
     public function execute(string $method, ?array $params = null): stdClass

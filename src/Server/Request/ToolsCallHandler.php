@@ -11,6 +11,7 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 class ToolsCallHandler extends RequestHandler
 {
     protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+
     protected const HANDLE_METHOD = ['tools/call', 'tools/execute'];
 
     private ToolRepository $toolRepository;
@@ -29,7 +30,7 @@ class ToolsCallHandler extends RequestHandler
         }
 
         $tool = $this->toolRepository->getTool($name);
-        if (!$tool) {
+        if (! $tool) {
             throw new JsonRpcErrorException(message: "Tool '{$name}' not found", code: JsonRpcErrorCode::METHOD_NOT_FOUND);
         }
 
@@ -44,7 +45,7 @@ class ToolsCallHandler extends RequestHandler
         }
 
         $tool = $this->toolRepository->getTool($name);
-        if (!$tool) {
+        if (! $tool) {
             throw new JsonRpcErrorException(message: "Tool '{$name}' not found", code: JsonRpcErrorCode::METHOD_NOT_FOUND);
         }
 

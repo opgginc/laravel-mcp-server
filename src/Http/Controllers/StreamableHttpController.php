@@ -32,7 +32,7 @@ class StreamableHttpController
         $server = app(MCPServer::class);
 
         $mcpSessionId = $request->headers->get('mcp-session-id');
-        if (!$mcpSessionId) {
+        if (! $mcpSessionId) {
             $mcpSessionId = Str::uuid()->toString();
         }
 

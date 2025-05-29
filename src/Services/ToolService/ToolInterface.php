@@ -17,5 +17,4 @@ interface ToolInterface
     public function annotations(): array;
 
     public function execute(array $arguments): mixed;
-
 }

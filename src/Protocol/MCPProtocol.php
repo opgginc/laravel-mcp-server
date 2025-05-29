@@ -111,7 +111,7 @@ final class MCPProtocol
     {
         $messageId = $message['id'] ?? null;
         try {
-            if (!isset($message['jsonrpc']) || $message['jsonrpc'] !== '2.0') {
+            if (! isset($message['jsonrpc']) || $message['jsonrpc'] !== '2.0') {
                 throw new JsonRpcErrorException(message: 'Invalid Request: Not a valid JSON-RPC 2.0 message', code: JsonRpcErrorCode::INVALID_REQUEST);
             }
 
@@ -147,6 +147,7 @@ final class MCPProtocol
      *
      * @param  string  $clientId  The identifier of the client sending the request.
      * @param  RequestData  $requestData  The parsed request data object.
+     *
      * @throws Exception
      */
     private function processRequestData(string $clientId, RequestData $requestData): ProcessMessageData

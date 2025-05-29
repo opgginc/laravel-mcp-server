@@ -9,6 +9,7 @@ use stdClass;
 abstract class RequestHandler
 {
     protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+
     protected const HANDLE_METHOD = null;
 
     public function __construct()

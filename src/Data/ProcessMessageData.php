@@ -10,6 +10,7 @@ use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 final class ProcessMessageData
 {
     public ProcessMessageType $messageType;
+
     public array|JsonRpcResultResource|JsonRpcErrorResource $resource;
 
     public function __construct(ProcessMessageType $messageType, array|JsonRpcResultResource|JsonRpcErrorResource $resource)
@@ -32,6 +33,7 @@ final class ProcessMessageData
         if (Config::get('mcp-server.server_provider') === 'sse') {
             return true;
         }
+
         return $this->messageType === ProcessMessageType::SSE;
     }
 }

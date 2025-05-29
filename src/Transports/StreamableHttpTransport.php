@@ -61,9 +61,7 @@ final class StreamableHttpTransport implements TransportInterface
      *
      * @throws Exception If sending the initial event fails.
      */
-    public function initialize(): void
-    {
-    }
+    public function initialize(): void {}
 
     /**
      * Sends a message payload as a 'message' type StreamableHttp event.
@@ -73,9 +71,7 @@ final class StreamableHttpTransport implements TransportInterface
      *
      * @throws Exception If JSON encoding fails or sending the event fails.
      */
-    public function send(string|array $message): void
-    {
-    }
+    public function send(string|array $message): void {}
 
     /**
      * Closes the connection, notifies handlers, cleans up adapter resources, and attempts a final 'close' event.
@@ -85,7 +81,7 @@ final class StreamableHttpTransport implements TransportInterface
      */
     public function close(): void
     {
-        if (!$this->connected) {
+        if (! $this->connected) {
             return;
         }
 
@@ -143,7 +139,5 @@ final class StreamableHttpTransport implements TransportInterface
      *
      * @throws Exception If adapter is not set, JSON encoding fails, or adapter push fails.
      */
-    public function pushMessage(string $clientId, array $message): void
-    {
-    }
+    public function pushMessage(string $clientId, array $message): void {}
 }

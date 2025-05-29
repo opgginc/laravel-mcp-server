@@ -58,12 +58,12 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
     protected function registerRoutes(): void
     {
         // Skip route registration if the server is disabled
-        if (!Config::get('mcp-server.enabled', true)) {
+        if (! Config::get('mcp-server.enabled', true)) {
             return;
         }
 
         // Skip route registration if MCPServer instance doesn't exist
-        if (!app()->has(MCPServer::class)) {
+        if (! app()->has(MCPServer::class)) {
             return;
         }
 
@@ -75,6 +75,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
             Route::get("{$path}/sse", [SseController::class, 'handle'])
                 ->middleware($middlewares);
             Route::post("{$path}/message", [MessageController::class, 'handle']);
+
             return;
         }
 
@@ -83,6 +84,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
                 ->middleware($middlewares);
             Route::post($path, [StreamableHttpController::class, 'postHandle'])
                 ->middleware($middlewares);
+
             return;
         }
     }
