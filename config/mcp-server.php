@@ -57,10 +57,10 @@ return [
     | Server-Sent Events Provider
     |--------------------------------------------------------------------------
     |
-    | The type of server provider to use. Currently only 'sse' is supported.
+    | The type of server provider to use. Supported values are 'streamable_http'.
     |
     */
-    'server_provider' => 'sse',
+    'server_provider' => 'streamable_http',
 
     /*
     |--------------------------------------------------------------------------

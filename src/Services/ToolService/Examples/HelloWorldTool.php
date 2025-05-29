@@ -3,21 +3,29 @@
 namespace OPGG\LaravelMcpServer\Services\ToolService\Examples;
 
 use Illuminate\Support\Facades\Validator;
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
+use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
+use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
 class HelloWorldTool implements ToolInterface
 {
-    public function getName(): string
+    public function messageType(): ProcessMessageType
+    {
+        return ProcessMessageType::HTTP;
+    }
+
+    public function name(): string
     {
         return 'hello-world';
     }
 
-    public function getDescription(): string
+    public function description(): string
     {
         return 'Say HelloWorld developer.';
     }
 
-    public function getInputSchema(): array
+    public function inputSchema(): array
     {
         return [
             'type' => 'object',
@@ -31,19 +39,25 @@ class HelloWorldTool implements ToolInterface
         ];
     }
 
-    public function getAnnotations(): array
+    public function annotations(): array
     {
         return [];
     }
 
-    public function execute(array $arguments): string
+    public function execute(array $arguments): array
     {
-        Validator::make($arguments, [
+        $validator = Validator::make($arguments, [
             'name' => ['required', 'string'],
-        ])->validate();
+        ]);
+        if ($validator->fails()) {
+            throw new JsonRpcErrorException(message: $validator->errors()->toJson(), code: JsonRpcErrorCode::INVALID_REQUEST);
+        }
 
         $name = $arguments['name'] ?? 'MCP';
 
-        return "Hello, HelloWorld `{$name}` developer.";
+        return [
+            'name' => $name,
+            'message' => "Hello, HelloWorld `{$name}` developer.",
+        ];
     }
 }

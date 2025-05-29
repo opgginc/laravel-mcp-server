@@ -8,7 +8,9 @@ use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
 use OPGG\LaravelMcpServer\Console\Commands\TestMcpToolCommand;
 use OPGG\LaravelMcpServer\Http\Controllers\MessageController;
 use OPGG\LaravelMcpServer\Http\Controllers\SseController;
+use OPGG\LaravelMcpServer\Http\Controllers\StreamableHttpController;
 use OPGG\LaravelMcpServer\Providers\SseServiceProvider;
+use OPGG\LaravelMcpServer\Providers\StreamableHttpServiceProvider;
 use OPGG\LaravelMcpServer\Server\MCPServer;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -34,7 +36,13 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
     public function register(): void
     {
         parent::register();
-        $this->app->register(SseServiceProvider::class);
+
+        $provider = match (Config::get('mcp-server.server_provider')) {
+            'streamable_http' => StreamableHttpServiceProvider::class,
+            default => SseServiceProvider::class,
+        };
+
+        $this->app->register($provider);
     }
 
     public function boot(): void
@@ -50,21 +58,32 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
     protected function registerRoutes(): void
     {
         // Skip route registration if the server is disabled
-        if (! Config::get('mcp-server.enabled', true)) {
+        if (!Config::get('mcp-server.enabled', true)) {
             return;
         }
 
         // Skip route registration if MCPServer instance doesn't exist
-        if (! app()->has(MCPServer::class)) {
+        if (!app()->has(MCPServer::class)) {
             return;
         }
 
         $path = Config::get('mcp-server.default_path');
         $middlewares = Config::get('mcp-server.middlewares', []);
 
-        Route::get("{$path}/sse", [SseController::class, 'handle'])
-            ->middleware($middlewares);
+        $provider = Config::get('mcp-server.server_provider');
+        if ($provider === 'sse') {
+            Route::get("{$path}/sse", [SseController::class, 'handle'])
+                ->middleware($middlewares);
+            Route::post("{$path}/message", [MessageController::class, 'handle']);
+            return;
+        }
 
-        Route::post("{$path}/message", [MessageController::class, 'handle']);
+        if ($provider === 'streamable_http') {
+            Route::get($path, [StreamableHttpController::class, 'getHandle'])
+                ->middleware($middlewares);
+            Route::post($path, [StreamableHttpController::class, 'postHandle'])
+                ->middleware($middlewares);
+            return;
+        }
     }
 }

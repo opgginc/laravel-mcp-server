@@ -3,22 +3,28 @@
 namespace OPGG\LaravelMcpServer\Services\ToolService\Examples;
 
 use Illuminate\Support\Facades\App;
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use stdClass;
 
 class VersionCheckTool implements ToolInterface
 {
-    public function getName(): string
+    public function messageType(): ProcessMessageType
+    {
+        return ProcessMessageType::HTTP;
+    }
+
+    public function name(): string
     {
         return 'check-version';
     }
 
-    public function getDescription(): string
+    public function description(): string
     {
         return 'Check the current Laravel version.';
     }
 
-    public function getInputSchema(): array
+    public function inputSchema(): array
     {
         return [
             'type' => 'object',
@@ -27,7 +33,7 @@ class VersionCheckTool implements ToolInterface
         ];
     }
 
-    public function getAnnotations(): array
+    public function annotations(): array
     {
         return [];
     }
