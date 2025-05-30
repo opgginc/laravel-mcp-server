@@ -110,7 +110,7 @@ final class SseTransport implements TransportInterface
         }
 
         // 모든 버퍼 비우기
-        if (!extension_loaded('swoole')) {
+        if (! extension_loaded('swoole')) {
             // Limpa qualquer buffer de saída se não estiver usando Swoole
             while (ob_get_level() > 0) {
                 ob_end_flush();
