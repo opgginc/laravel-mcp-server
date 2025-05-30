@@ -27,34 +27,43 @@
 
 ## Przegląd
 
-Laravel MCP Server to konkretne narzędzie, które ułatwia stworzenie serwerów MCP w Laravelu. **W odróżnieniu od większości innych pakietów, które bazują na stdio**, ten pakiet **korzysta z SSE (Server-Sent Events)**, co daje Ci większe bezpieczeństwo i kontrolę nad integracją.
+Laravel MCP Server to konkretne narzędzie, które ułatwia stworzenie serwerów MCP w Laravelu. **W odróżnieniu od większości innych pakietów, które bazują na stdio**, ten pakiet stawia na **Streamable HTTP** i zachowuje **legacy SSE** dla kompatybilności, co daje większe bezpieczeństwo i kontrolę nad integracją.
 
-### Czemu SSE zamiast STDIO?
+### Czemu Streamable HTTP zamiast STDIO?
 
 Stdio jest proste i popularne w implementacjach MCP, ale w firmowych środowiskach stwarza spore problemy z bezpieczeństwem:
 
 - **Bezpieczeństwo**: STDIO może wyciec poufne szczegóły systemu i API
 - **Ochrona danych**: Firmy muszą chronić swoje endpointy API i wewnętrzną architekturę
-- **Kontrola**: SSE daje Ci lepszą kontrolę nad komunikacją między klientami LLM a Twoją aplikacją
+- **Kontrola**: Streamable HTTP daje Ci lepszą kontrolę nad komunikacją między klientami LLM a Twoją aplikacją
 
-Z serwerem MCP opartym na SSE możesz:
+Z serwerem MCP opartym na Streamable HTTP możesz:
 
 - Udostępnić tylko potrzebne narzędzia, chroniąc poufne szczegóły API
 - Lepiej kontrolować procesy uwierzytelniania i autoryzacji
 
 Główne zalety:
 
-- Szybka i łatwa integracja SSE w istniejących projektach Laravel
+- Szybka i łatwa integracja Streamable HTTP w istniejących projektach Laravel
 - Pełne wsparcie dla najnowszych wersji Laravel i PHP
 - Wydajna komunikacja i przetwarzanie danych na żywo
 - Lepsze bezpieczeństwo dla środowisk firmowych
 
 ## Główne funkcje
 
-- Wsparcie komunikacji w czasie rzeczywistym dzięki integracji Server-Sent Events (SSE)
+- Wsparcie komunikacji w czasie rzeczywistym przez Streamable HTTP i legacy SSE
 - Implementacja narzędzi i zasobów zgodnych ze specyfikacjami Protokołu Kontekstu Modelu
 - Architektura oparta na adapterach z wzorcem komunikacji Pub/Sub (zaczynając od Redis, planowane są kolejne adaptery)
 - Prosta konfiguracja routingu i middleware
+
+### Tryby transportu
+
+Pole `server_provider` w konfiguracji pozwala wybrać tryb transportu:
+
+1. **streamable_http** – zalecane domyślnie. Wykorzystuje zwykłe połączenia HTTP i sprawdza się tam, gdzie SSE jest zrywane po ok. 60 sekundach (np. platformy serverless).
+2. **sse** – przestarzały tryb dla zachowania kompatybilności. Wymaga długotrwałych połączeń SSE i może nie działać na takich platformach.
+
+W specyfikacji MCP istnieje również tryb „Streamable HTTP SSE”, ale nie jest on zaimplementowany w tym pakiecie.
 
 ## Wymagania
 
@@ -155,16 +164,16 @@ To otworzy interfejs w przeglądarce na `localhost:6274`. Żeby przetestować sw
      - Nginx + PHP-FPM
      - Apache + PHP-FPM
      - Własna konfiguracja Docker
-     - Dowolny serwer internetowy z prawidłową obsługą streamingu SSE
+    - Dowolny serwer internetowy z prawidłową obsługą streamingu SSE (potrzebne tylko przy trybie legacy SSE)
 
-2. W Inspektorze wklej URL swojego serwera SSE (np. `http://localhost:8000/mcp/sse`)
+2. W Inspektorze wklej URL endpointu MCP swojego serwera (np. `http://localhost:8000/mcp`). Jeśli używasz trybu legacy SSE, podaj adres SSE (`http://localhost:8000/mcp/sse`).
 3. Połącz się i testuj narzędzia wizualnie
 
-Format URL SSE to: `http://[twój-serwer]/[default_path]/sse`, gdzie `default_path` ustawiasz w `config/mcp-server.php`.
+Endpoint MCP ma format: `http://[twój-serwer]/[default_path]`, gdzie `default_path` ustawiasz w `config/mcp-server.php`.
 
 ## Zaawansowane funkcje
 
-### Architektura Pub/Sub z adapterami SSE
+### Architektura Pub/Sub z adapterami SSE (tryb legacy)
 
 Pakiet implementuje wzorzec komunikacji publikuj/subskrybuj (pub/sub) poprzez system adapterów:
 
@@ -172,7 +181,7 @@ Pakiet implementuje wzorzec komunikacji publikuj/subskrybuj (pub/sub) poprzez sy
 
 2. **Broker wiadomości (Adapter)**: Adapter (np. Redis) utrzymuje kolejki wiadomości dla każdego klienta, identyfikowane przez unikalne ID klienta. Zapewnia to niezawodną asynchroniczną warstwę komunikacji.
 
-3. **Subskrybent (Połączenie SSE)**: Długotrwałe połączenia SSE subskrybują wiadomości dla swoich klientów i dostarczają je w czasie rzeczywistym.
+3. **Subskrybent (Połączenie SSE)**: Długotrwałe połączenia SSE subskrybują wiadomości dla swoich klientów i dostarczają je w czasie rzeczywistym. Dotyczy to wyłącznie trybu legacy SSE.
 
 Ta architektura umożliwia:
 

@@ -28,34 +28,43 @@
 
 ## Descripción General
 
-Laravel MCP Server es un potente paquete diseñado para simplificar la implementación de servidores de Protocolo de Contexto de Modelo (MCP) en aplicaciones Laravel. **A diferencia de la mayoría de los paquetes Laravel MCP que utilizan transporte de Entrada/Salida Estándar (stdio)**, este paquete **utiliza transporte de Eventos Enviados por el Servidor (SSE)**, proporcionando un método de integración más seguro y controlado.
+Laravel MCP Server es un potente paquete diseñado para simplificar la implementación de servidores de Protocolo de Contexto de Modelo (MCP) en aplicaciones Laravel. **A diferencia de la mayoría de los paquetes Laravel MCP que utilizan transporte de Entrada/Salida Estándar (stdio)**, este paquete se centra en **Streamable HTTP** y mantiene un **proveedor SSE heredado** para compatibilidad, ofreciendo así un método de integración seguro y controlado.
 
-### ¿Por qué SSE en lugar de STDIO?
+### ¿Por qué Streamable HTTP en lugar de STDIO?
 
 Aunque stdio es sencillo y ampliamente utilizado en implementaciones MCP, tiene implicaciones de seguridad significativas para entornos empresariales:
 
 - **Riesgo de Seguridad**: El transporte STDIO potencialmente expone detalles internos del sistema y especificaciones de API
 - **Protección de Datos**: Las organizaciones necesitan proteger los puntos finales de API propietarios y la arquitectura interna del sistema
-- **Control**: SSE ofrece mejor control sobre el canal de comunicación entre clientes LLM y su aplicación
+- **Control**: Streamable HTTP ofrece mejor control sobre el canal de comunicación entre clientes LLM y su aplicación
 
-Al implementar el servidor MCP con transporte SSE, las empresas pueden:
+Al implementar el servidor MCP con Streamable HTTP, las empresas pueden:
 
 - Exponer solo las herramientas y recursos necesarios mientras mantienen privados los detalles de API propietarios
 - Mantener control sobre los procesos de autenticación y autorización
 
 Beneficios clave:
 
-- Implementación rápida y sin problemas de SSE en proyectos Laravel existentes
+- Implementación rápida y sin problemas de Streamable HTTP en proyectos Laravel existentes
 - Soporte para las últimas versiones de Laravel y PHP
 - Comunicación eficiente del servidor y procesamiento de datos en tiempo real
 - Seguridad mejorada para entornos empresariales
 
 ## Características Principales
 
-- Soporte de comunicación en tiempo real a través de la integración de Eventos Enviados por el Servidor (SSE)
+- Soporte de comunicación en tiempo real mediante Streamable HTTP y SSE (proveedor heredado)
 - Implementación de herramientas y recursos conformes con las especificaciones del Protocolo de Contexto de Modelo
 - Arquitectura de diseño basada en adaptadores con patrón de mensajería Pub/Sub (comenzando con Redis, más adaptadores planificados)
 - Configuración simple de rutas y middleware
+
+### Proveedores de transporte
+
+La opción `server_provider` del archivo de configuración define qué transporte se usa. Existen dos valores:
+
+1. **streamable_http** – recomendado por defecto. Usa solicitudes HTTP normales y evita problemas en plataformas donde las conexiones SSE se cierran tras unos 60 segundos (como muchos entornos serverless).
+2. **sse** – proveedor heredado para compatibilidad. Requiere conexiones SSE de larga duración y puede fallar en esas plataformas.
+
+El modo "Streamable HTTP SSE" descrito por el protocolo MCP no está implementado en este paquete ni hay planes para hacerlo.
 
 ## Requisitos
 
@@ -156,16 +165,16 @@ Esto normalmente abrirá una interfaz web en `localhost:6274`. Para probar su se
      - Nginx + PHP-FPM
      - Apache + PHP-FPM
      - Configuración personalizada de Docker
-     - Cualquier servidor web que soporte adecuadamente streaming SSE
-     
-2. En la interfaz del Inspector, ingrese la URL MCP SSE de su servidor Laravel (ej., `http://localhost:8000/mcp/sse`)
+    - Cualquier servidor web que soporte adecuadamente streaming SSE (solo necesario con el proveedor SSE heredado)
+
+2. En la interfaz del Inspector, ingrese la URL del endpoint MCP de su servidor Laravel (ej., `http://localhost:8000/mcp`). Si usa el proveedor SSE heredado, utilice la URL SSE (`http://localhost:8000/mcp/sse`).
 3. Conéctese y explore visualmente las herramientas disponibles
 
-La URL SSE sigue el patrón: `http://[su-servidor-laravel]/[ruta_predeterminada]/sse` donde `ruta_predeterminada` se define en su archivo `config/mcp-server.php`.
+El endpoint MCP sigue el patrón: `http://[su-servidor-laravel]/[ruta_predeterminada]` donde `ruta_predeterminada` se define en su archivo `config/mcp-server.php`.
 
 ## Funcionalidades Avanzadas
 
-### Arquitectura Pub/Sub con Adaptadores SSE
+### Arquitectura Pub/Sub con Adaptadores SSE (proveedor heredado)
 
 El paquete implementa un patrón de mensajería publicador/suscriptor (pub/sub) a través de su sistema de adaptadores:
 
@@ -173,7 +182,7 @@ El paquete implementa un patrón de mensajería publicador/suscriptor (pub/sub) 
 
 2. **Intermediario de Mensajes (Adaptador)**: El adaptador (ej., Redis) mantiene colas de mensajes para cada cliente, identificados por IDs de cliente únicos. Esto proporciona una capa de comunicación asíncrona confiable.
 
-3. **Suscriptor (Conexión SSE)**: Las conexiones SSE de larga duración se suscriben a mensajes para sus respectivos clientes y los entregan en tiempo real.
+3. **Suscriptor (Conexión SSE)**: Las conexiones SSE de larga duración se suscriben a mensajes para sus respectivos clientes y los entregan en tiempo real. Esto aplica solo cuando se usa el proveedor SSE heredado.
 
 Esta arquitectura permite:
 

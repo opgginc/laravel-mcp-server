@@ -27,34 +27,43 @@
 
 ## 概述
 
-Laravel MCP Server 是个很牛的包，可以让你在 Laravel 项目里轻松搭建 MCP 服务器。**不像其他大多数 Laravel MCP 包用的是 stdio**，这个包**用的是 SSE**，这样更安全，也更好管理。
+Laravel MCP Server 是个很牛的包，可以让你在 Laravel 项目里轻松搭建 MCP 服务器。**不像其他大多数 Laravel MCP 包用的是 stdio**，这个包主推 **Streamable HTTP**，并保留了**旧版 SSE 提供者**以便向下兼容，从而提供更安全、更可控的集成方式。
 
-### 为啥用 SSE 而不用 STDIO？
+### 为啥用 Streamable HTTP 而不用 STDIO？
 
 Stdio 虽然简单，在 MCP 实现中也很常见，但在企业环境里会带来不少安全问题：
 
 - **安全风险**：STDIO 传输可能会暴露内部系统细节和 API 规范
 - **数据保护**：组织需要保护专有 API 端点和内部系统架构
-- **控制能力**：SSE 提供对 LLM 客户端与应用程序之间通信通道的更好控制
+- **控制能力**：Streamable HTTP 提供对 LLM 客户端与应用程序之间通信通道的更好控制
 
-用 SSE 来搭建 MCP 服务器，企业可以：
+用 Streamable HTTP 来搭建 MCP 服务器，企业可以：
 
 - 只开放必要的工具和资源，保护专有 API 的细节
 - 简单管理认证和授权过程
 
 最大优势：
 
-- 快速易用，直接在现有 Laravel 项目里接入 SSE
+- 快速易用，直接在现有 Laravel 项目里接入 Streamable HTTP
 - 完全支持最新版 Laravel 和 PHP
 - 运行高效，实时数据处理性能好
 - 企业级安全性，更适合商业用途
 
 ## 主要特性
 
-- 通过服务器发送事件（SSE）集成支持实时通信
+- 通过 Streamable HTTP 及旧版 SSE 实现实时通信
 - 实现符合模型上下文协议规范的工具和资源
 - 基于适配器的设计架构，采用发布/订阅消息模式（从 Redis 开始，计划添加更多适配器）
 - 简单的路由和中间件配置
+
+### 传输方式
+
+在 `server_provider` 配置项中可以选择传输方式：
+
+1. **streamable_http**：推荐使用的默认选项，采用普通 HTTP 请求，在许多 serverless 环境（如 Cloudflare）下也能正常工作，不受 SSE 60 秒超时限制。
+2. **sse**：为兼容旧版而保留，依赖长连接 SSE，在部分平台上可能因超时而失败。
+
+协议中还定义了 “Streamable HTTP SSE” 模式，但本库未实现，也暂无计划实现。
 
 ## 系统要求
 
@@ -155,16 +164,16 @@ npx @modelcontextprotocol/inspector node build/index.js
      - Nginx + PHP-FPM
      - Apache + PHP-FPM
      - 自定义 Docker 配置
-     - 任何正确支持 SSE 流式传输的 Web 服务器
+    - 任何正确支持 SSE 流式传输的 Web 服务器（仅在使用旧版 SSE 提供者时需要）
 
-2. 在 Inspector 界面中，输入你的 SSE URL（比如 `http://localhost:8000/mcp/sse`）
+2. 在 Inspector 界面中，输入 MCP 端点 URL（比如 `http://localhost:8000/mcp`）。如果使用旧版 SSE 提供者，则输入 SSE URL (`http://localhost:8000/mcp/sse`)。
 3. 连接后就能直观地查看和测试所有工具了
 
-SSE URL 的格式是：`http://[你的服务器地址]/[default_path]/sse`，其中 `default_path` 在 `config/mcp-server.php` 文件里设置。
+MCP 端点的格式为：`http://[你的服务器地址]/[default_path]`，其中 `default_path` 在 `config/mcp-server.php` 文件里设置。
 
 ## 高级功能
 
-### 带有 SSE 适配器的发布/订阅架构
+### 带有 SSE 适配器的发布/订阅架构（仅旧版提供者）
 
 该包通过其适配器系统实现发布/订阅（pub/sub）消息模式：
 
@@ -172,7 +181,7 @@ SSE URL 的格式是：`http://[你的服务器地址]/[default_path]/sse`，其
 
 2. **消息代理（适配器）**：适配器（例如 Redis）为每个客户端维护消息队列，通过唯一的客户端 ID 识别。这提供了可靠的异步通信层。
 
-3. **订阅者（SSE 连接）**：长期存在的 SSE 连接订阅各自客户端的消息并实时传递它们。
+3. **订阅者（SSE 连接）**：长期存在的 SSE 连接订阅各自客户端的消息并实时传递它们。此机制仅在使用旧版 SSE 提供者时适用。
 
 这种架构实现了：
 
