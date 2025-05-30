@@ -27,34 +27,43 @@
 
 ## Visão Geral
 
-O Laravel MCP Server é um pacote poderoso feito pra facilitar a implementação de servidores MCP (Model Context Protocol) em apps Laravel. **Ao contrário da maioria dos pacotes MCP pro Laravel que usam stdio (entrada/saída padrão)**, este pacote **usa SSE (Server-Sent Events)**, proporcionando uma integração mais segura e com melhor controle.
+O Laravel MCP Server é um pacote poderoso feito pra facilitar a implementação de servidores MCP (Model Context Protocol) em apps Laravel. **Ao contrário da maioria dos pacotes MCP pro Laravel que usam stdio (entrada/saída padrão)**, este pacote foca em **Streamable HTTP** e mantém um **provedor SSE legado** para compatibilidade, garantindo uma integração segura e controlada.
 
-### Por que SSE em vez de STDIO?
+### Por que Streamable HTTP em vez de STDIO?
 
 Apesar do stdio ser simples e muito usado nas implementações de MCP, ele traz problemas sérios de segurança em ambientes corporativos:
 
 - **Risco de Segurança**: O STDIO pode expor detalhes internos do sistema e especificações de API
 - **Proteção de Dados**: Empresas precisam proteger seus endpoints de API e a arquitetura interna
-- **Controle**: O SSE dá um controle muito melhor sobre a comunicação entre clientes LLM e sua app
+- **Controle**: O Streamable HTTP dá um controle muito melhor sobre a comunicação entre clientes LLM e sua app
 
-Usando SSE pro servidor MCP, as empresas conseguem:
+Usando Streamable HTTP pro servidor MCP, as empresas conseguem:
 
 - Expor só as ferramentas e recursos necessários, mantendo os detalhes da API privados
 - Controlar melhor os processos de autenticação e autorização
 
 Principais vantagens:
 
-- Implementação rápida e fácil de SSE em projetos Laravel já existentes
+- Implementação rápida e fácil de Streamable HTTP em projetos Laravel já existentes
 - Suporte às versões mais recentes do Laravel e PHP
 - Comunicação eficiente e processamento de dados em tempo real
 - Segurança reforçada pra ambientes corporativos
 
 ## Recursos Principais
 
-- Suporte à comunicação em tempo real através da integração de Eventos Enviados pelo Servidor (SSE)
+- Suporte à comunicação em tempo real via Streamable HTTP e SSE (provedor legado)
 - Implementação de ferramentas e recursos compatíveis com as especificações do Protocolo de Contexto de Modelo
 - Arquitetura de design baseada em adaptadores com padrão de mensagens Pub/Sub (começando com Redis, mais adaptadores planejados)
 - Configuração simples de rotas e middlewares
+
+### Provedores de transporte
+
+A opção `server_provider` define qual transporte será usado. Estão disponíveis:
+
+1. **streamable_http** – padrão recomendado. Utiliza requisições HTTP comuns e evita problemas em plataformas que encerram conexões SSE após cerca de 60 segundos (como muitos ambientes serverless).
+2. **sse** – provedor legado mantido para compatibilidade. Precisa de conexões SSE longas e pode não funcionar nessas plataformas.
+
+O modo "Streamable HTTP SSE" previsto no protocolo MCP não é implementado neste pacote e não há planos para tal.
 
 ## Requisitos
 
@@ -155,16 +164,16 @@ Isso vai abrir uma interface web em `localhost:6274`. Pra testar seu servidor MC
      - Nginx + PHP-FPM
      - Apache + PHP-FPM
      - Configuração Docker personalizada
-     - Qualquer servidor web que suporte streaming SSE corretamente
+    - Qualquer servidor web que suporte streaming SSE corretamente (necessário apenas com o provedor SSE legado)
 
-2. No Inspector, coloque a URL SSE do seu servidor (tipo `http://localhost:8000/mcp/sse`)
+2. No Inspector, coloque a URL do endpoint MCP do seu servidor (tipo `http://localhost:8000/mcp`). Se estiver usando o provedor SSE legado, use a URL SSE (`http://localhost:8000/mcp/sse`).
 3. Conecte e explore as ferramentas visualmente
 
-A URL SSE segue o formato: `http://[seu-servidor]/[default_path]/sse` onde o `default_path` tá configurado no seu `config/mcp-server.php`.
+O endpoint MCP segue o formato: `http://[seu-servidor]/[default_path]` onde o `default_path` está configurado no seu `config/mcp-server.php`.
 
 ## Recursos Avançados
 
-### Arquitetura Pub/Sub com Adaptadores SSE
+### Arquitetura Pub/Sub com Adaptadores SSE (provedor legado)
 
 O pacote implementa um padrão de mensagens publicar/assinar (pub/sub) através do seu sistema de adaptadores:
 
@@ -172,7 +181,7 @@ O pacote implementa um padrão de mensagens publicar/assinar (pub/sub) através 
 
 2. **Intermediário de Mensagens (Adaptador)**: O adaptador (ex: Redis) mantém filas de mensagens para cada cliente, identificados por IDs de cliente únicos. Isso fornece uma camada de comunicação assíncrona confiável.
 
-3. **Assinante (Conexão SSE)**: Conexões SSE de longa duração assinam mensagens para seus respectivos clientes e as entregam em tempo real.
+3. **Assinante (Conexão SSE)**: Conexões SSE de longa duração assinam mensagens para seus respectivos clientes e as entregam em tempo real. Isso vale apenas quando o provedor SSE legado está habilitado.
 
 Esta arquitetura permite:
 

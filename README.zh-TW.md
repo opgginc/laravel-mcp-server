@@ -27,34 +27,43 @@
 
 ## 概述
 
-Laravel MCP Server 是個超強的套件，讓你在 Laravel 簡單建立 MCP 伺服器。**跟其他用 stdio 的 Laravel MCP 套件不一樣**，這個套件**用的是 SSE**，提供更安全又好管的方式。
+Laravel MCP Server 是個超強的套件，讓你在 Laravel 簡單建立 MCP 伺服器。**跟其他用 stdio 的 Laravel MCP 套件不一樣**，這個套件主推 **Streamable HTTP**，並保留**舊版 SSE 提供者**以利相容，帶來更安全、可控的整合方式。
 
-### 為什麼選擇 SSE 而非 STDIO？
+### 為什麼選擇 Streamable HTTP 而非 STDIO？
 
 雖然 stdio 簡單直接且在 MCP 實作中廣泛使用，但在企業環境中存在顯著的安全隱憂：
 
 - **安全風險**：STDIO 傳輸可能會暴露內部系統細節和 API 規格
 - **資料保護**：組織需要保護專有 API 端點和內部系統架構
-- **控制能力**：SSE 提供對 LLM 客戶端與應用程式之間通訊通道的更佳控制
+- **控制能力**：Streamable HTTP 提供對 LLM 客戶端與應用程式之間通訊通道的更佳控制
 
-用 SSE 建立 MCP 伺服器，公司可以：
+用 Streamable HTTP 建立 MCP 伺服器，公司可以：
 
 - 只開放需要的工具和資源，保護自家 API 的細節
 - 更好地控制驗證和授權流程
 
 主要優點：
 
-- 快速簡單，直接在現有 Laravel 專案整合 SSE
+- 快速簡單，直接在現有 Laravel 專案整合 Streamable HTTP
 - 完全支援最新版 Laravel 和 PHP
 - 跑得快，即時資料處理效能好
 - 企業級安全性，適合商業用途
 
 ## 主要特色
 
-- 透過伺服器傳送事件（SSE）整合支援即時通訊
+- 透過 Streamable HTTP 與舊版 SSE 支援即時通訊
 - 實作符合模型上下文協議規範的工具和資源
 - 基於轉接器的設計架構，採用發佈/訂閱訊息模式（從 Redis 開始，計劃新增更多轉接器）
 - 簡單的路由和中介軟體配置
+
+### 傳輸提供者
+
+`server_provider` 設定可用來選擇傳輸模式：
+
+1. **streamable_http**：預設且推薦的模式，使用一般 HTTP 連線，即使在常見的 serverless 環境也能正常運作，不受 SSE 約 60 秒的限制。
+2. **sse**：為相容舊版而保留，需要長時間的 SSE 連線，在部分平台可能會被過早關閉。
+
+協定中另有「Streamable HTTP SSE」模式，但此套件尚未實作，也沒有規劃。
 
 ## 系統要求
 
@@ -155,16 +164,16 @@ npx @modelcontextprotocol/inspector node build/index.js
      - Nginx + PHP-FPM
      - Apache + PHP-FPM
      - 自定義 Docker 配置
-     - 任何正確支援 SSE 串流的 Web 伺服器
+    - 任何正確支援 SSE 串流的 Web 伺服器（只有在使用舊版 SSE 提供者時才需要）
 
-2. 在 Inspector 界面輸入你的 SSE URL（比如 `http://localhost:8000/mcp/sse`）
+2. 在 Inspector 界面輸入 MCP 端點 URL（比如 `http://localhost:8000/mcp`）。若使用舊版 SSE 提供者，請輸入 SSE URL (`http://localhost:8000/mcp/sse`)。
 3. 連上後就能超直覺地查看所有工具了
 
-SSE URL 格式是：`http://[你的伺服器位址]/[default_path]/sse`，其中 `default_path` 在 `config/mcp-server.php` 檔案裡設定。
+MCP 端點格式為：`http://[你的伺服器位址]/[default_path]`，其中 `default_path` 在 `config/mcp-server.php` 檔案裡設定。
 
 ## 進階功能
 
-### 具備 SSE 轉接器的發佈/訂閱架構
+### 具備 SSE 轉接器的發佈/訂閱架構（僅舊版提供者）
 
 該套件透過其轉接器系統實現發佈/訂閱（pub/sub）訊息模式：
 
@@ -172,7 +181,7 @@ SSE URL 格式是：`http://[你的伺服器位址]/[default_path]/sse`，其中
 
 2. **訊息代理（轉接器）**：轉接器（例如 Redis）為每個客戶端維護訊息佇列，透過唯一的客戶端 ID 識別。這提供了可靠的非同步通訊層。
 
-3. **訂閱者（SSE 連線）**：長期存在的 SSE 連線訂閱各自客戶端的訊息並即時傳遞它們。
+3. **訂閱者（SSE 連線）**：長期存在的 SSE 連線訂閱各自客戶端的訊息並即時傳遞它們。此機制僅在使用舊版 SSE 提供者時適用。
 
 這種架構實現了：
 
