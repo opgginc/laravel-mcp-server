@@ -24,6 +24,7 @@ use OPGG\LaravelMcpServer\Utils\DataUtil;
  */
 final class MCPProtocol
 {
+    // This should be 2025-03-26, but I set this to 2024-11-05 because Vercel ai-sdk doesn't support it
     public const PROTOCOL_VERSION = '2024-11-05';
 
     private TransportInterface $transport;
@@ -111,7 +112,7 @@ final class MCPProtocol
     {
         $messageId = $message['id'] ?? null;
         try {
-            if (! isset($message['jsonrpc']) || $message['jsonrpc'] !== '2.0') {
+            if (!isset($message['jsonrpc']) || $message['jsonrpc'] !== '2.0') {
                 throw new JsonRpcErrorException(message: 'Invalid Request: Not a valid JSON-RPC 2.0 message', code: JsonRpcErrorCode::INVALID_REQUEST);
             }
 
