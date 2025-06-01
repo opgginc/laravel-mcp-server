@@ -5,6 +5,7 @@ namespace OPGG\LaravelMcpServer;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
+use OPGG\LaravelMcpServer\Console\Commands\MigrateToolsCommand;
 use OPGG\LaravelMcpServer\Console\Commands\TestMcpToolCommand;
 use OPGG\LaravelMcpServer\Http\Controllers\MessageController;
 use OPGG\LaravelMcpServer\Http\Controllers\SseController;
@@ -30,6 +31,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
             ->hasCommands([
                 MakeMcpToolCommand::class,
                 TestMcpToolCommand::class,
+                MigrateToolsCommand::class,
             ]);
     }
 
