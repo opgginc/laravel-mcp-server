@@ -549,16 +549,12 @@ El paquete soporta las siguientes variables de entorno para permitir configuraci
 | Variable               | Descripción                                      | Predeterminado |
 | ---------------------- | ------------------------------------------------ | -------------- |
 | `MCP_SERVER_ENABLED`   | Habilitar o deshabilitar el servidor MCP        | `true`         |
-| `MCP_REDIS_CONNECTION` | Nombre de conexión Redis desde database.php     | `default`      |
 
 ### Ejemplo de Configuración .env
 
 ```
 # Deshabilitar servidor MCP en entornos específicos
 MCP_SERVER_ENABLED=false
-
-# Usar una conexión Redis específica para MCP
-MCP_REDIS_CONNECTION=mcp
 ```
 
 ## Traducir README.md

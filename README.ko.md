@@ -549,16 +549,12 @@ MCP 엔드포인트는 다음 패턴을 따릅니다: `http://[your-laravel-serv
 | 변수                   | 설명                                    | 기본값    |
 | ---------------------- | --------------------------------------- | --------- |
 | `MCP_SERVER_ENABLED`   | MCP 서버 활성화 또는 비활성화           | `true`    |
-| `MCP_REDIS_CONNECTION` | database.php의 Redis 연결 이름          | `default` |
 
 ### .env 구성 예시
 
 ```
 # 특정 환경에서 MCP 서버 비활성화
 MCP_SERVER_ENABLED=false
-
-# MCP용 특정 Redis 연결 사용
-MCP_REDIS_CONNECTION=mcp
 ```
 
 ## README.md 번역

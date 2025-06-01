@@ -68,7 +68,6 @@ Primary config: `config/mcp-server.php`
 
 ### Environment Variables
 - `MCP_SERVER_ENABLED`: Enable/disable server
-- `MCP_REDIS_CONNECTION`: Redis connection for SSE adapter
 
 ### Endpoints
 - **Streamable HTTP**: `GET/POST /{default_path}` (default: `/mcp`)

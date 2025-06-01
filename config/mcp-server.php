@@ -11,7 +11,7 @@ return [
     | This is useful for staging environments or feature flags.
     |
     */
-    'enabled' => env('MCP_SERVER_ENABLED', true),
+    'enabled' => true, // Set to false if you want to disable the MCP server
 
     /*
     |--------------------------------------------------------------------------

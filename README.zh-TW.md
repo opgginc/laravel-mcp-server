@@ -549,16 +549,12 @@ MCP 端點遵循模式：`http://[your-laravel-server]/[default_path]`，其中 
 | 變數                   | 描述                                    | 預設值    |
 | ---------------------- | --------------------------------------- | --------- |
 | `MCP_SERVER_ENABLED`   | 啟用或停用 MCP 伺服器                   | `true`    |
-| `MCP_REDIS_CONNECTION` | 來自 database.php 的 Redis 連線名稱    | `default` |
 
 ### .env 配置範例
 
 ```
 # 在特定環境中停用 MCP 伺服器
 MCP_SERVER_ENABLED=false
-
-# 為 MCP 使用特定的 Redis 連線
-MCP_REDIS_CONNECTION=mcp
 ```
 
 ## 翻譯 README.md

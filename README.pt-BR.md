@@ -549,16 +549,12 @@ O pacote suporta as seguintes variáveis de ambiente para permitir configuraçã
 | Variável               | Descrição                                | Padrão    |
 | ---------------------- | ---------------------------------------- | --------- |
 | `MCP_SERVER_ENABLED`   | Habilitar ou desabilitar o servidor MCP | `true`    |
-| `MCP_REDIS_CONNECTION` | Nome da conexão Redis de database.php   | `default` |
 
 ### Exemplo de Configuração .env
 
 ```
 # Desabilitar servidor MCP em ambientes específicos
 MCP_SERVER_ENABLED=false
-
-# Usar uma conexão Redis específica para MCP
-MCP_REDIS_CONNECTION=mcp
 ```
 
 ## Traduzir README.md

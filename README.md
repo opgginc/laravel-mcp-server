@@ -549,16 +549,12 @@ The package supports the following environment variables to allow configuration 
 | Variable               | Description                             | Default   |
 | ---------------------- | --------------------------------------- | --------- |
 | `MCP_SERVER_ENABLED`   | Enable or disable the MCP server        | `true`    |
-| `MCP_REDIS_CONNECTION` | Redis connection name from database.php | `default` |
 
 ### Example .env Configuration
 
 ```
 # Disable MCP server in specific environments
 MCP_SERVER_ENABLED=false
-
-# Use a specific Redis connection for MCP
-MCP_REDIS_CONNECTION=mcp
 ```
 
 ## Translation README.md

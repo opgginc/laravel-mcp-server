@@ -69,7 +69,7 @@ php artisan octane:start
 
 ### Configuration
 - Primary config: `config/mcp-server.php`
-- Environment variables: `MCP_SERVER_ENABLED`, `MCP_REDIS_CONNECTION`
+- Environment variables: `MCP_SERVER_ENABLED`
 - Default transport: `streamable_http` (recommended)
 - Legacy SSE with Redis pub/sub adapter
 

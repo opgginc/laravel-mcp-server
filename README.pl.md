@@ -549,16 +549,12 @@ Pakiet wspiera następujące zmienne środowiskowe, aby umożliwić konfiguracj�
 | Zmienna                | Opis                                    | Domyślna |
 | ---------------------- | --------------------------------------- | -------- |
 | `MCP_SERVER_ENABLED`   | Włącz lub wyłącz serwer MCP             | `true`   |
-| `MCP_REDIS_CONNECTION` | Nazwa połączenia Redis z database.php  | `default`|
 
 ### Przykład konfiguracji .env
 
 ```
 # Wyłącz serwer MCP w określonych środowiskach
 MCP_SERVER_ENABLED=false
-
-# Użyj konkretnego połączenia Redis dla MCP
-MCP_REDIS_CONNECTION=mcp
 ```
 
 ## Tłumaczenie README.md
