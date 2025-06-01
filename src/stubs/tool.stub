@@ -134,6 +134,8 @@ class {{ className }} implements ToolInterface
             'destructiveHint' => false,
             'idempotentHint' => false,
             'openWorldHint' => false,
+
+            // Custom annotations are also allowed
         ];
     }
 

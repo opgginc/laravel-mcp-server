@@ -35,20 +35,22 @@ Version 1.1.0 introduced a significant and breaking change to the `ToolInterface
 The `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` has been updated as follows:
 
 1.  **New Method Added:**
-    *   `messageType(): ProcessMessageType`
-        *   This method is crucial for the new HTTP stream support and determines the type of message being processed.
+
+    - `messageType(): ProcessMessageType`
+      - This method is crucial for the new HTTP stream support and determines the type of message being processed.
 
 2.  **Method Renames:**
-    *   `getName()` is now `name()`
-    *   `getDescription()` is now `description()`
-    *   `getInputSchema()` is now `inputSchema()`
-    *   `getAnnotations()` is now `annotations()`
+    - `getName()` is now `name()`
+    - `getDescription()` is now `description()`
+    - `getInputSchema()` is now `inputSchema()`
+    - `getAnnotations()` is now `annotations()`
 
 **How to Update Your Tools:**
 
 Here's a comparison to help you adapt your existing tools:
 
 **v1.0.x `ToolInterface`:**
+
 ```php
 <?php
 
@@ -65,6 +67,7 @@ interface ToolInterface
 ```
 
 **v1.1.0 `ToolInterface` (New):**
+
 ```php
 <?php
 
@@ -86,6 +89,7 @@ interface ToolInterface
 **Example of an updated tool:**
 
 If your v1.0.x tool looked like this:
+
 ```php
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
@@ -100,6 +104,7 @@ class MyOldTool implements ToolInterface
 ```
 
 You need to update it for v1.1.0 as follows:
+
 ```php
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType; // Import the enum
@@ -132,16 +137,17 @@ php artisan mcp:migrate-tools {path?}
 **What it does:**
 
 This command will scan PHP files in the specified directory (defaults to `app/MCP/Tools/`) and attempt to:
+
 1.  **Identify old tools:** It looks for classes implementing the `ToolInterface` with the old method signatures.
 2.  **Create Backups:** Before making any changes, it will create a backup of your original tool file with a `.backup` extension (e.g., `YourTool.php.backup`). If a backup file already exists, the original file will be skipped to prevent accidental data loss.
 3.  **Refactor the Tool:**
-    *   Rename methods:
-        *   `getName()` to `name()`
-        *   `getDescription()` to `description()`
-        *   `getInputSchema()` to `inputSchema()`
-        *   `getAnnotations()` to `annotations()`
-    *   Add the new `messageType()` method, which will default to returning `ProcessMessageType::SSE`.
-    *   Ensure the `use OPGG\LaravelMcpServer\Enums\ProcessMessageType;` statement is present.
+    - Rename methods:
+      - `getName()` to `name()`
+      - `getDescription()` to `description()`
+      - `getInputSchema()` to `inputSchema()`
+      - `getAnnotations()` to `annotations()`
+    - Add the new `messageType()` method, which will default to returning `ProcessMessageType::SSE`.
+    - Ensure the `use OPGG\LaravelMcpServer\Enums\ProcessMessageType;` statement is present.
 
 **Usage:**
 
@@ -285,9 +291,9 @@ Let's dive deeper into some of these methods:
 **`messageType(): ProcessMessageType`**
 
 This method specifies the type of message processing for your tool. It returns a `ProcessMessageType` enum value. The available types are:
-*   `ProcessMessageType::HTTP`: For tools interacting via standard HTTP request/response. Most common for new tools.
-*   `ProcessMessageType::SSE`: For tools specifically designed to work with Server-Sent Events.
-*   `ProcessMessageType::PROTOCOL`: A legacy type, likely for older SSE implementations.
+
+- `ProcessMessageType::HTTP`: For tools interacting via standard HTTP request/response. Most common for new tools.
+- `ProcessMessageType::SSE`: For tools specifically designed to work with Server-Sent Events.
 
 For most tools, especially those designed for the primary `streamable_http` provider, you'll return `ProcessMessageType::HTTP`.
 
@@ -302,11 +308,13 @@ A clear, concise description of your tool's functionality. This is used in docum
 **`inputSchema(): array`**
 
 This method is crucial for defining your tool's expected input parameters. It should return an array that follows a structure similar to JSON Schema. This schema is used:
-*   By clients to understand what data to send.
-*   Potentially by the server or client for input validation.
-*   By tools like the MCP Inspector to generate forms for testing.
+
+- By clients to understand what data to send.
+- Potentially by the server or client for input validation.
+- By tools like the MCP Inspector to generate forms for testing.
 
 **Example `inputSchema()`:**
+
 ```php
 public function inputSchema(): array
 {
@@ -327,12 +335,10 @@ public function inputSchema(): array
     ];
 }
 ```
-In your `execute` method, you can then validate the incoming arguments. The `HelloWorldTool` example uses `Illuminate\Support\Facades\Validator` for this:
-```php
-use Illuminate\Support\Facades\Validator;
-use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
-use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 
+In your `execute` method, you can then validate the incoming arguments. The `HelloWorldTool` example uses `Illuminate\Support\Facades\Validator` for this:
+
+```php
 // Inside your execute() method:
 $validator = Validator::make($arguments, [
     'userId' => ['required', 'integer'],
@@ -350,34 +356,93 @@ if ($validator->fails()) {
 
 **`annotations(): array`**
 
-This method allows you to attach arbitrary metadata to your tool. While the specific use of annotations can vary depending on the MCP client or your application's needs, they generally serve to provide extra information that isn't part of the direct input/output or execution flow.
+This method provides metadata about your tool's behavior and characteristics, following the official [MCP Tool Annotations specification](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations). Annotations help MCP clients categorize tools, make informed decisions about tool approval, and provide appropriate user interfaces.
 
-**Potential uses for `annotations()`:**
-*   **Categorization/Grouping:** `['ui:group' => 'User Management']`
-*   **Permissions Hinting:** `['required_permission' => 'view_user_data']`
-*   **Flagging Experimental Features:** `['status' => 'beta']`
-*   **Client-Specific Hints:** `['client:render-component' => 'UserDetailsCard']`
+**Standard MCP Annotations:**
 
-Currently, the core package may not act on these annotations directly, but they can be invaluable for custom client implementations or for organizing and managing a large set of tools. The method should return an associative array.
+The Model Context Protocol defines several standard annotations that clients understand:
+
+- **`title`** (string): A human-readable title for the tool, displayed in client UIs
+- **`readOnlyHint`** (boolean): Indicates if the tool only reads data without modifying the environment (default: false)
+- **`destructiveHint`** (boolean): Suggests if the tool may perform destructive operations like deleting data (default: true)
+- **`idempotentHint`** (boolean): Indicates if repeated calls with the same arguments have no additional effect (default: false)
+- **`openWorldHint`** (boolean): Signals if the tool interacts with external entities beyond the local environment (default: true)
+
+**Important:** These are hints, not guarantees. They help clients provide better user experiences but should not be used for security-critical decisions.
+
+**Example with standard MCP annotations:**
+
 ```php
 public function annotations(): array
 {
     return [
-        'version' => '1.2',
-        'author' => 'MyTeam',
-        'experimental' => true,
+        'title' => 'User Profile Fetcher',
+        'readOnlyHint' => true,        // Tool only reads user data
+        'destructiveHint' => false,    // Tool doesn't delete or modify data
+        'idempotentHint' => true,      // Safe to call multiple times
+        'openWorldHint' => false,      // Tool only accesses local database
     ];
 }
 ```
 
-**`execute(array $arguments): mixed`**
+**Real-world examples by tool type:**
 
-This is where your tool's main logic resides.
-*   It receives an associative array `$arguments` containing the input parameters provided by the client (ideally after you've validated them against your `inputSchema`).
-*   It can return any type of data (`mixed`) that is appropriate for your tool's result. This could be a string, array, object, etc. The result will typically be JSON-encoded in the response to the client.
-*   Ensure you handle potential errors gracefully, perhaps by throwing specific exceptions (like `JsonRpcErrorException` as seen in the `HelloWorldTool`) if something goes wrong.
+```php
+// Database query tool
+public function annotations(): array
+{
+    return [
+        'title' => 'Database Query Tool',
+        'readOnlyHint' => true,
+        'destructiveHint' => false,
+        'idempotentHint' => true,
+        'openWorldHint' => false,
+    ];
+}
 
-By correctly implementing these methods, you provide a clear contract for your tool, making it understandable, testable, and usable within the MCP ecosystem.
+// Post deletion tool
+public function annotations(): array
+{
+    return [
+        'title' => 'Blog Post Deletion Tool',
+        'readOnlyHint' => false,
+        'destructiveHint' => true,     // Can delete posts
+        'idempotentHint' => false,     // Deleting twice has different effects
+        'openWorldHint' => false,
+    ];
+}
+
+// API integration tool
+public function annotations(): array
+{
+    return [
+        'title' => 'Weather API',
+        'readOnlyHint' => true,
+        'destructiveHint' => false,
+        'idempotentHint' => true,
+        'openWorldHint' => true,       // Accesses external weather API
+    ];
+}
+```
+
+**Custom annotations** can also be added for your specific application needs:
+
+```php
+public function annotations(): array
+{
+    return [
+        // Standard MCP annotations
+        'title' => 'Custom Tool',
+        'readOnlyHint' => true,
+
+        // Custom annotations for your application
+        'category' => 'data-analysis',
+        'version' => '2.1.0',
+        'author' => 'Data Team',
+        'requires_permission' => 'analytics.read',
+    ];
+}
+```
 
 ### Testing MCP Tools
 
