@@ -5,8 +5,8 @@ namespace OPGG\LaravelMcpServer;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
-use OPGG\LaravelMcpServer\Console\Commands\TestMcpToolCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MigrateToolsCommand;
+use OPGG\LaravelMcpServer\Console\Commands\TestMcpToolCommand;
 use OPGG\LaravelMcpServer\Http\Controllers\MessageController;
 use OPGG\LaravelMcpServer\Http\Controllers\SseController;
 use OPGG\LaravelMcpServer\Http\Controllers\StreamableHttpController;
@@ -60,12 +60,12 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
     protected function registerRoutes(): void
     {
         // Skip route registration if the server is disabled
-        if (!Config::get('mcp-server.enabled', true)) {
+        if (! Config::get('mcp-server.enabled', true)) {
             return;
         }
 
         // Skip route registration if MCPServer instance doesn't exist
-        if (!app()->has(MCPServer::class)) {
+        if (! app()->has(MCPServer::class)) {
             return;
         }
 

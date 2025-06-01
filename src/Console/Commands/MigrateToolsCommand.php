@@ -99,11 +99,11 @@ class MigrateToolsCommand extends Command
                                 // Get the last use statement
                                 $lastUseMatch = end($matches[0]);
                                 $lastUseEndPos = $lastUseMatch[1] + strlen($lastUseMatch[0]);
-                                
+
                                 // Insert the new use statement after the last one
                                 $modifiedContent = substr_replace(
                                     $modifiedContent,
-                                    PHP_EOL . $useStatement,
+                                    PHP_EOL.$useStatement,
                                     $lastUseEndPos,
                                     0
                                 );
@@ -111,7 +111,7 @@ class MigrateToolsCommand extends Command
                                 // Fallback: Add after namespace or <?php if no existing use statements
                                 $modifiedContent = preg_replace(
                                     '/(namespace\s+[^;]+;)/',
-                                    '$1' . PHP_EOL . PHP_EOL . $useStatement,
+                                    '$1'.PHP_EOL.PHP_EOL.$useStatement,
                                     $modifiedContent,
                                     1 // Only replace once
                                 );
