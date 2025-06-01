@@ -542,20 +542,6 @@ The default Redis adapter can be configured as follows:
 ],
 ```
 
-## Environment Variables
-
-The package supports the following environment variables to allow configuration without modifying the config files:
-
-| Variable               | Description                             | Default   |
-| ---------------------- | --------------------------------------- | --------- |
-| `MCP_SERVER_ENABLED`   | Enable or disable the MCP server        | `true`    |
-
-### Example .env Configuration
-
-```
-# Disable MCP server in specific environments
-MCP_SERVER_ENABLED=false
-```
 
 ## Translation README.md
 
