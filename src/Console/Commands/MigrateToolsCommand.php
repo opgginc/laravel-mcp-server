@@ -31,18 +31,20 @@ class MigrateToolsCommand extends Command
     {
         $toolsPath = $this->argument('path') ?? app_path('MCP/Tools');
 
-        if (!File::isDirectory($toolsPath)) {
+        if (! File::isDirectory($toolsPath)) {
             $this->error("The specified path `{$toolsPath}` is not a directory or does not exist.");
+
             return Command::FAILURE;
         }
 
         $this->info("Starting migration scan for tools in: {$toolsPath}");
 
-        $finder = new Finder();
+        $finder = new Finder;
         $finder->files()->in($toolsPath)->name('*.php');
 
-        if (!$finder->hasResults()) {
-            $this->info("No PHP files found in the specified path.");
+        if (! $finder->hasResults()) {
+            $this->info('No PHP files found in the specified path.');
+
             return Command::SUCCESS;
         }
 
@@ -70,13 +72,14 @@ class MigrateToolsCommand extends Command
                              str_contains($content, 'public function getAnnotations(): array');
 
             if ($isOldToolInterface && $hasOldMethods) {
-                $this->line("Found potential candidate for migration: " . $filePath);
+                $this->line('Found potential candidate for migration: '.$filePath);
                 $potentialCandidates++;
 
-                $backupFilePath = $filePath . '.backup';
+                $backupFilePath = $filePath.'.backup';
 
                 if (File::exists($backupFilePath)) {
                     $this->warn("Backup for '{$filePath}' already exists at '{$backupFilePath}'. Skipping migration for this file.");
+
                     continue; // Skip to the next file
                 }
 
@@ -90,29 +93,29 @@ class MigrateToolsCommand extends Command
 
                         // 1. Add 'use ProcessMessageType' if not present
                         $useStatement = 'use OPGG\LaravelMcpServer\Enums\ProcessMessageType;';
-                        if (!str_contains($modifiedContent, $useStatement) && !str_contains($modifiedContent, 'use ProcessMessageType;')) { // Avoid duplicate if aliased
+                        if (! str_contains($modifiedContent, $useStatement) && ! str_contains($modifiedContent, 'use ProcessMessageType;')) { // Avoid duplicate if aliased
                             // Add after namespace or <?php if no namespace
                             $modifiedContent = preg_replace(
                                 '/(namespace\s+[^;]+;|\<\?php)/',
-                                '$1' . PHP_EOL . $useStatement . PHP_EOL,
+                                '$1'.PHP_EOL.$useStatement.PHP_EOL,
                                 $modifiedContent,
                                 1 // Only replace once
                             );
                         }
 
                         // 2. Add messageType() method
-                        $messageTypeMethod = PHP_EOL .
-                            '    public function messageType(): ProcessMessageType' . PHP_EOL .
-                            '    {' . PHP_EOL .
-                            '        return ProcessMessageType::SSE;' . PHP_EOL . // Defaulting to SSE as per original thought, can be changed
-                            '    }' . PHP_EOL;
+                        $messageTypeMethod = PHP_EOL.
+                            '    public function messageType(): ProcessMessageType'.PHP_EOL.
+                            '    {'.PHP_EOL.
+                            '        return ProcessMessageType::SSE;'.PHP_EOL. // Defaulting to SSE as per original thought, can be changed
+                            '    }'.PHP_EOL;
 
                         // Add it after the class opening brace and ToolInterface implementation
                         // Ensure it's not added if already present (simple check)
-                        if (!str_contains($modifiedContent, 'public function messageType(): ProcessMessageType')) {
+                        if (! str_contains($modifiedContent, 'public function messageType(): ProcessMessageType')) {
                             $modifiedContent = preg_replace(
                                 '/(implements\s+ToolInterface\s*\{)/',
-                                '$1' . $messageTypeMethod,
+                                '$1'.$messageTypeMethod,
                                 $modifiedContent,
                                 1 // Only replace once
                             );
@@ -120,10 +123,10 @@ class MigrateToolsCommand extends Command
 
                         // 3. Rename methods
                         $replacements = [
-                            'public function getName(): string'          => 'public function name(): string',
-                            'public function getDescription(): string'  => 'public function description(): string',
-                            'public function getInputSchema(): array'    => 'public function inputSchema(): array',
-                            'public function getAnnotations(): array'    => 'public function annotations(): array',
+                            'public function getName(): string' => 'public function name(): string',
+                            'public function getDescription(): string' => 'public function description(): string',
+                            'public function getInputSchema(): array' => 'public function inputSchema(): array',
+                            'public function getAnnotations(): array' => 'public function annotations(): array',
                         ];
 
                         foreach ($replacements as $old => $new) {
@@ -144,10 +147,12 @@ class MigrateToolsCommand extends Command
                         // This case might be rare if File::copy throws an exception on failure,
                         // but good to have a fallback.
                         $this->error("Failed to create backup for '{$filePath}'. Skipping migration for this file.");
+
                         continue;
                     }
                 } catch (\Exception $e) {
-                    $this->error("Error creating backup or migrating '{$filePath}': " . $e->getMessage() . ". Skipping migration for this file.");
+                    $this->error("Error creating backup or migrating '{$filePath}': ".$e->getMessage().'. Skipping migration for this file.');
+
                     continue;
                 }
 
@@ -157,7 +162,7 @@ class MigrateToolsCommand extends Command
         if ($potentialCandidates > 0) {
             $this->info("Scan complete. Processed {$potentialCandidates} potential candidates.");
         } else {
-            $this->info("Scan complete. No files seem to require migration based on initial checks.");
+            $this->info('Scan complete. No files seem to require migration based on initial checks.');
         }
 
         return Command::SUCCESS;

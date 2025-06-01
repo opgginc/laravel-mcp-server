@@ -3,8 +3,8 @@
 namespace Tests\Console\Commands;
 
 use Illuminate\Support\Facades\File;
-use Tests\TestCase;
 use Illuminate\Support\Str;
+use Tests\TestCase;
 
 class MigrateToolsCommandTest extends TestCase
 {
@@ -20,9 +20,10 @@ class MigrateToolsCommandTest extends TestCase
 
     protected function setUpMockToolFile(string $fileName, string $content, string $baseDir = 'MCP/ToolsTest'): string
     {
-        $path = app_path(Str::finish($baseDir, '/') . $fileName);
+        $path = app_path(Str::finish($baseDir, '/').$fileName);
         File::ensureDirectoryExists(dirname($path));
         File::put($path, $content);
+
         return $path;
     }
 
@@ -117,14 +118,14 @@ PHP;
     public function test_command_migrates_old_tool_successfully()
     {
         $toolPath = $this->setUpMockToolFile('MyOldTool.php', $this->getOldToolContent('MyOldTool'));
-        $backupPath = $toolPath . '.backup';
+        $backupPath = $toolPath.'.backup';
 
         $this->artisan('mcp:migrate-tools', ['path' => dirname($toolPath)])
-            ->expectsOutput("Starting migration scan for tools in: " . dirname($toolPath))
+            ->expectsOutput('Starting migration scan for tools in: '.dirname($toolPath))
             ->expectsOutput("Found potential candidate for migration: {$toolPath}")
             ->expectsOutput("Backed up '{$toolPath}' to '{$backupPath}'.")
             ->expectsOutput("Successfully migrated '{$toolPath}'.")
-            ->expectsOutput("Scan complete. Processed 1 potential candidates.")
+            ->expectsOutput('Scan complete. Processed 1 potential candidates.')
             ->assertExitCode(0);
 
         $this->assertTrue(File::exists($backupPath));
@@ -139,7 +140,7 @@ PHP;
     public function test_command_skips_if_backup_exists()
     {
         $toolPath = $this->setUpMockToolFile('MySkippedTool.php', $this->getOldToolContent('MySkippedTool'));
-        $backupPath = $toolPath . '.backup';
+        $backupPath = $toolPath.'.backup';
         File::copy($toolPath, $backupPath); // Create backup beforehand
 
         $this->artisan('mcp:migrate-tools', ['path' => dirname($toolPath)])
@@ -152,14 +153,14 @@ PHP;
 
     public function test_command_skips_non_tool_php_file()
     {
-        $nonToolContent = "<?php namespace App; class NotATool {}";
+        $nonToolContent = '<?php namespace App; class NotATool {}';
         $nonToolPath = $this->setUpMockToolFile('NotATool.php', $nonToolContent);
 
         $this->artisan('mcp:migrate-tools', ['path' => dirname($nonToolPath)])
-            ->expectsOutput("Scan complete. No files seem to require migration based on initial checks.")
+            ->expectsOutput('Scan complete. No files seem to require migration based on initial checks.')
             ->assertExitCode(0);
 
-        $this->assertFalse(File::exists($nonToolPath . '.backup'));
+        $this->assertFalse(File::exists($nonToolPath.'.backup'));
     }
 
     public function test_command_handles_invalid_path()
@@ -176,7 +177,7 @@ PHP;
         File::ensureDirectoryExists($emptyDir);
 
         $this->artisan('mcp:migrate-tools', ['path' => $emptyDir])
-            ->expectsOutput("No PHP files found in the specified path.")
+            ->expectsOutput('No PHP files found in the specified path.')
             ->assertExitCode(0);
     }
 }
