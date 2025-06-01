@@ -69,7 +69,7 @@ LANGUAGES = {
     }
 }
 
-TRANSLATION_PROMPT = """You are a native {target_language} professional technical documentation writer specializing in software development documentation. Your task is to translate a Laravel package README from English to {target_language}.
+SYSTEM_PROMPT = """You are a native {target_language} professional technical documentation writer specializing in software development documentation. You are an expert at translating Laravel package documentation while maintaining technical accuracy and natural language flow.
 
 CRITICAL REQUIREMENTS:
 1. **Preserve ALL technical elements exactly**:
@@ -102,9 +102,9 @@ CRITICAL REQUIREMENTS:
    - Keep exact same markdown hierarchy
    - Preserve all headers, lists, tables
    - Maintain all badges and links
-   - Keep language selector links unchanged
+   - Keep language selector links unchanged"""
 
-Please translate this README.md content:
+USER_PROMPT = """Please translate this Laravel package README from English to {target_language}.
 
 <content>
 {content}
@@ -128,17 +128,23 @@ class ReadmeTranslator:
         print(f"🌐 Translating to {lang_config['name']}...")
 
         try:
-            message = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=8000,
-                temperature=0.5,
-                messages=[{
-                    "role": "user",
-                    "content": TRANSLATION_PROMPT.format(
-                        target_language=lang_config['locale'],
-                        content=content
-                    )
-                }]
+            # Run the synchronous API call in a thread pool to make it non-blocking
+            loop = asyncio.get_event_loop()
+            message = await loop.run_in_executor(
+                None,
+                lambda: self.client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=8000,
+                    temperature=0.5,
+                    system=SYSTEM_PROMPT.format(target_language=lang_config['locale']),
+                    messages=[{
+                        "role": "user",
+                        "content": USER_PROMPT.format(
+                            target_language=lang_config['locale'],
+                            content=content
+                        )
+                    }]
+                )
             )
 
             translated_content = message.content[0].text
