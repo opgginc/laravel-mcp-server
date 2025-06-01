@@ -47,7 +47,50 @@ The `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` has been updated 
 
 **How to Update Your Tools:**
 
-Here's a comparison to help you adapt your existing tools:
+### Automated Tool Migration for v1.1.0
+
+To assist with the transition to the new `ToolInterface` introduced in v1.1.0, we've included an Artisan command that can help automate the refactoring of your existing tools:
+
+```bash
+php artisan mcp:migrate-tools {path?}
+```
+
+**What it does:**
+
+This command will scan PHP files in the specified directory (defaults to `app/MCP/Tools/`) and attempt to:
+
+1.  **Identify old tools:** It looks for classes implementing the `ToolInterface` with the old method signatures.
+2.  **Create Backups:** Before making any changes, it will create a backup of your original tool file with a `.backup` extension (e.g., `YourTool.php.backup`). If a backup file already exists, the original file will be skipped to prevent accidental data loss.
+3.  **Refactor the Tool:**
+    - Rename methods:
+      - `getName()` to `name()`
+      - `getDescription()` to `description()`
+      - `getInputSchema()` to `inputSchema()`
+      - `getAnnotations()` to `annotations()`
+    - Add the new `messageType()` method, which will default to returning `ProcessMessageType::SSE`.
+    - Ensure the `use OPGG\LaravelMcpServer\Enums\ProcessMessageType;` statement is present.
+
+**Usage:**
+
+After updating the `opgginc/laravel-mcp-server` package to v1.1.0 or later, if you have existing tools written for v1.0.x, it is highly recommended to run this command:
+
+```bash
+php artisan mcp:migrate-tools
+```
+
+If your tools are located in a directory other than `app/MCP/Tools/`, you can specify the path:
+
+```bash
+php artisan mcp:migrate-tools path/to/your/tools
+```
+
+The command will output its progress, indicating which files are being processed, backed up, and migrated. Always review the changes made by the tool. While it aims to be accurate, complex or unusually formatted tool files might require manual adjustments.
+
+This tool should significantly ease the migration process and help you adapt to the new interface structure quickly.
+
+### Manual Migration
+
+If you prefer to migrate your tools manually, here's a comparison to help you adapt your existing tools:
 
 **v1.0.x `ToolInterface`:**
 
@@ -125,47 +168,6 @@ class MyNewTool implements ToolInterface
     public function execute(array $arguments): mixed { /* ... */ }
 }
 ```
-
-### Automated Tool Migration for v1.1.0
-
-To assist with the transition to the new `ToolInterface` introduced in v1.1.0, we've included an Artisan command that can help automate the refactoring of your existing tools:
-
-```bash
-php artisan mcp:migrate-tools {path?}
-```
-
-**What it does:**
-
-This command will scan PHP files in the specified directory (defaults to `app/MCP/Tools/`) and attempt to:
-
-1.  **Identify old tools:** It looks for classes implementing the `ToolInterface` with the old method signatures.
-2.  **Create Backups:** Before making any changes, it will create a backup of your original tool file with a `.backup` extension (e.g., `YourTool.php.backup`). If a backup file already exists, the original file will be skipped to prevent accidental data loss.
-3.  **Refactor the Tool:**
-    - Rename methods:
-      - `getName()` to `name()`
-      - `getDescription()` to `description()`
-      - `getInputSchema()` to `inputSchema()`
-      - `getAnnotations()` to `annotations()`
-    - Add the new `messageType()` method, which will default to returning `ProcessMessageType::SSE`.
-    - Ensure the `use OPGG\LaravelMcpServer\Enums\ProcessMessageType;` statement is present.
-
-**Usage:**
-
-After updating the `opgginc/laravel-mcp-server` package to v1.1.0 or later, if you have existing tools written for v1.0.x, it is highly recommended to run this command:
-
-```bash
-php artisan mcp:migrate-tools
-```
-
-If your tools are located in a directory other than `app/MCP/Tools/`, you can specify the path:
-
-```bash
-php artisan mcp:migrate-tools path/to/your/tools
-```
-
-The command will output its progress, indicating which files are being processed, backed up, and migrated. Always review the changes made by the tool. While it aims to be accurate, complex or unusually formatted tool files might require manual adjustments.
-
-This tool should significantly ease the migration process and help you adapt to the new interface structure quickly.
 
 ## Overview of Laravel MCP Server
 

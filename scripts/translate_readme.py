@@ -82,7 +82,7 @@ CRITICAL REQUIREMENTS:
    - Keep Laravel/PHP terminology consistent
    - Maintain proper technical context
    - Preserve all code examples unchanged
-   - Use the English words if the term is even popular for software engineers in {target_language}
+   - Use the English words if the term is very popular and seems like natural for {target_language} software engineers
 
 3. **Quality translation**:
    - Use natural, fluent and very local {target_language}
@@ -130,29 +130,47 @@ class ReadmeTranslator:
         try:
             # Run the synchronous API call in a thread pool to make it non-blocking
             loop = asyncio.get_event_loop()
-            message = await loop.run_in_executor(
-                None,
-                lambda: self.client.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=8000,
-                    temperature=0.5,
-                    system=SYSTEM_PROMPT.format(target_language=lang_config['locale']),
-                    messages=[{
-                        "role": "user",
-                        "content": USER_PROMPT.format(
-                            target_language=lang_config['locale'],
-                            content=content
-                        )
-                    }]
-                )
+
+            # Add timeout and increased token limit
+            message = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: self.client.messages.create(
+                        model="claude-sonnet-4-20250514",
+                        max_tokens=16000,  # Increased token limit
+                        temperature=0.3,   # Reduced temperature for more consistent output
+                        system=SYSTEM_PROMPT.format(target_language=lang_config['locale']),
+                        messages=[{
+                            "role": "user",
+                            "content": USER_PROMPT.format(
+                                target_language=lang_config['locale'],
+                                content=content
+                            )
+                        }]
+                    )
+                ),
+                timeout=300.0
             )
 
-            translated_content = message.content[0].text
-            print(f"✅ {lang_config['name']} translation completed")
+            # Extract text content properly, handling different content types
+            translated_content = ""
+            for content_block in message.content:
+                if hasattr(content_block, 'text'):
+                    translated_content += content_block.text
+                elif hasattr(content_block, 'type') and content_block.type == 'text':
+                    translated_content += content_block.text
+            print(f"✅ {lang_config['name']} translation completed ({len(translated_content)} chars)")
             return translated_content
 
+        except asyncio.TimeoutError:
+            print(f"⏰ Timeout translating to {lang_config['name']} - trying with retry...")
+            raise
+        except anthropic.APIError as e:
+            print(f"🔑 API Error translating to {lang_config['name']}: {e}")
+            raise
         except Exception as e:
-            print(f"❌ Error translating to {lang_config['name']}: {e}")
+            print(f"❌ Unexpected error translating to {lang_config['name']}: {e}")
+            print(f"   Error type: {type(e).__name__}")
             raise
 
     async def save_translation(self, content: str, filename: str) -> None:
@@ -163,12 +181,23 @@ class ReadmeTranslator:
         print(f"💾 Saved {filename}")
 
     async def translate_language(self, content: str, lang_code: str, lang_config: Dict) -> None:
-        """Translate and save a single language."""
-        try:
-            translated_content = await self.translate_to_language(content, lang_code, lang_config)
-            await self.save_translation(translated_content, lang_config['filename'])
-        except Exception as e:
-            print(f"❌ Failed to process {lang_config['name']}: {e}")
+        """Translate and save a single language with retry logic."""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                translated_content = await self.translate_to_language(content, lang_code, lang_config)
+                await self.save_translation(translated_content, lang_config['filename'])
+                return  # Success, exit retry loop
+            except (asyncio.TimeoutError, anthropic.APIError) as e:
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 10  # 10, 20, 30 seconds
+                    print(f"🔄 Retry {attempt + 1}/{max_retries} for {lang_config['name']} in {wait_time}s...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    print(f"❌ All retries failed for {lang_config['name']}: {e}")
+            except Exception as e:
+                print(f"❌ Failed to process {lang_config['name']}: {e}")
+                break  # Don't retry for other types of errors
 
     async def translate_all(self, languages: List[str] = None) -> None:
         """Translate README to all specified languages in parallel."""
