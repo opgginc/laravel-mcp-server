@@ -94,13 +94,28 @@ class MigrateToolsCommand extends Command
                         // 1. Add 'use ProcessMessageType' if not present
                         $useStatement = 'use OPGG\LaravelMcpServer\Enums\ProcessMessageType;';
                         if (! str_contains($modifiedContent, $useStatement) && ! str_contains($modifiedContent, 'use ProcessMessageType;')) { // Avoid duplicate if aliased
-                            // Add after namespace or <?php if no namespace
-                            $modifiedContent = preg_replace(
-                                '/(namespace\s+[^;]+;|\<\?php)/',
-                                '$1'.PHP_EOL.$useStatement.PHP_EOL,
-                                $modifiedContent,
-                                1 // Only replace once
-                            );
+                            // Find the last use statement and add after it
+                            if (preg_match_all('/^use\s+[^;]+;$/m', $modifiedContent, $matches, PREG_OFFSET_CAPTURE)) {
+                                // Get the last use statement
+                                $lastUseMatch = end($matches[0]);
+                                $lastUseEndPos = $lastUseMatch[1] + strlen($lastUseMatch[0]);
+                                
+                                // Insert the new use statement after the last one
+                                $modifiedContent = substr_replace(
+                                    $modifiedContent,
+                                    PHP_EOL . $useStatement,
+                                    $lastUseEndPos,
+                                    0
+                                );
+                            } else {
+                                // Fallback: Add after namespace or <?php if no existing use statements
+                                $modifiedContent = preg_replace(
+                                    '/(namespace\s+[^;]+;)/',
+                                    '$1' . PHP_EOL . PHP_EOL . $useStatement,
+                                    $modifiedContent,
+                                    1 // Only replace once
+                                );
+                            }
                         }
 
                         // 2. Add messageType() method
