@@ -53,7 +53,7 @@ class MakeMcpToolCommand extends Command
 
         // Check if file already exists
         if ($this->files->exists($path)) {
-            $this->error("MCP tool {$className} already exists!");
+            $this->error("❌ MCP tool {$className} already exists!");
 
             return 1;
         }
@@ -64,15 +64,15 @@ class MakeMcpToolCommand extends Command
         // Generate the file using stub
         $this->files->put($path, $this->buildClass($className));
 
-        $this->info("MCP tool {$className} created successfully.");
+        $this->info("✅ Created: {$path}");
 
         $fullClassName = "\\App\\MCP\\Tools\\{$className}";
 
         // Ask if they want to automatically register the tool
-        if ($this->confirm('Would you like to automatically register this tool in config/mcp-server.php?', true)) {
+        if ($this->confirm('🤖 Would you like to automatically register this tool in config/mcp-server.php?', true)) {
             $this->registerToolInConfig($fullClassName);
         } else {
-            $this->info("Don't forget to register your tool in config/mcp-server.php:");
+            $this->info("☑️ Don't forget to register your tool in config/mcp-server.php:");
             $this->comment('    // config/mcp-server.php');
             $this->comment("    'tools' => [");
             $this->comment('        // other tools...');
@@ -83,7 +83,7 @@ class MakeMcpToolCommand extends Command
         // Display testing instructions
         $this->newLine();
         $this->info('You can now test your tool with the following command:');
-        $this->comment('    php artisan mcp:test-tool '.$className);
+        $this->comment('    php artisan mcp:test-tool ' . $className);
         $this->info('Or view all available tools:');
         $this->comment('    php artisan mcp:test-tool --list');
 
@@ -107,7 +107,7 @@ class MakeMcpToolCommand extends Command
         $name = Str::studly($name);
 
         // Ensure the class name ends with "Tool" if not already
-        if (! Str::endsWith($name, 'Tool')) {
+        if (!Str::endsWith($name, 'Tool')) {
             $name .= 'Tool';
         }
 
@@ -135,7 +135,7 @@ class MakeMcpToolCommand extends Command
     {
         $directory = dirname($path);
 
-        if (! $this->files->isDirectory($directory)) {
+        if (!$this->files->isDirectory($directory)) {
             $this->files->makeDirectory($directory, 0755, true, true);
         }
 
@@ -161,8 +161,8 @@ class MakeMcpToolCommand extends Command
         $toolName = preg_replace('/\-+/', '-', $toolName);
 
         // Ensure it starts with a letter
-        if (! preg_match('/^[a-z]/', $toolName)) {
-            $toolName = 'tool-'.$toolName;
+        if (!preg_match('/^[a-z]/', $toolName)) {
+            $toolName = 'tool-' . $toolName;
         }
 
         return $this->replaceStubPlaceholders($stub, $className, $toolName);
@@ -175,7 +175,7 @@ class MakeMcpToolCommand extends Command
      */
     protected function getStubPath()
     {
-        return __DIR__.'/../../stubs/tool.stub';
+        return __DIR__ . '/../../stubs/tool.stub';
     }
 
     /**
@@ -202,8 +202,8 @@ class MakeMcpToolCommand extends Command
     {
         $configPath = config_path('mcp-server.php');
 
-        if (! file_exists($configPath)) {
-            $this->error("Config file not found: {$configPath}");
+        if (!file_exists($configPath)) {
+            $this->error("❌ Config file not found: {$configPath}");
 
             return false;
         }
@@ -211,8 +211,8 @@ class MakeMcpToolCommand extends Command
         $content = file_get_contents($configPath);
 
         // Find the tools array in the config file
-        if (! preg_match('/[\'"]tools[\'"]\s*=>\s*\[(.*?)\s*\],/s', $content, $matches)) {
-            $this->error('Could not locate tools array in config file.');
+        if (!preg_match('/[\'"]tools[\'"]\s*=>\s*\[(.*?)\s*\],/s', $content, $matches)) {
+            $this->error("❌ Could not locate tools array in config file.");
 
             return false;
         }
@@ -222,22 +222,22 @@ class MakeMcpToolCommand extends Command
 
         // Check if the tool is already registered
         if (strpos($toolsArrayContent, $toolClassName) !== false) {
-            $this->info('Tool is already registered in config file.');
+            $this->info("✅ Tool is already registered in config file.");
 
             return true;
         }
 
         // Add the new tool to the tools array
-        $newToolsArrayContent = $toolsArrayContent.$fullEntry;
+        $newToolsArrayContent = $toolsArrayContent . $fullEntry;
         $newContent = str_replace($toolsArrayContent, $newToolsArrayContent, $content);
 
         // Write the updated content back to the config file
         if (file_put_contents($configPath, $newContent)) {
-            $this->info('Tool registered successfully in config/mcp-server.php');
+            $this->info("✅ Tool registered successfully in config/mcp-server.php");
 
             return true;
         } else {
-            $this->error('Failed to update config file. Please manually register the tool.');
+            $this->error("❌ Failed to update config file. Please manually register the tool.");
 
             return false;
         }

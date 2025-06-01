@@ -110,22 +110,16 @@ class MyNewTool implements ToolInterface
     public function messageType(): ProcessMessageType
     {
         // Return the appropriate message type, e.g., for a standard tool
-        return ProcessMessageType::HTTP; // Corrected from TOOL_USE to HTTP
+        return ProcessMessageType::SSE;
     }
 
     public function name(): string { return 'MyNewTool'; } // Renamed
-    public function getDescription(): string { return 'This is my new tool.'; } // Renamed
+    public function description(): string { return 'This is my new tool.'; } // Renamed
     public function inputSchema(): array { return []; } // Renamed
     public function annotations(): array { return []; } // Renamed
     public function execute(array $arguments): mixed { /* ... */ }
 }
 ```
-
-**Reason for the change:**
-
-These changes were necessary to support the new **Streamable HTTP transport** feature and provide a more consistent and extensible tool definition interface. We understand that breaking changes can be disruptive, and we appreciate your understanding as we evolve the package to offer more robust capabilities.
-
-Please ensure you update your tools accordingly to avoid any compatibility issues with v1.1.0 and beyond.
 
 ### Automated Tool Migration for v1.1.0
 
@@ -167,7 +161,7 @@ The command will output its progress, indicating which files are being processed
 
 This tool should significantly ease the migration process and help you adapt to the new interface structure quickly.
 
-## Overview
+## Overview of Laravel MCP Server
 
 Laravel MCP Server is a powerful package designed to streamline the implementation of Model Context Protocol (MCP) servers in Laravel applications. **Unlike most Laravel MCP packages that use Standard Input/Output (stdio) transport**, this package focuses on **Streamable HTTP** transport and still includes a **legacy SSE provider** for backwards compatibility, providing a secure and controlled integration method.
 
