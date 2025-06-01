@@ -24,7 +24,7 @@ use OPGG\LaravelMcpServer\Utils\DataUtil;
  */
 final class MCPProtocol
 {
-    // This should be 2025-03-26, but I set this to 2024-11-05 because Vercel ai-sdk doesn't support it
+    // This was supposed to be 2025-03-26, but I set this to 2024-11-05 because Vercel ai-sdk doesn't support it
     public const PROTOCOL_VERSION = '2024-11-05';
 
     private TransportInterface $transport;
