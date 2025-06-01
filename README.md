@@ -22,7 +22,8 @@
   <a href="README.ru.md">Русский</a> |
   <a href="README.zh-CN.md">简体中文</a> |
   <a href="README.zh-TW.md">繁體中文</a> |
-  <a href="README.pl.md">Polski</a>
+  <a href="README.pl.md">Polski</a> |
+  <a href="README.es.md">Español</a>
 </p>
 
 ## ⚠️ Breaking Changes in v1.1.0
@@ -419,25 +420,28 @@ This will typically open a web interface at `localhost:6274`. To test your MCP s
 
 1. **Warning**: `php artisan serve` CANNOT be used with this package because it cannot handle multiple PHP connections simultaneously. Since MCP SSE requires processing multiple connections concurrently, you must use one of these alternatives:
 
-   * **Laravel Octane** (Easiest option):
+   - **Laravel Octane** (Easiest option):
+
      ```bash
      # Install and set up Laravel Octane with FrankenPHP (recommended)
      composer require laravel/octane
      php artisan octane:install --server=frankenphp
-     
+
      # Start the Octane server
      php artisan octane:start
      ```
-     
+
      > **Important**: When installing Laravel Octane, make sure to use FrankenPHP as the server. The package may not work properly with RoadRunner due to compatibility issues with SSE connections. If you can help fix this RoadRunner compatibility issue, please submit a Pull Request - your contribution would be greatly appreciated!
-     
+
      For details, see the [Laravel Octane documentation](https://laravel.com/docs/12.x/octane)
-     
-   * **Production-grade options**:
+
+   - **Production-grade options**:
      - Nginx + PHP-FPM
      - Apache + PHP-FPM
      - Custom Docker setup
-    - Any web server that properly supports SSE streaming (required only for the legacy SSE provider)
+
+   * Any web server that properly supports SSE streaming (required only for the legacy SSE provider)
+
 2. In the Inspector interface, enter your Laravel server's MCP endpoint URL (e.g., `http://localhost:8000/mcp`). If you are using the legacy SSE provider, use the SSE URL instead (`http://localhost:8000/mcp/sse`).
 3. Connect and explore available tools visually
 
@@ -481,9 +485,9 @@ The default Redis adapter can be configured as follows:
 
 The package supports the following environment variables to allow configuration without modifying the config files:
 
-| Variable | Description | Default |
-|----------|-------------|--------|
-| `MCP_SERVER_ENABLED` | Enable or disable the MCP server | `true` |
+| Variable               | Description                             | Default   |
+| ---------------------- | --------------------------------------- | --------- |
+| `MCP_SERVER_ENABLED`   | Enable or disable the MCP server        | `true`    |
 | `MCP_REDIS_CONNECTION` | Redis connection name from database.php | `default` |
 
 ### Example .env Configuration
@@ -494,6 +498,22 @@ MCP_SERVER_ENABLED=false
 
 # Use a specific Redis connection for MCP
 MCP_REDIS_CONNECTION=mcp
+```
+
+## Translation README.md
+
+To translate this README to other languages using Claude API (Parallel processing):
+
+```bash
+pip install -r scripts/requirements.txt
+export ANTHROPIC_API_KEY='your-api-key'
+python scripts/translate_readme.py
+```
+
+You can also translate specific languages:
+
+```bash
+python scripts/translate_readme.py es ko
 ```
 
 ## License
