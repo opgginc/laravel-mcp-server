@@ -13,7 +13,7 @@ afterEach(function () {
 
 function setUpMockToolFile(string $fileName, string $content, string $baseDir = 'MCP/ToolsTest'): string
 {
-    $path = app_path(Str::finish($baseDir, '/') . $fileName);
+    $path = app_path(Str::finish($baseDir, '/').$fileName);
     File::ensureDirectoryExists(dirname($path));
     File::put($path, $content);
 
@@ -110,10 +110,10 @@ PHP;
 
 test('command migrates old tool successfully', function () {
     $toolPath = setUpMockToolFile('MyOldTool.php', getOldToolContent('MyOldTool'));
-    $backupPath = $toolPath . '.backup';
+    $backupPath = $toolPath.'.backup';
 
     $this->artisan('mcp:migrate-tools', ['path' => dirname($toolPath)])
-        ->expectsOutput('Starting migration scan for tools in: ' . dirname($toolPath))
+        ->expectsOutput('Starting migration scan for tools in: '.dirname($toolPath))
         ->expectsOutput("Found potential candidate for migration: {$toolPath}")
         ->expectsOutput("Backed up '{$toolPath}' to '{$backupPath}'.")
         ->expectsOutput("Successfully migrated '{$toolPath}'.")
@@ -131,7 +131,7 @@ test('command migrates old tool successfully', function () {
 
 test('command skips if backup exists', function () {
     $toolPath = setUpMockToolFile('MySkippedTool.php', getOldToolContent('MySkippedTool'));
-    $backupPath = $toolPath . '.backup';
+    $backupPath = $toolPath.'.backup';
     File::copy($toolPath, $backupPath); // Create backup beforehand
 
     $this->artisan('mcp:migrate-tools', ['path' => dirname($toolPath)])
@@ -150,7 +150,7 @@ test('command skips non tool php file', function () {
         ->expectsOutput('Scan complete. No files seem to require migration based on initial checks.')
         ->assertExitCode(0);
 
-    expect(File::exists($nonToolPath . '.backup'))->toBeFalse();
+    expect(File::exists($nonToolPath.'.backup'))->toBeFalse();
 });
 
 test('command handles invalid path', function () {
