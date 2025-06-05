@@ -86,8 +86,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
     /**
      * Normalize domain configuration to array format
      *
-     * @param null|string|array $domain
-     * @return array
+     * @param  null|string|array  $domain
      */
     protected function normalizeDomains($domain): array
     {
@@ -109,12 +108,6 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
 
     /**
      * Register routes for a specific domain
-     *
-     * @param string|null $domain
-     * @param string $path
-     * @param array $middlewares
-     * @param string $provider
-     * @return void
      */
     protected function registerRoutesForDomain(?string $domain, string $path, array $middlewares, string $provider): void
     {
