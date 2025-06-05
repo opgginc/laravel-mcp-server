@@ -34,3 +34,4 @@ testbench.yaml
 
 # Env
 .env
+/laravel-mcp-test
