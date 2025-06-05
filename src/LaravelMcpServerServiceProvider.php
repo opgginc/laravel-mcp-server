@@ -74,28 +74,69 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
         $domain = Config::get('mcp-server.domain');
         $provider = Config::get('mcp-server.server_provider');
 
-        // Build route configuration with optional domain restriction
+        // Handle multiple domains support
+        $domains = $this->normalizeDomains($domain);
+
+        // Register routes for each domain
+        foreach ($domains as $domainName) {
+            $this->registerRoutesForDomain($domainName, $path, $middlewares, $provider);
+        }
+    }
+
+    /**
+     * Normalize domain configuration to array format
+     *
+     * @param null|string|array $domain
+     * @return array
+     */
+    protected function normalizeDomains($domain): array
+    {
+        if ($domain === null) {
+            return [null]; // No domain restriction
+        }
+
+        if (is_string($domain)) {
+            return [$domain]; // Single domain
+        }
+
+        if (is_array($domain)) {
+            return $domain; // Multiple domains
+        }
+
+        // Invalid configuration, default to no restriction
+        return [null];
+    }
+
+    /**
+     * Register routes for a specific domain
+     *
+     * @param string|null $domain
+     * @param string $path
+     * @param array $middlewares
+     * @param string $provider
+     * @return void
+     */
+    protected function registerRoutesForDomain(?string $domain, string $path, array $middlewares, string $provider): void
+    {
+        // Build route configuration
         $router = Route::middleware($middlewares);
-        
-        // Apply domain restriction if configured
-        // This ensures MCP routes are only accessible from the specified domain
-        if ($domain !== null && is_string($domain)) {
+
+        // Apply domain restriction if specified
+        if ($domain !== null) {
             $router = $router->domain($domain);
         }
 
         // Register provider-specific routes
-        if ($provider === 'sse') {
-            $router->get("{$path}/sse", [SseController::class, 'handle']);
-            $router->post("{$path}/message", [MessageController::class, 'handle']);
+        switch ($provider) {
+            case 'sse':
+                $router->get("{$path}/sse", [SseController::class, 'handle']);
+                $router->post("{$path}/message", [MessageController::class, 'handle']);
+                break;
 
-            return;
-        }
-
-        if ($provider === 'streamable_http') {
-            $router->get($path, [StreamableHttpController::class, 'getHandle']);
-            $router->post($path, [StreamableHttpController::class, 'postHandle']);
-
-            return;
+            case 'streamable_http':
+                $router->get($path, [StreamableHttpController::class, 'getHandle']);
+                $router->post($path, [StreamableHttpController::class, 'postHandle']);
+                break;
         }
     }
 }

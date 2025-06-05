@@ -231,7 +231,7 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
 
 ### Domain Restriction
 
-You can restrict MCP server routes to a specific domain for better security and organization:
+You can restrict MCP server routes to specific domain(s) for better security and organization:
 
 ```php
 // config/mcp-server.php
@@ -239,28 +239,36 @@ You can restrict MCP server routes to a specific domain for better security and 
 // Allow access from all domains (default)
 'domain' => null,
 
-// Restrict to a specific domain only
+// Restrict to a single domain
 'domain' => 'api.example.com',
+
+// Restrict to multiple domains
+'domain' => ['api.example.com', 'admin.example.com'],
 ```
 
 **When to use domain restriction:**
 - Running multiple applications on different subdomains
 - Separating API endpoints from your main application
 - Implementing multi-tenant architectures where each tenant has its own subdomain
+- Providing the same MCP services across multiple domains
 
 **Example scenarios:**
+
 ```php
-// API subdomain only
+// Single API subdomain
 'domain' => 'api.myapp.com',
 
-// Admin panel subdomain
-'domain' => 'admin.myapp.com',
+// Multiple subdomains for different environments
+'domain' => ['api.myapp.com', 'staging-api.myapp.com'],
 
-// Tenant-specific subdomain
-'domain' => 'tenant1.myapp.com',
+// Multi-tenant architecture
+'domain' => ['tenant1.myapp.com', 'tenant2.myapp.com', 'tenant3.myapp.com'],
+
+// Different services on different domains
+'domain' => ['api.service1.com', 'api.service2.com'],
 ```
 
-> **Note:** This feature uses Laravel's route `domain()` method. For multiple domain support, consider implementing custom middleware instead.
+> **Note:** When using multiple domains, the package automatically registers separate routes for each domain to ensure proper routing across all specified domains.
 
 ### Creating and Adding Custom Tools
 
