@@ -81,10 +81,20 @@ return [
     | Domain Restriction
     |--------------------------------------------------------------------------
     |
-    | Specify which domain(s) should load the MCP routes. This can be:
-    | - null: Routes will be registered for all domains (default)
-    | - string: A specific domain name (e.g., 'api.example.com')
-    | - array: Multiple domain names (e.g., ['api.example.com', 'admin.example.com'])
+    | Restrict MCP server routes to a specific domain. This is useful when:
+    | - Running multiple applications on different subdomains
+    | - Separating API endpoints from main application
+    | - Implementing multi-tenant architectures
+    |
+    | Options:
+    | - null: Allow access from all domains (default)
+    | - string: Restrict to a single domain (e.g., 'api.example.com')
+    |
+    | Example:
+    | 'domain' => 'api.example.com',  // Only api.example.com can access MCP routes
+    |
+    | Note: This uses Laravel's route domain() method internally.
+    | For multiple domains, consider using middleware-based restrictions instead.
     |
     */
     'domain' => null,

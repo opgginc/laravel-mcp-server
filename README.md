@@ -231,22 +231,36 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
 
 ### Domain Restriction
 
-You can restrict the MCP server routes to specific domains by configuring the `domain` option in your `config/mcp-server.php` file:
+You can restrict MCP server routes to a specific domain for better security and organization:
 
 ```php
 // config/mcp-server.php
 
-// Allow MCP routes on all domains (default)
+// Allow access from all domains (default)
 'domain' => null,
 
-// Restrict to a specific domain
+// Restrict to a specific domain only
 'domain' => 'api.example.com',
-
-// Restrict to multiple domains (using array)
-'domain' => ['api.example.com', 'admin.example.com'],
 ```
 
-This feature allows you to control which domains can access your MCP server, providing an additional layer of security and flexibility in multi-domain applications.
+**When to use domain restriction:**
+- Running multiple applications on different subdomains
+- Separating API endpoints from your main application
+- Implementing multi-tenant architectures where each tenant has its own subdomain
+
+**Example scenarios:**
+```php
+// API subdomain only
+'domain' => 'api.myapp.com',
+
+// Admin panel subdomain
+'domain' => 'admin.myapp.com',
+
+// Tenant-specific subdomain
+'domain' => 'tenant1.myapp.com',
+```
+
+> **Note:** This feature uses Laravel's route `domain()` method. For multiple domain support, consider implementing custom middleware instead.
 
 ### Creating and Adding Custom Tools
 

@@ -72,15 +72,18 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
         $path = Config::get('mcp-server.default_path');
         $middlewares = Config::get('mcp-server.middlewares', []);
         $domain = Config::get('mcp-server.domain');
-
         $provider = Config::get('mcp-server.server_provider');
 
-        // Create a route registrar with domain configuration if specified
+        // Build route configuration with optional domain restriction
         $router = Route::middleware($middlewares);
-        if ($domain !== null) {
+        
+        // Apply domain restriction if configured
+        // This ensures MCP routes are only accessible from the specified domain
+        if ($domain !== null && is_string($domain)) {
             $router = $router->domain($domain);
         }
 
+        // Register provider-specific routes
         if ($provider === 'sse') {
             $router->get("{$path}/sse", [SseController::class, 'handle']);
             $router->post("{$path}/message", [MessageController::class, 'handle']);
