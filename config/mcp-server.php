@@ -78,6 +78,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Domain Restriction
+    |--------------------------------------------------------------------------
+    |
+    | Restrict MCP server routes to specific domain(s). This is useful when:
+    | - Running multiple applications on different subdomains
+    | - Separating API endpoints from main application
+    | - Implementing multi-tenant architectures
+    |
+    | Options:
+    | - null: Allow access from all domains (default)
+    | - string: Restrict to a single domain
+    | - array: Restrict to multiple domains
+    |
+    | Examples:
+    | 'domain' => null,                                    // No restriction
+    | 'domain' => 'api.example.com',                      // Single domain
+    | 'domain' => ['api.example.com', 'admin.example.com'], // Multiple domains
+    |
+    | Note: When using multiple domains, separate routes will be registered
+    | for each domain to ensure proper routing.
+    |
+    */
+    'domain' => null,
+
+    /*
+    |--------------------------------------------------------------------------
     | SSE Adapter Configuration (Legacy Provider Only)
     |--------------------------------------------------------------------------
     |

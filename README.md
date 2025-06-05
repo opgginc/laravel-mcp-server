@@ -229,6 +229,47 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
 
 ## Basic Usage
 
+### Domain Restriction
+
+You can restrict MCP server routes to specific domain(s) for better security and organization:
+
+```php
+// config/mcp-server.php
+
+// Allow access from all domains (default)
+'domain' => null,
+
+// Restrict to a single domain
+'domain' => 'api.example.com',
+
+// Restrict to multiple domains
+'domain' => ['api.example.com', 'admin.example.com'],
+```
+
+**When to use domain restriction:**
+- Running multiple applications on different subdomains
+- Separating API endpoints from your main application
+- Implementing multi-tenant architectures where each tenant has its own subdomain
+- Providing the same MCP services across multiple domains
+
+**Example scenarios:**
+
+```php
+// Single API subdomain
+'domain' => 'api.myapp.com',
+
+// Multiple subdomains for different environments
+'domain' => ['api.myapp.com', 'staging-api.myapp.com'],
+
+// Multi-tenant architecture
+'domain' => ['tenant1.myapp.com', 'tenant2.myapp.com', 'tenant3.myapp.com'],
+
+// Different services on different domains
+'domain' => ['api.service1.com', 'api.service2.com'],
+```
+
+> **Note:** When using multiple domains, the package automatically registers separate routes for each domain to ensure proper routing across all specified domains.
+
 ### Creating and Adding Custom Tools
 
 The package provides convenient Artisan commands to generate new tools:
