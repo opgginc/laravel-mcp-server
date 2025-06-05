@@ -224,7 +224,7 @@ O protocolo MCP também define um modo "Streamable HTTP SSE", mas este pacote n�
 
 2. Publique o arquivo de configuração:
    ```bash
-   php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider"
+   php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider" --no-interaction
    ```
 
 ## Uso Básico

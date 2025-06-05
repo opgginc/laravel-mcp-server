@@ -29,6 +29,14 @@ final class ServerCapabilities
     private ?array $toolsConfig = null;
 
     /**
+     * Indicates whether the server supports exposing resources.
+     */
+    private bool $supportsResources = false;
+
+    /** @var array|null Configuration specific to resources capability */
+    private ?array $resourcesConfig = null;
+
+    /**
      * Enables the tools capability for the server instance.
      * Allows specifying optional configuration details for the tools feature.
      *
@@ -47,6 +55,17 @@ final class ServerCapabilities
     }
 
     /**
+     * Enables the resources capability for the server.
+     */
+    public function withResources(?array $config = []): self
+    {
+        $this->supportsResources = true;
+        $this->resourcesConfig = $config;
+
+        return $this;
+    }
+
+    /**
      * Converts the server capabilities configuration into an array format suitable for JSON serialization.
      * Only includes capabilities that are actively enabled.
      *
@@ -60,6 +79,10 @@ final class ServerCapabilities
         if ($this->supportsTools) {
             // Use an empty stdClass to ensure JSON serialization as {} instead of [] for empty arrays.
             $capabilities['tools'] = $this->toolsConfig ?? new stdClass;
+        }
+
+        if ($this->supportsResources) {
+            $capabilities['resources'] = $this->resourcesConfig ?? new stdClass;
         }
 
         return $capabilities;

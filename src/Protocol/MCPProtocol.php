@@ -198,9 +198,9 @@ final class MCPProtocol
     {
         // todo:: processNotification currently not implemented
         $method = $notificationData->method;
-        $handler = $this->requestHandlers[$method] ?? null;
+        $handler = $this->notificationHandlers[$method] ?? null;
         if ($handler) {
-            $result = $handler->execute(method: $notificationData->method, params: $notificationData->params);
+            $result = $handler->execute($notificationData->params);
             $messageType = $handler->getMessageType($notificationData->params);
 
             $resultResource = new JsonRpcResultResource(id: Str::uuid()->toString(), result: $result);

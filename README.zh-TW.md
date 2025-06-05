@@ -224,7 +224,7 @@ MCP 協定也定義了「Streamable HTTP SSE」模式，但此套件未實作且
 
 2. 發布配置檔案：
    ```bash
-   php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider"
+   php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider" --no-interaction
    ```
 
 ## 基本使用

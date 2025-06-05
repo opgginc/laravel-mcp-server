@@ -224,7 +224,7 @@ Laravel MCP Server — это мощный пакет, разработанны�
 
 2. Опубликуйте конфигурационный файл:
    ```bash
-   php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider"
+   php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider" --no-interaction
    ```
 
 ## Базовое использование

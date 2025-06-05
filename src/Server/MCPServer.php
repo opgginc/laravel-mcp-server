@@ -128,6 +128,17 @@ final class MCPServer
     }
 
     /**
+     * Registers request handlers for MCP Resources functionality.
+     */
+    public function registerResourceRepository(\OPGG\LaravelMcpServer\Services\ResourceService\ResourceRepository $resourceRepository): self
+    {
+        $this->registerRequestHandler(new \OPGG\LaravelMcpServer\Server\Request\ResourcesListHandler($resourceRepository));
+        $this->registerRequestHandler(new \OPGG\LaravelMcpServer\Server\Request\ResourcesReadHandler($resourceRepository));
+
+        return $this;
+    }
+
+    /**
      * Initiates the connection process via the protocol handler.
      * Depending on the transport (e.g., SSE), this might start listening for client connections.
      */
@@ -184,6 +195,14 @@ final class MCPServer
         );
 
         return $initializeResource;
+    }
+
+    /**
+     * Retrieves capabilities provided by the client during initialization.
+     */
+    public function getClientCapabilities(): ?array
+    {
+        return $this->clientCapabilities;
     }
 
     /**

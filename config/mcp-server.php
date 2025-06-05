@@ -43,7 +43,7 @@ return [
     | Note: SSE provider requires Laravel Octane or similar for concurrent connections
     |
     */
-    'server_provider' => 'streamable_http',
+    'server_provider' => 'sse',
 
     /*
     |--------------------------------------------------------------------------
@@ -117,5 +117,19 @@ return [
 
         // Register your custom tools here
         // App\MCP\Tools\YourCustomTool::class,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | MCP Resources Registry
+    |--------------------------------------------------------------------------
+    |
+    | Register resources to expose via MCP.
+    |
+    */
+    'resources' => [
+        \OPGG\LaravelMcpServer\Services\ResourceService\Examples\AppVersionResource::class,
+
+        // Add your own resources here
     ],
 ];

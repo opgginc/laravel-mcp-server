@@ -2,8 +2,6 @@
 
 namespace OPGG\LaravelMcpServer\Transports;
 
-use Exception;
-
 /**
  * StreamableHttpTransport implementation for MCP Server.
  *
@@ -42,8 +40,6 @@ final class StreamableHttpTransport implements TransportInterface
     /**
      * Starts the StreamableHttp transport connection.
      * Sets the connected flag and initializes the transport. Idempotent.
-     *
-     * @throws Exception If initialization fails.
      */
     public function start(): void
     {
@@ -58,8 +54,6 @@ final class StreamableHttpTransport implements TransportInterface
     /**
      * Initializes the transport: generates client ID and sends the initial 'endpoint' event.
      * Adapter-specific initialization might occur here or externally.
-     *
-     * @throws Exception If sending the initial event fails.
      */
     public function initialize(): void {}
 
@@ -68,16 +62,12 @@ final class StreamableHttpTransport implements TransportInterface
      * Encodes array messages to JSON.
      *
      * @param  string|array  $message  The message content.
-     *
-     * @throws Exception If JSON encoding fails or sending the event fails.
      */
     public function send(string|array $message): void {}
 
     /**
      * Closes the connection, notifies handlers, cleans up adapter resources, and attempts a final 'close' event.
      * Idempotent. Errors during cleanup/final event are logged.
-     *
-     * @throws Exception From handlers if they throw exceptions.
      */
     public function close(): void
     {
@@ -136,8 +126,6 @@ final class StreamableHttpTransport implements TransportInterface
      *
      * @param  string  $clientId  The target client ID.
      * @param  array  $message  The message payload (as an array).
-     *
-     * @throws Exception If adapter is not set, JSON encoding fails, or adapter push fails.
      */
     public function pushMessage(string $clientId, array $message): void {}
 }

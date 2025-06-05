@@ -221,7 +221,7 @@ final class SseTransport implements TransportInterface
             try {
                 $messages = $this->adapter->receiveMessages($this->clientId);
 
-                return $messages ?: [];
+                return array_map(static fn (string $m) => json_decode($m, true) ?? [], $messages);
             } catch (Exception $e) {
                 $this->triggerError('SSE Failed to receive messages via adapter: '.$e->getMessage());
             }
