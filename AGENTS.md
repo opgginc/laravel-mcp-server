@@ -5,6 +5,7 @@
 - **Run tests with coverage**: `vendor/bin/pest --coverage`
 - **Code formatting**: `vendor/bin/pint`
 - **Static analysis**: `vendor/bin/phpstan analyse`
+- **Final tests**: `./scripts/test-setup.sh`
 
 ### MCP Tool Development
 - **Create new MCP tool**: `php artisan make:mcp-tool ToolName`
