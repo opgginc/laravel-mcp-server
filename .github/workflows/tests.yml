@@ -47,3 +47,14 @@ jobs:
 
       - name: Execute tests
         run: cd $GITHUB_WORKSPACE && vendor/bin/pest tests
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Run MCP integration tests
+        run: |
+          ./scripts/test-setup.sh
+          cd laravel-mcp-test
+          ./run-test.sh
