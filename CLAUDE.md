@@ -102,3 +102,9 @@ v1.1.0 introduced breaking changes to `ToolInterface`:
 - Laravel >=10.x
 - Redis (for SSE legacy transport only)
 - Laravel Octane with FrankenPHP (recommended for SSE, required for development server)
+
+## Final action after AI work
+
+### Updating README.md
+- When you add new feature, add it to README.md
+  - Do not translate README.md, but run `./scripts/translate_readme.py` to translate it using LLM.

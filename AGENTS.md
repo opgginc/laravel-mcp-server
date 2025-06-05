@@ -107,3 +107,7 @@ To verify the complete MCP workflow, use the following script:
 2. Navigate to the created directory (`laravel-mcp-test`) and run `./run-test.sh`
    - The server will start and execute example tools.
    - You need to wait more than 30 seconds, then it will setup properly so that you can test the MCP server.
+
+## Updating README.md
+- When you add new feature, add it to README.md
+  - Do not translate README.md, but run `./scripts/translate_readme.py` to translate it using LLM.
