@@ -256,16 +256,16 @@ You can restrict MCP server routes to specific domain(s) for better security and
 
 ```php
 // Single API subdomain
-'domain' => 'api.myapp.com',
+'domain' => 'api.op.gg',
 
 // Multiple subdomains for different environments
-'domain' => ['api.myapp.com', 'staging-api.myapp.com'],
+'domain' => ['api.op.gg', 'staging-api.op.gg'],
 
 // Multi-tenant architecture
-'domain' => ['tenant1.myapp.com', 'tenant2.myapp.com', 'tenant3.myapp.com'],
+'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
 
 // Different services on different domains
-'domain' => ['api.service1.com', 'api.service2.com'],
+'domain' => ['api.op.gg', 'api.kargn.as'],
 ```
 
 > **Note:** When using multiple domains, the package automatically registers separate routes for each domain to ensure proper routing across all specified domains.
