@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Testing and Quality Assurance
 - **Run tests**: `vendor/bin/pest`
+- **Run tests with coverage**: `vendor/bin/pest --coverage`
 - **Code formatting**: `vendor/bin/pint`
+- **Static analysis**: `vendor/bin/phpstan analyse`
 
 ### MCP Tool Development
 - **Create new MCP tool**: `php artisan make:mcp-tool ToolName`
@@ -78,3 +80,25 @@ Primary config: `config/mcp-server.php`
 - Tool repository: `src/Services/ToolService/ToolRepository.php`
 - Example tools: `src/Services/ToolService/Examples/`
 - Tool stub template: `src/stubs/tool.stub`
+
+## Package Development Notes
+
+### Project Structure
+This is a Laravel package distributed via Composer. Key structural elements:
+- **Source code**: All functionality in `src/` directory
+- **Configuration**: Published config file at `config/mcp-server.php`
+- **Service Provider**: Auto-registered via Laravel package discovery
+- **Testing**: Uses Pest testing framework with Orchestra Testbench
+- **Quality Tools**: PHPStan (level 5), Laravel Pint for formatting
+
+### Breaking Changes & Migration
+v1.1.0 introduced breaking changes to `ToolInterface`:
+- Method renames (e.g., `getName()` → `name()`)
+- New required `messageType()` method
+- Use `php artisan mcp:migrate-tools` for automated migration
+
+### Environment Requirements
+- PHP >=8.2
+- Laravel >=10.x
+- Redis (for SSE legacy transport only)
+- Laravel Octane with FrankenPHP (recommended for SSE, required for development server)
