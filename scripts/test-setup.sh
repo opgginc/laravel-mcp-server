@@ -191,8 +191,8 @@ curl -X POST "$HTTP_ENDPOINT" \
 echo ""
 echo ""
 
-# Test 3: Call hello_world tool
-echo "👋 Test 3: Call hello_world tool"
+# Test 3: Call hello-world tool
+echo "👋 Test 3: Call hello-world tool"
 curl -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
@@ -200,7 +200,7 @@ curl -X POST "$HTTP_ENDPOINT" \
     "id": 3,
     "method": "tools/call",
     "params": {
-      "name": "hello_world",
+      "name": "hello-world",
       "arguments": {
         "name": "Test User"
       }
@@ -210,8 +210,8 @@ curl -X POST "$HTTP_ENDPOINT" \
 echo ""
 echo ""
 
-# Test 4: Call version_check tool
-echo "🔍 Test 4: Call version_check tool"
+# Test 4: Call check-version tool
+echo "🔍 Test 4: Call check-version tool"
 curl -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
@@ -219,7 +219,7 @@ curl -X POST "$HTTP_ENDPOINT" \
     "id": 4,
     "method": "tools/call",
     "params": {
-      "name": "version_check",
+      "name": "check-version",
       "arguments": {}
     }
   }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
