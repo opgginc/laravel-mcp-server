@@ -229,6 +229,25 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
 
 ## Basic Usage
 
+### Domain Restriction
+
+You can restrict the MCP server routes to specific domains by configuring the `domain` option in your `config/mcp-server.php` file:
+
+```php
+// config/mcp-server.php
+
+// Allow MCP routes on all domains (default)
+'domain' => null,
+
+// Restrict to a specific domain
+'domain' => 'api.example.com',
+
+// Restrict to multiple domains (using array)
+'domain' => ['api.example.com', 'admin.example.com'],
+```
+
+This feature allows you to control which domains can access your MCP server, providing an additional layer of security and flexibility in multi-domain applications.
+
 ### Creating and Adding Custom Tools
 
 The package provides convenient Artisan commands to generate new tools:

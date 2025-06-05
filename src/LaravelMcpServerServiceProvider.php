@@ -71,21 +71,26 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
 
         $path = Config::get('mcp-server.default_path');
         $middlewares = Config::get('mcp-server.middlewares', []);
+        $domain = Config::get('mcp-server.domain');
 
         $provider = Config::get('mcp-server.server_provider');
+
+        // Create a route registrar with domain configuration if specified
+        $router = Route::middleware($middlewares);
+        if ($domain !== null) {
+            $router = $router->domain($domain);
+        }
+
         if ($provider === 'sse') {
-            Route::get("{$path}/sse", [SseController::class, 'handle'])
-                ->middleware($middlewares);
-            Route::post("{$path}/message", [MessageController::class, 'handle']);
+            $router->get("{$path}/sse", [SseController::class, 'handle']);
+            $router->post("{$path}/message", [MessageController::class, 'handle']);
 
             return;
         }
 
         if ($provider === 'streamable_http') {
-            Route::get($path, [StreamableHttpController::class, 'getHandle'])
-                ->middleware($middlewares);
-            Route::post($path, [StreamableHttpController::class, 'postHandle'])
-                ->middleware($middlewares);
+            $router->get($path, [StreamableHttpController::class, 'getHandle']);
+            $router->post($path, [StreamableHttpController::class, 'postHandle']);
 
             return;
         }

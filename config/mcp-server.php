@@ -78,6 +78,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Domain Restriction
+    |--------------------------------------------------------------------------
+    |
+    | Specify which domain(s) should load the MCP routes. This can be:
+    | - null: Routes will be registered for all domains (default)
+    | - string: A specific domain name (e.g., 'api.example.com')
+    | - array: Multiple domain names (e.g., ['api.example.com', 'admin.example.com'])
+    |
+    */
+    'domain' => null,
+
+    /*
+    |--------------------------------------------------------------------------
     | SSE Adapter Configuration (Legacy Provider Only)
     |--------------------------------------------------------------------------
     |
