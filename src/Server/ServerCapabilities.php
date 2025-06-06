@@ -29,6 +29,26 @@ final class ServerCapabilities
     private ?array $toolsConfig = null;
 
     /**
+     * Indicates whether the server supports the MCP resources feature.
+     */
+    private bool $supportsResources = false;
+
+    /**
+     * Optional configuration for the resources capability.
+     */
+    private ?array $resourcesConfig = null;
+
+    /**
+     * Indicates whether the server supports the MCP prompts feature.
+     */
+    private bool $supportsPrompts = false;
+
+    /**
+     * Optional configuration for prompts.
+     */
+    private ?array $promptsConfig = null;
+
+    /**
      * Enables the tools capability for the server instance.
      * Allows specifying optional configuration details for the tools feature.
      *
@@ -47,6 +67,28 @@ final class ServerCapabilities
     }
 
     /**
+     * Enables the resources capability for the server.
+     */
+    public function withResources(?array $config = []): self
+    {
+        $this->supportsResources = true;
+        $this->resourcesConfig = $config;
+
+        return $this;
+    }
+
+    /**
+     * Enables the prompts capability for the server.
+     */
+    public function withPrompts(?array $config = []): self
+    {
+        $this->supportsPrompts = true;
+        $this->promptsConfig = $config;
+
+        return $this;
+    }
+
+    /**
      * Converts the server capabilities configuration into an array format suitable for JSON serialization.
      * Only includes capabilities that are actively enabled.
      *
@@ -60,6 +102,14 @@ final class ServerCapabilities
         if ($this->supportsTools) {
             // Use an empty stdClass to ensure JSON serialization as {} instead of [] for empty arrays.
             $capabilities['tools'] = $this->toolsConfig ?? new stdClass;
+        }
+
+        if ($this->supportsResources) {
+            $capabilities['resources'] = $this->resourcesConfig ?? new stdClass;
+        }
+
+        if ($this->supportsPrompts) {
+            $capabilities['prompts'] = $this->promptsConfig ?? new stdClass;
         }
 
         return $capabilities;

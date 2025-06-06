@@ -1,0 +1,24 @@
+<?php
+
+namespace {{ namespace }};
+
+use OPGG\LaravelMcpServer\Services\ResourceService\ResourceTemplate;
+
+/**
+ * {{ className }} - Example MCP Resource Template
+ *
+ * Provide a URI template clients can expand. Variables wrapped in braces can
+ * be supplied when calling `resources/read`. Document each variable in the
+ * description so LLMs know how to use them. Example variables might be
+ * {date} or {userId}.
+ */
+class {{ className }} extends ResourceTemplate
+{
+    public string $uriTemplate = 'file:///logs/{date}.log';
+
+    public string $name = 'Daily Log File';
+
+    public ?string $description = 'Use {date} (YYYY-MM-DD) to select a log file';
+
+    public ?string $mimeType = 'text/plain';
+}

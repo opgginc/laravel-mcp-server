@@ -1,0 +1,30 @@
+<?php
+
+namespace {{ namespace }};
+
+use OPGG\LaravelMcpServer\Services\PromptService\Prompt;
+
+/**
+ * {{ className }} - Example MCP Prompt
+ *
+ * Available properties:
+ * - string $identifier   Unique identifier like "prompt://welcome"
+ * - string $name         Human readable name
+ * - ?string $description Optional description of the prompt
+ * - string $text         Prompt contents with {variables}
+ *
+ * Variables in the text are wrapped in braces, e.g. {user}.
+ * Clients provide values via `prompts/get` arguments and they will be
+ * substituted when the prompt is returned. See
+ * https://modelcontextprotocol.io/docs/concepts/prompts for details.
+ */
+class {{ className }} extends Prompt
+{
+    public string $identifier = 'prompt://example';
+
+    public string $name = 'Example Prompt';
+
+    public ?string $description = 'Explain when to use this prompt';
+
+    public string $text = 'Hello world!';
+}

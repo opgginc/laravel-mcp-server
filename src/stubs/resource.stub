@@ -1,0 +1,44 @@
+<?php
+
+namespace {{ namespace }};
+
+use OPGG\LaravelMcpServer\Services\ResourceService\Resource;
+
+/**
+ * {{ className }} - Example MCP Resource
+ *
+ * Available properties you may set:
+ * - string $uri         Unique identifier, e.g. "file:///path/to/file.txt"
+ * - string $name        Human readable name shown to users
+ * - ?string $description Optional details about the resource
+ * - ?string $mimeType    MIME type hint like "text/plain" or "image/png"
+ * - ?int $size           Size in bytes if known
+ *
+ * Implement the read() method to return the contents. The method should
+ * return an array including the `uri`, optional `mimeType` and either:
+ * - 'text' => UTF-8 string
+ * - 'blob' => base64 encoded binary string
+ *
+ * Clients request the resource via `resources/read?uri={uri}`. See
+ * https://modelcontextprotocol.io/docs/concepts/resources for details.
+ */
+class {{ className }} extends Resource
+{
+    public string $uri = 'file:///example.txt';
+
+    public string $name = 'Example Resource';
+
+    public ?string $description = 'Describe what this resource contains';
+
+    public ?string $mimeType = 'text/plain';
+
+    public function read(): array
+    {
+        return [
+            'uri' => $this->uri,
+            'mimeType' => $this->mimeType,
+            // Replace with actual data fetch logic
+            'text' => "Example content",
+        ];
+    }
+}
