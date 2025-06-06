@@ -662,15 +662,54 @@ This helps you rapidly develop and debug tools by:
 
 ### Requesting Sampling
 
-MCP servers can ask connected clients to perform language model sampling. Create
-sampler classes using:
+MCP servers can request language model generations from connected clients through the sampling feature. This enables "nested" LLM calls where your server can ask the client to perform AI-powered tasks with human oversight and approval.
+
+#### Creating Samplers
+
+Generate sampler classes using the Artisan command:
 
 ```bash
 php artisan make:mcp-sampler AskQuestion
 ```
 
-This generates a class in `app/MCP/Samplers` extending the base `Sampler`. Use
-`SamplingService` to send `sampling/createMessage` requests to a client:
+This creates a class in `app/MCP/Samplers` extending the base `Sampler`:
+
+```php
+<?php
+
+namespace App\MCP\Samplers;
+
+use OPGG\LaravelMcpServer\Services\SamplingService\Sampler;
+
+class AskQuestionSampler extends Sampler
+{
+    public array $messages = [
+        [
+            'role' => 'user',
+            'content' => [
+                'type' => 'text',
+                'text' => 'Please help me with [describe your specific task]',
+            ],
+        ],
+    ];
+
+    // Optional: Guide model selection
+    public ?array $modelPreferences = [
+        'hints' => [['name' => 'claude']],
+        'capabilities' => ['intelligence', 'reasoning'],
+    ];
+
+    // Optional: System instructions
+    public ?string $systemPrompt = 'You are a helpful assistant specialized in code analysis.';
+
+    // Optional: Response length control
+    public ?int $maxTokens = 1000;
+}
+```
+
+#### Sending Sampling Requests
+
+Use the `SamplingService` to send `sampling/createMessage` requests:
 
 ```php
 use App\MCP\Samplers\AskQuestionSampler;
@@ -678,10 +717,46 @@ use OPGG\LaravelMcpServer\Services\SamplingService\SamplingService;
 
 $sampler = new AskQuestionSampler;
 $result = app(SamplingService::class)->createMessage($clientId, $sampler);
+
+// Or use array parameters directly
+$result = app(SamplingService::class)->createMessage($clientId, [
+    'messages' => [
+        [
+            'role' => 'user',
+            'content' => [
+                'type' => 'text',
+                'text' => 'Analyze this code for potential issues.',
+            ],
+        ],
+    ],
+    'maxTokens' => 500,
+]);
 ```
 
-The `$clientId` comes from the initialization handshake when using the SSE
-transport.
+#### Advanced Message Types
+
+Samplers support various content types including images:
+
+```php
+public array $messages = [
+    [
+        'role' => 'user',
+        'content' => [
+            ['type' => 'text', 'text' => 'Analyze this screenshot:'],
+            ['type' => 'image', 'data' => base64_encode($imageData), 'mimeType' => 'image/png'],
+        ],
+    ],
+];
+```
+
+#### Security Considerations
+
+- Clients should implement user approval flows for sampling requests
+- Be mindful of sensitive information in prompts and responses  
+- Consider rate limiting and cost controls
+- The `$clientId` comes from the initialization handshake when using the SSE transport
+
+**Note**: Sampling requires clients that support the `sampling` capability during initialization.
 
 ### Visualizing MCP Tools with Inspector
 
