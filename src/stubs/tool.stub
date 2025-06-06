@@ -25,7 +25,7 @@ class {{ className }} implements ToolInterface
      * ProcessMessageType::SSE - For tools specifically designed for Server-Sent Events
      * ProcessMessageType::PROTOCOL - Legacy type for older SSE implementations
      *
-     * @return ProcessMessageType The message processisng type for this tool
+     * @return ProcessMessageType The message processing type for this tool
      */
     public function messageType(): ProcessMessageType
     {
