@@ -3,42 +3,153 @@
 namespace {{ namespace }};
 
 use OPGG\LaravelMcpServer\Services\ResourceService\Resource;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 
 /**
- * {{ className }} - Example MCP Resource
+ * {{ className }} - MCP Resource Implementation
  *
- * Available properties you may set:
- * - string $uri         Unique identifier, e.g. "file:///path/to/file.txt"
- * - string $name        Human readable name shown to users
- * - ?string $description Optional details about the resource
- * - ?string $mimeType    MIME type hint like "text/plain" or "image/png"
- * - ?int $size           Size in bytes if known
+ * Resources provide LLMs with access to application data, files, or any other
+ * content that can help them understand context or complete tasks. Resources
+ * are application-controlled and can represent files, database records, API
+ * responses, or any other data source.
  *
- * Implement the read() method to return the contents. The method should
- * return an array including the `uri`, optional `mimeType` and either:
- * - 'text' => UTF-8 string
- * - 'blob' => base64 encoded binary string
+ * REQUIRED PROPERTIES:
+ * --------------------
+ * @property string $uri
+ *     Unique identifier for this resource using URI format.
+ *     Common schemes: file://, http://, https://, or custom schemes.
+ *     Examples:
+ *     - "file:///logs/app.log"
+ *     - "database://users/123"
+ *     - "api://weather/current"
  *
- * Clients request the resource via `resources/read?uri={uri}`. See
- * https://modelcontextprotocol.io/docs/concepts/resources for details.
+ * @property string $name
+ *     Human-readable name displayed in resource listings.
+ *     Should be descriptive and help users understand what this resource contains.
+ *
+ * OPTIONAL PROPERTIES:
+ * -------------------
+ * @property ?string $description
+ *     Detailed explanation of what this resource contains and how to use it.
+ *     Include any relevant context, update frequency, or access patterns.
+ *
+ * @property ?string $mimeType
+ *     MIME type of the resource content (e.g., "text/plain", "application/json").
+ *     Helps clients handle the content appropriately.
+ *
+ * @property ?int $size
+ *     Size of the resource in bytes, if known.
+ *     Useful for clients to estimate download time or memory usage.
+ *
+ * IMPLEMENTING read():
+ * -------------------
+ * The read() method must return an array with:
+ * - 'uri': The resource URI (required)
+ * - 'mimeType': The MIME type (optional but recommended)
+ * - One of:
+ *   - 'text': For UTF-8 text content
+ *   - 'blob': For binary content (base64 encoded)
+ *
+ * @see https://modelcontextprotocol.io/docs/concepts/resources
  */
 class {{ className }} extends Resource
 {
-    public string $uri = 'file:///example.txt';
+    /**
+     * Unique URI for this resource.
+     * Choose a URI scheme that makes sense for your resource type.
+     */
+    public string $uri = 'file:///path/to/resource.txt';
 
-    public string $name = 'Example Resource';
+    /**
+     * Display name for this resource.
+     * Make it descriptive so users know what they're accessing.
+     */
+    public string $name = 'Example Resource Name';
 
-    public ?string $description = 'Describe what this resource contains';
+    /**
+     * Optional description providing context.
+     * Explain what this resource contains and when it's useful.
+     */
+    public ?string $description = 'This resource provides [describe what it contains and its purpose]';
 
+    /**
+     * MIME type of the resource content.
+     * Common types: text/plain, application/json, text/csv, image/png
+     */
     public ?string $mimeType = 'text/plain';
 
+    /**
+     * Read and return the resource content.
+     * 
+     * This method is called when clients request this resource.
+     * Implement your data fetching logic here.
+     * 
+     * @return array{uri: string, mimeType?: string, text?: string, blob?: string}
+     * @throws \Exception If the resource cannot be read
+     */
     public function read(): array
     {
-        return [
-            'uri' => $this->uri,
-            'mimeType' => $this->mimeType,
-            // Replace with actual data fetch logic
-            'text' => "Example content",
-        ];
+        try {
+            // Example 1: Reading from filesystem
+            // $content = File::get('/path/to/file.txt');
+            // return [
+            //     'uri' => $this->uri,
+            //     'mimeType' => $this->mimeType,
+            //     'text' => $content,
+            // ];
+
+            // Example 2: Reading from Laravel Storage
+            // $content = Storage::disk('local')->get('file.txt');
+            // return [
+            //     'uri' => $this->uri,
+            //     'mimeType' => $this->mimeType,
+            //     'text' => $content,
+            // ];
+
+            // Example 3: Reading binary data
+            // $binaryData = File::get('/path/to/image.png');
+            // return [
+            //     'uri' => $this->uri,
+            //     'mimeType' => 'image/png',
+            //     'blob' => base64_encode($binaryData),
+            // ];
+
+            // Example 4: Dynamic content generation
+            // $data = [
+            //     'timestamp' => now()->toIso8601String(),
+            //     'status' => 'active',
+            //     'metrics' => $this->gatherMetrics(),
+            // ];
+            // return [
+            //     'uri' => $this->uri,
+            //     'mimeType' => 'application/json',
+            //     'text' => json_encode($data, JSON_PRETTY_PRINT),
+            // ];
+
+            // Default implementation - replace with your logic
+            return [
+                'uri' => $this->uri,
+                'mimeType' => $this->mimeType,
+                'text' => "Replace this with actual content from your data source.\n\nThis could be:\n- File contents\n- Database query results\n- API responses\n- Generated reports\n- Or any other data",
+            ];
+
+        } catch (\Exception $e) {
+            // Handle errors appropriately
+            // You might want to log the error and return a user-friendly message
+            throw new \RuntimeException(
+                "Failed to read resource {$this->uri}: " . $e->getMessage()
+            );
+        }
     }
+
+    /**
+     * Optional: Override to calculate size dynamically.
+     */
+    // public function getSize(): ?int
+    // {
+    //     // Example: Get file size
+    //     // return File::size('/path/to/file.txt');
+    //     return null;
+    // }
 }

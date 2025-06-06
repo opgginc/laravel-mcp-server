@@ -5,20 +5,115 @@ namespace {{ namespace }};
 use OPGG\LaravelMcpServer\Services\ResourceService\ResourceTemplate;
 
 /**
- * {{ className }} - Example MCP Resource Template
+ * {{ className }} - MCP Resource Template Implementation
  *
- * Provide a URI template clients can expand. Variables wrapped in braces can
- * be supplied when calling `resources/read`. Document each variable in the
- * description so LLMs know how to use them. Example variables might be
- * {date} or {userId}.
+ * Resource Templates allow clients to discover and access dynamic resources
+ * using URI templates (RFC 6570). Instead of listing every possible resource,
+ * templates define patterns that clients can use to construct valid URIs.
+ *
+ * REQUIRED PROPERTIES:
+ * --------------------
+ * @property string $uriTemplate
+ *     URI template following RFC 6570 specification.
+ *     Use {variables} for dynamic parts of the URI.
+ *     Examples:
+ *     - "file:///logs/{date}.log" - Access logs by date
+ *     - "database://users/{userId}/profile" - Access user profiles
+ *     - "api://reports/{type}/{year}/{month}" - Access monthly reports
+ *
+ * @property string $name
+ *     Human-readable name for this resource type.
+ *     Should clearly indicate what kind of resources this template provides.
+ *
+ * OPTIONAL PROPERTIES:
+ * -------------------
+ * @property ?string $description
+ *     Detailed explanation of the template and its variables.
+ *     IMPORTANT: Document each variable's format and valid values.
+ *     This helps LLMs understand how to use the template correctly.
+ *
+ * @property ?string $mimeType
+ *     Default MIME type for resources matching this template.
+ *     Individual resources can override this if needed.
+ *
+ * HOW IT WORKS:
+ * -------------
+ * 1. Clients discover templates via `resources/list` or `resources/templates/list`
+ * 2. Clients construct URIs by replacing {variables} with actual values
+ * 3. Clients request the resource using the constructed URI
+ * 4. Your ResourceRepository matches the URI and returns the appropriate data
+ *
+ * EXAMPLE USAGE:
+ * -------------
+ * Template: "file:///logs/{date}.log"
+ * Client constructs: "file:///logs/2024-01-15.log"
+ * Client requests: resources/read?uri=file:///logs/2024-01-15.log
+ *
+ * @see https://modelcontextprotocol.io/docs/concepts/resources#uri-templates
+ * @see https://tools.ietf.org/html/rfc6570 (URI Template specification)
  */
 class {{ className }} extends ResourceTemplate
 {
-    public string $uriTemplate = 'file:///logs/{date}.log';
+    /**
+     * URI template pattern.
+     * Variables in {braces} will be replaced by clients.
+     * 
+     * Common patterns:
+     * - Single variable: "/path/{id}"
+     * - Multiple variables: "/data/{category}/{item}"
+     * - Optional segments: "/logs{/date}" (becomes "/logs" or "/logs/2024-01-15")
+     * - Query parameters: "/search{?q,limit}" (becomes "/search?q=term&limit=10")
+     */
+    public string $uriTemplate = 'file:///example/{category}/{id}.json';
 
-    public string $name = 'Daily Log File';
+    /**
+     * Descriptive name for this resource type.
+     * Be specific about what resources this template provides access to.
+     */
+    public string $name = 'Example Resource by Category and ID';
 
-    public ?string $description = 'Use {date} (YYYY-MM-DD) to select a log file';
+    /**
+     * Comprehensive description including variable documentation.
+     * This is crucial for helping LLMs understand how to use your template.
+     * 
+     * Best practices:
+     * - Document each variable's purpose
+     * - Specify format requirements (e.g., date formats, ID patterns)
+     * - List valid values or ranges
+     * - Provide examples
+     */
+    public ?string $description = <<<'DESC'
+Access example resources organized by category and unique identifier.
 
-    public ?string $mimeType = 'text/plain';
+Variables:
+- {category}: Resource category. Valid values: "users", "products", "orders"
+- {id}: Unique identifier. Format: alphanumeric string (e.g., "user123", "prod-456")
+
+Examples:
+- file:///example/users/user123.json - Get user data
+- file:///example/products/prod-456.json - Get product details
+- file:///example/orders/ord-789.json - Get order information
+
+Returns JSON data with the requested resource information.
+DESC;
+
+    /**
+     * Default MIME type for resources matching this template.
+     * Common types:
+     * - "application/json" for JSON data
+     * - "text/plain" for log files or text
+     * - "text/csv" for tabular data
+     * - "application/xml" for XML data
+     */
+    public ?string $mimeType = 'application/json';
+
+    /**
+     * Optional: Additional template examples for complex patterns
+     */
+    // More template examples:
+    // 
+    // Date-based: 'file:///logs/{year}/{month}/{day}.log'
+    // With query: 'api://search/products{?name,category,minPrice,maxPrice}'
+    // Optional path: 'file:///data{/type}{/subtype}/latest.json'
+    // Multiple formats: 'api://export/{dataset}.{format}' where format = json|csv|xml
 }
