@@ -1,4 +1,4 @@
-<h1 align="center">Laravel MCP Server by OP.GG</h1>
+<h1 align="center">Laravel MCP Server por OP.GG</h1>
 
 <p align="center">
   Un potente paquete de Laravel para construir un Servidor de Protocolo de Contexto de Modelo de forma fluida
@@ -37,7 +37,7 @@ La `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` ha sido actualizad
 1.  **Nuevo Método Añadido:**
 
     - `messageType(): ProcessMessageType`
-      - Este método es crucial para el nuevo soporte de HTTP stream y determina el tipo de mensaje que se está procesando.
+      - Este método es crucial para el nuevo soporte de stream HTTP y determina el tipo de mensaje que se está procesando.
 
 2.  **Renombrado de Métodos:**
     - `getName()` ahora es `name()`
@@ -45,7 +45,7 @@ La `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` ha sido actualizad
     - `getInputSchema()` ahora es `inputSchema()`
     - `getAnnotations()` ahora es `annotations()`
 
-**Cómo Actualizar tus Herramientas:**
+**Cómo Actualizar Tus Herramientas:**
 
 ### Migración Automatizada de Herramientas para v1.1.0
 
@@ -55,7 +55,7 @@ Para ayudar con la transición a la nueva `ToolInterface` introducida en v1.1.0,
 php artisan mcp:migrate-tools {path?}
 ```
 
-**Lo que hace:**
+**Qué hace:**
 
 Este comando escaneará archivos PHP en el directorio especificado (por defecto `app/MCP/Tools/`) e intentará:
 
@@ -72,7 +72,7 @@ Este comando escaneará archivos PHP en el directorio especificado (por defecto 
 
 **Uso:**
 
-Después de actualizar el paquete `opgginc/laravel-mcp-server` a v1.1.0 o posterior, si tienes herramientas existentes escritas para v1.0.x, es muy recomendable ejecutar este comando:
+Después de actualizar el paquete `opgginc/laravel-mcp-server` a v1.1.0 o posterior, si tienes herramientas existentes escritas para v1.0.x, es altamente recomendable ejecutar este comando:
 
 ```bash
 php artisan mcp:migrate-tools
@@ -157,7 +157,7 @@ class MyNewTool implements ToolInterface
     // Añadir el nuevo método messageType()
     public function messageType(): ProcessMessageType
     {
-        // Devolver el tipo de mensaje apropiado, ej. para una herramienta estándar
+        // Devolver el tipo de mensaje apropiado, ej., para una herramienta estándar
         return ProcessMessageType::SSE;
     }
 
@@ -197,7 +197,7 @@ Beneficios clave:
 
 - Soporte de comunicación en tiempo real a través de HTTP Streamable con integración SSE
 - Implementación de herramientas y recursos compatibles con las especificaciones del Protocolo de Contexto de Modelo
-- Arquitectura de diseño basada en adaptadores con patrón de mensajería Pub/Sub (comenzando con Redis, más adaptadores planeados)
+- Arquitectura de diseño basada en adaptadores con patrón de mensajería Pub/Sub (comenzando con Redis, más adaptadores planificados)
 - Configuración simple de enrutamiento y middleware
 
 ### Proveedores de Transporte
@@ -228,6 +228,47 @@ El protocolo MCP también define un modo "Streamable HTTP SSE", pero este paquet
    ```
 
 ## Uso Básico
+
+### Restricción de Dominio
+
+Puedes restringir las rutas del servidor MCP a dominio(s) específico(s) para mejor seguridad y organización:
+
+```php
+// config/mcp-server.php
+
+// Permitir acceso desde todos los dominios (predeterminado)
+'domain' => null,
+
+// Restringir a un solo dominio
+'domain' => 'api.example.com',
+
+// Restringir a múltiples dominios
+'domain' => ['api.example.com', 'admin.example.com'],
+```
+
+**Cuándo usar restricción de dominio:**
+- Ejecutar múltiples aplicaciones en diferentes subdominios
+- Separar endpoints de API de tu aplicación principal
+- Implementar arquitecturas multi-tenant donde cada tenant tiene su propio subdominio
+- Proporcionar los mismos servicios MCP a través de múltiples dominios
+
+**Escenarios de ejemplo:**
+
+```php
+// Subdominio de API único
+'domain' => 'api.op.gg',
+
+// Múltiples subdominios para diferentes entornos
+'domain' => ['api.op.gg', 'staging-api.op.gg'],
+
+// Arquitectura multi-tenant
+'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
+
+// Diferentes servicios en diferentes dominios
+'domain' => ['api.op.gg', 'api.kargn.as'],
+```
+
+> **Nota:** Cuando usas múltiples dominios, el paquete registra automáticamente rutas separadas para cada dominio para asegurar el enrutamiento adecuado a través de todos los dominios especificados.
 
 ### Creando y Añadiendo Herramientas Personalizadas
 
@@ -271,7 +312,7 @@ interface ToolInterface
     // Determina cómo se procesan los mensajes de la herramienta, a menudo relacionado con el transporte.
     public function messageType(): ProcessMessageType;
 
-    // El nombre único y llamable de tu herramienta (ej. 'get-user-details').
+    // El nombre único y llamable de tu herramienta (ej., 'get-user-details').
     public function name(): string;
 
     // Una descripción legible de lo que hace tu herramienta.
@@ -280,7 +321,7 @@ interface ToolInterface
     // Define los parámetros de entrada esperados para tu herramienta usando una estructura similar a JSON Schema.
     public function inputSchema(): array;
 
-    // Proporciona una forma de añadir metadatos arbitrarios o anotaciones a tu herramienta.
+    // Proporciona una forma de añadir metadatos o anotaciones arbitrarias a tu herramienta.
     public function annotations(): array;
 
     // La lógica central de tu herramienta. Recibe argumentos validados y devuelve el resultado.
@@ -292,7 +333,7 @@ Profundicemos en algunos de estos métodos:
 
 **`messageType(): ProcessMessageType`**
 
-Este método especifica el tipo de procesamiento de mensajes para tu herramienta. Devuelve un valor enum `ProcessMessageType`. Los tipos disponibles son:
+Este método especifica el tipo de procesamiento de mensajes para tu herramienta. Devuelve un valor del enum `ProcessMessageType`. Los tipos disponibles son:
 
 - `ProcessMessageType::HTTP`: Para herramientas que interactúan vía petición/respuesta HTTP estándar. Más común para herramientas nuevas.
 - `ProcessMessageType::SSE`: Para herramientas específicamente diseñadas para trabajar con Server-Sent Events.
@@ -305,7 +346,7 @@ Este es el identificador para tu herramienta. Debe ser único. Los clientes usar
 
 **`description(): string`**
 
-Una descripción clara y concisa de la funcionalidad de tu herramienta. Esto se usa en documentación, y las UIs de clientes MCP (como el MCP Inspector) pueden mostrarlo a los usuarios.
+Una descripción clara y concisa de la funcionalidad de tu herramienta. Esto se usa en documentación, y las interfaces de usuario de clientes MCP (como el MCP Inspector) pueden mostrársela a los usuarios.
 
 **`inputSchema(): array`**
 
@@ -325,11 +366,11 @@ public function inputSchema(): array
         'properties' => [
             'userId' => [
                 'type' => 'integer',
-                'description' => 'The unique identifier for the user.',
+                'description' => 'El identificador único para el usuario.',
             ],
             'includeDetails' => [
                 'type' => 'boolean',
-                'description' => 'Whether to include extended details in the response.',
+                'description' => 'Si incluir detalles extendidos en la respuesta.',
                 'default' => false, // Puedes especificar valores por defecto
             ],
         ],
@@ -353,7 +394,7 @@ if ($validator->fails()) {
         code: JsonRpcErrorCode::INVALID_REQUEST
     );
 }
-// Continúa con $arguments['userId'] y $arguments['includeDetails'] validados
+// Proceder con $arguments['userId'] y $arguments['includeDetails'] validados
 ```
 
 **`annotations(): array`**
@@ -364,7 +405,7 @@ Este método proporciona metadatos sobre el comportamiento y características de
 
 El Protocolo de Contexto de Modelo define varias anotaciones estándar que los clientes entienden:
 
-- **`title`** (string): Un título legible para la herramienta, mostrado en UIs de cliente
+- **`title`** (string): Un título legible para la herramienta, mostrado en interfaces de usuario de clientes
 - **`readOnlyHint`** (boolean): Indica si la herramienta solo lee datos sin modificar el entorno (predeterminado: false)
 - **`destructiveHint`** (boolean): Sugiere si la herramienta puede realizar operaciones destructivas como eliminar datos (predeterminado: true)
 - **`idempotentHint`** (boolean): Indica si llamadas repetidas con los mismos argumentos no tienen efecto adicional (predeterminado: false)
@@ -378,7 +419,7 @@ El Protocolo de Contexto de Modelo define varias anotaciones estándar que los c
 public function annotations(): array
 {
     return [
-        'title' => 'User Profile Fetcher',
+        'title' => 'Obtenedor de Perfil de Usuario',
         'readOnlyHint' => true,        // La herramienta solo lee datos de usuario
         'destructiveHint' => false,    // La herramienta no elimina o modifica datos
         'idempotentHint' => true,      // Seguro llamar múltiples veces
@@ -394,7 +435,7 @@ public function annotations(): array
 public function annotations(): array
 {
     return [
-        'title' => 'Database Query Tool',
+        'title' => 'Herramienta de Consulta de Base de Datos',
         'readOnlyHint' => true,
         'destructiveHint' => false,
         'idempotentHint' => true,
@@ -406,7 +447,7 @@ public function annotations(): array
 public function annotations(): array
 {
     return [
-        'title' => 'Blog Post Deletion Tool',
+        'title' => 'Herramienta de Eliminación de Posts del Blog',
         'readOnlyHint' => false,
         'destructiveHint' => true,     // Puede eliminar posts
         'idempotentHint' => false,     // Eliminar dos veces tiene efectos diferentes
@@ -414,15 +455,15 @@ public function annotations(): array
     ];
 }
 
-// Herramienta de integración API
+// Herramienta de integración de API
 public function annotations(): array
 {
     return [
-        'title' => 'Weather API',
+        'title' => 'API del Tiempo',
         'readOnlyHint' => true,
         'destructiveHint' => false,
         'idempotentHint' => true,
-        'openWorldHint' => true,       // Accede a API externa de clima
+        'openWorldHint' => true,       // Accede a API externa del tiempo
     ];
 }
 ```
@@ -434,13 +475,13 @@ public function annotations(): array
 {
     return [
         // Anotaciones MCP estándar
-        'title' => 'Custom Tool',
+        'title' => 'Herramienta Personalizada',
         'readOnlyHint' => true,
 
         // Anotaciones personalizadas para tu aplicación
         'category' => 'data-analysis',
         'version' => '2.1.0',
-        'author' => 'Data Team',
+        'author' => 'Equipo de Datos',
         'requires_permission' => 'analytics.read',
     ];
 }
@@ -470,7 +511,7 @@ Esto te ayuda a desarrollar y depurar herramientas rápidamente:
 
 ### Visualizando Herramientas MCP con Inspector
 
-También puedes usar el Model Context Protocol Inspector para visualizar y probar tus herramientas MCP:
+También puedes usar el Inspector de Protocolo de Contexto de Modelo para visualizar y probar tus herramientas MCP:
 
 ```bash
 # Ejecutar el MCP Inspector sin instalación
@@ -503,7 +544,7 @@ Esto típicamente abrirá una interfaz web en `localhost:6274`. Para probar tu s
 
    * Cualquier servidor web que soporte apropiadamente streaming SSE (requerido solo para el proveedor SSE legacy)
 
-2. En la interfaz del Inspector, introduce la URL del endpoint MCP de tu servidor Laravel (ej. `http://localhost:8000/mcp`). Si estás usando el proveedor SSE legacy, usa la URL SSE en su lugar (`http://localhost:8000/mcp/sse`).
+2. En la interfaz del Inspector, introduce la URL del endpoint MCP de tu servidor Laravel (ej., `http://localhost:8000/mcp`). Si estás usando el proveedor SSE legacy, usa la URL SSE en su lugar (`http://localhost:8000/mcp/sse`).
 3. Conéctate y explora las herramientas disponibles visualmente
 
 El endpoint MCP sigue el patrón: `http://[tu-servidor-laravel]/[default_path]` donde `default_path` está definido en tu archivo `config/mcp-server.php`.
@@ -516,7 +557,7 @@ El paquete implementa un patrón de mensajería publicar/suscribir (pub/sub) a t
 
 1. **Publicador (Servidor)**: Cuando los clientes envían peticiones al endpoint `/message`, el servidor procesa estas peticiones y publica respuestas a través del adaptador configurado.
 
-2. **Broker de Mensajes (Adaptador)**: El adaptador (ej. Redis) mantiene colas de mensajes para cada cliente, identificados por IDs únicos de cliente. Esto proporciona una capa de comunicación asíncrona confiable.
+2. **Broker de Mensajes (Adaptador)**: El adaptador (ej., Redis) mantiene colas de mensajes para cada cliente, identificados por IDs de cliente únicos. Esto proporciona una capa de comunicación asíncrona confiable.
 
 3. **Suscriptor (conexión SSE)**: Las conexiones SSE de larga duración se suscriben a mensajes para sus respectivos clientes y los entregan en tiempo real. Esto aplica solo cuando se usa el proveedor SSE legacy.
 
@@ -524,8 +565,8 @@ Esta arquitectura permite:
 
 - Comunicación escalable en tiempo real
 - Entrega confiable de mensajes incluso durante desconexiones temporales
-- Manejo eficiente de múltiples conexiones concurrentes de clientes
-- Potencial para despliegues distribuidos de servidores
+- Manejo eficiente de múltiples conexiones de clientes concurrentes
+- Potencial para despliegues de servidores distribuidos
 
 ### Configuración del Adaptador Redis
 
@@ -537,29 +578,14 @@ El adaptador Redis predeterminado puede configurarse de la siguiente manera:
     'redis' => [
         'prefix' => 'mcp_sse_',    // Prefijo para claves Redis
         'connection' => 'default', // Conexión Redis desde database.php
-        'ttl' => 100,              // TTL de mensaje en segundos
+        'ttl' => 100,              // TTL de mensajes en segundos
     ],
 ],
 ```
 
-## Variables de Entorno
-
-El paquete soporta las siguientes variables de entorno para permitir configuración sin modificar los archivos de configuración:
-
-| Variable               | Descripción                                      | Predeterminado |
-| ---------------------- | ------------------------------------------------ | -------------- |
-| `MCP_SERVER_ENABLED`   | Habilitar o deshabilitar el servidor MCP        | `true`         |
-
-### Ejemplo de Configuración .env
-
-```
-# Deshabilitar servidor MCP en entornos específicos
-MCP_SERVER_ENABLED=false
-```
-
 ## Traducir README.md
 
-Para traducir este README a otros idiomas usando Claude API (Procesamiento paralelo):
+Para traducir este README a otros idiomas usando la API de Claude (Procesamiento paralelo):
 
 ```bash
 pip install -r scripts/requirements.txt

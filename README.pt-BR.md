@@ -1,7 +1,7 @@
 <h1 align="center">Laravel MCP Server by OP.GG</h1>
 
 <p align="center">
-  Um poderoso pacote Laravel para construir um Servidor de Protocolo de Contexto de Modelo de forma integrada
+  Um pacote Laravel poderoso para construir um Servidor de Protocolo de Contexto de Modelo de forma integrada
 </p>
 
 <p align="center">
@@ -28,7 +28,7 @@
 
 ## ⚠️ Mudanças Incompatíveis na v1.1.0
 
-A versão 1.1.0 introduziu uma mudança significativa e incompatível na `ToolInterface`. Se você está atualizando da v1.0.x, você **deve** atualizar suas implementações de ferramentas para estar em conformidade com a nova interface.
+A versão 1.1.0 introduziu uma mudança significativa e incompatível na `ToolInterface`. Se você está atualizando da v1.0.x, você **deve** atualizar suas implementações de ferramentas para se adequar à nova interface.
 
 **Principais Mudanças na `ToolInterface`:**
 
@@ -59,8 +59,8 @@ php artisan mcp:migrate-tools {path?}
 
 Este comando irá escanear arquivos PHP no diretório especificado (padrão `app/MCP/Tools/`) e tentará:
 
-1.  **Identificar ferramentas antigas:** Procura por classes implementando a `ToolInterface` com as assinaturas de método antigas.
-2.  **Criar Backups:** Antes de fazer qualquer mudança, criará um backup do seu arquivo de ferramenta original com extensão `.backup` (ex: `YourTool.php.backup`). Se um arquivo de backup já existir, o arquivo original será pulado para prevenir perda acidental de dados.
+1.  **Identificar ferramentas antigas:** Ele procura por classes implementando a `ToolInterface` com as assinaturas de método antigas.
+2.  **Criar Backups:** Antes de fazer qualquer alteração, ele criará um backup do seu arquivo de ferramenta original com extensão `.backup` (ex: `YourTool.php.backup`). Se um arquivo de backup já existir, o arquivo original será pulado para prevenir perda acidental de dados.
 3.  **Refatorar a Ferramenta:**
     - Renomear métodos:
       - `getName()` para `name()`
@@ -84,7 +84,7 @@ Se suas ferramentas estão localizadas em um diretório diferente de `app/MCP/To
 php artisan mcp:migrate-tools path/to/your/tools
 ```
 
-O comando mostrará seu progresso, indicando quais arquivos estão sendo processados, com backup e migrados. Sempre revise as mudanças feitas pela ferramenta. Embora ela vise ser precisa, arquivos de ferramentas complexos ou formatados de forma incomum podem exigir ajustes manuais.
+O comando mostrará seu progresso, indicando quais arquivos estão sendo processados, backupeados e migrados. Sempre revise as alterações feitas pela ferramenta. Embora ela tente ser precisa, arquivos de ferramentas complexos ou formatados de forma incomum podem requerer ajustes manuais.
 
 Esta ferramenta deve facilitar significativamente o processo de migração e ajudá-lo a se adaptar à nova estrutura de interface rapidamente.
 
@@ -171,11 +171,11 @@ class MyNewTool implements ToolInterface
 
 ## Visão Geral do Laravel MCP Server
 
-Laravel MCP Server é um pacote poderoso projetado para simplificar a implementação de servidores Model Context Protocol (MCP) em aplicações Laravel. **Diferente da maioria dos pacotes Laravel MCP que usam transporte Standard Input/Output (stdio)**, este pacote foca em transporte **HTTP Streamable** e ainda inclui um **provedor SSE legado** para compatibilidade com versões anteriores, fornecendo um método de integração seguro e controlado.
+Laravel MCP Server é um pacote poderoso projetado para simplificar a implementação de servidores Model Context Protocol (MCP) em aplicações Laravel. **Diferentemente da maioria dos pacotes Laravel MCP que usam transporte Standard Input/Output (stdio)**, este pacote foca em transporte **HTTP Streamable** e ainda inclui um **provedor SSE legado** para compatibilidade com versões anteriores, fornecendo um método de integração seguro e controlado.
 
 ### Por que HTTP Streamable ao invés de STDIO?
 
-Embora stdio seja direto e amplamente usado em implementações MCP, ele tem implicações significativas de segurança para ambientes corporativos:
+Embora stdio seja direto e amplamente usado em implementações MCP, ele tem implicações de segurança significativas para ambientes corporativos:
 
 - **Risco de Segurança**: O transporte STDIO potencialmente expõe detalhes internos do sistema e especificações de API
 - **Proteção de Dados**: Organizações precisam proteger endpoints de API proprietários e arquitetura interna do sistema
@@ -205,7 +205,7 @@ Principais benefícios:
 A opção de configuração `server_provider` controla qual transporte é usado. Provedores disponíveis são:
 
 1. **streamable_http** – o padrão recomendado. Usa requisições HTTP padrão e evita problemas com plataformas que fecham conexões SSE após cerca de um minuto (ex: muitos ambientes serverless).
-2. **sse** – um provedor legado mantido para compatibilidade com versões anteriores. Depende de conexões SSE de longa duração e pode não funcionar em plataformas com timeouts HTTP curtos.
+2. **sse** – um provedor legado mantido para compatibilidade com versões anteriores. Ele depende de conexões SSE de longa duração e pode não funcionar em plataformas com timeouts HTTP curtos.
 
 O protocolo MCP também define um modo "Streamable HTTP SSE", mas este pacote não o implementa e não há planos para fazê-lo.
 
@@ -229,6 +229,47 @@ O protocolo MCP também define um modo "Streamable HTTP SSE", mas este pacote n�
 
 ## Uso Básico
 
+### Restrição de Domínio
+
+Você pode restringir as rotas do servidor MCP a domínio(s) específico(s) para melhor segurança e organização:
+
+```php
+// config/mcp-server.php
+
+// Permitir acesso de todos os domínios (padrão)
+'domain' => null,
+
+// Restringir a um único domínio
+'domain' => 'api.example.com',
+
+// Restringir a múltiplos domínios
+'domain' => ['api.example.com', 'admin.example.com'],
+```
+
+**Quando usar restrição de domínio:**
+- Executando múltiplas aplicações em diferentes subdomínios
+- Separando endpoints de API da sua aplicação principal
+- Implementando arquiteturas multi-tenant onde cada tenant tem seu próprio subdomínio
+- Fornecendo os mesmos serviços MCP através de múltiplos domínios
+
+**Cenários de exemplo:**
+
+```php
+// Subdomínio único de API
+'domain' => 'api.op.gg',
+
+// Múltiplos subdomínios para diferentes ambientes
+'domain' => ['api.op.gg', 'staging-api.op.gg'],
+
+// Arquitetura multi-tenant
+'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
+
+// Diferentes serviços em diferentes domínios
+'domain' => ['api.op.gg', 'api.kargn.as'],
+```
+
+> **Nota:** Ao usar múltiplos domínios, o pacote registra automaticamente rotas separadas para cada domínio para garantir roteamento adequado através de todos os domínios especificados.
+
 ### Criando e Adicionando Ferramentas Personalizadas
 
 O pacote fornece comandos Artisan convenientes para gerar novas ferramentas:
@@ -240,7 +281,7 @@ php artisan make:mcp-tool MyCustomTool
 Este comando:
 
 - Lida com vários formatos de entrada (espaços, hífens, maiúsculas e minúsculas mistas)
-- Converte automaticamente o nome para o formato de caso apropriado
+- Converte automaticamente o nome para formato de caso adequado
 - Cria uma classe de ferramenta adequadamente estruturada em `app/MCP/Tools`
 - Oferece registrar automaticamente a ferramenta em sua configuração
 
@@ -292,7 +333,7 @@ Vamos nos aprofundar em alguns desses métodos:
 
 **`messageType(): ProcessMessageType`**
 
-Este método especifica o tipo de processamento de mensagem para sua ferramenta. Retorna um valor enum `ProcessMessageType`. Os tipos disponíveis são:
+Este método especifica o tipo de processamento de mensagem para sua ferramenta. Ele retorna um valor enum `ProcessMessageType`. Os tipos disponíveis são:
 
 - `ProcessMessageType::HTTP`: Para ferramentas interagindo via requisição/resposta HTTP padrão. Mais comum para novas ferramentas.
 - `ProcessMessageType::SSE`: Para ferramentas especificamente projetadas para trabalhar com Server-Sent Events.
@@ -313,9 +354,9 @@ Este método é crucial para definir os parâmetros de entrada esperados da sua 
 
 - Por clientes para entender quais dados enviar.
 - Potencialmente pelo servidor ou cliente para validação de entrada.
-- Por ferramentas como o MCP Inspector para gerar formulários para testes.
+- Por ferramentas como o MCP Inspector para gerar formulários para teste.
 
-**Exemplo `inputSchema()`:**
+**Exemplo de `inputSchema()`:**
 
 ```php
 public function inputSchema(): array
@@ -358,7 +399,7 @@ if ($validator->fails()) {
 
 **`annotations(): array`**
 
-Este método fornece metadados sobre o comportamento e características da sua ferramenta, seguindo a [especificação oficial de Anotações de Ferramentas MCP](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations). Anotações ajudam clientes MCP a categorizar ferramentas, tomar decisões informadas sobre aprovação de ferramentas e fornecer interfaces de usuário apropriadas.
+Este método fornece metadados sobre o comportamento e características da sua ferramenta, seguindo a [especificação oficial de Anotações de Ferramenta MCP](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations). Anotações ajudam clientes MCP a categorizar ferramentas, tomar decisões informadas sobre aprovação de ferramentas e fornecer interfaces de usuário apropriadas.
 
 **Anotações MCP Padrão:**
 
@@ -402,11 +443,11 @@ public function annotations(): array
     ];
 }
 
-// Ferramenta de exclusão de post
+// Ferramenta de deleção de post
 public function annotations(): array
 {
     return [
-        'title' => 'Ferramenta de Exclusão de Post do Blog',
+        'title' => 'Ferramenta de Deleção de Post do Blog',
         'readOnlyHint' => false,
         'destructiveHint' => true,     // Pode deletar posts
         'idempotentHint' => false,     // Deletar duas vezes tem efeitos diferentes
@@ -418,11 +459,11 @@ public function annotations(): array
 public function annotations(): array
 {
     return [
-        'title' => 'API do Tempo',
+        'title' => 'API do Clima',
         'readOnlyHint' => true,
         'destructiveHint' => false,
         'idempotentHint' => true,
-        'openWorldHint' => true,       // Acessa API externa de tempo
+        'openWorldHint' => true,       // Acessa API externa de clima
     ];
 }
 ```
@@ -492,7 +533,7 @@ Isso normalmente abrirá uma interface web em `localhost:6274`. Para testar seu 
      php artisan octane:start
      ```
 
-     > **Importante**: Ao instalar o Laravel Octane, certifique-se de usar FrankenPHP como servidor. O pacote pode não funcionar adequadamente com RoadRunner devido a problemas de compatibilidade com conexões SSE. Se você pode ajudar a corrigir este problema de compatibilidade com RoadRunner, por favor envie um Pull Request - sua contribuição seria muito apreciada!
+     > **Importante**: Ao instalar Laravel Octane, certifique-se de usar FrankenPHP como servidor. O pacote pode não funcionar adequadamente com RoadRunner devido a problemas de compatibilidade com conexões SSE. Se você pode ajudar a corrigir este problema de compatibilidade com RoadRunner, por favor envie um Pull Request - sua contribuição seria muito apreciada!
 
      Para detalhes, veja a [documentação do Laravel Octane](https://laravel.com/docs/12.x/octane)
 
@@ -522,7 +563,7 @@ O pacote implementa um padrão de mensagens publish/subscribe (pub/sub) através
 
 Esta arquitetura permite:
 
-- Comunicação em tempo real escalável
+- Comunicação escalável em tempo real
 - Entrega confiável de mensagens mesmo durante desconexões temporárias
 - Manuseio eficiente de múltiplas conexões de cliente concorrentes
 - Potencial para deployments de servidor distribuído
@@ -542,22 +583,7 @@ O adaptador Redis padrão pode ser configurado da seguinte forma:
 ],
 ```
 
-## Variáveis de Ambiente
-
-O pacote suporta as seguintes variáveis de ambiente para permitir configuração sem modificar os arquivos de config:
-
-| Variável               | Descrição                                | Padrão    |
-| ---------------------- | ---------------------------------------- | --------- |
-| `MCP_SERVER_ENABLED`   | Habilitar ou desabilitar o servidor MCP | `true`    |
-
-### Exemplo de Configuração .env
-
-```
-# Desabilitar servidor MCP em ambientes específicos
-MCP_SERVER_ENABLED=false
-```
-
-## Traduzir README.md
+## Tradução README.md
 
 Para traduzir este README para outros idiomas usando Claude API (Processamento paralelo):
 

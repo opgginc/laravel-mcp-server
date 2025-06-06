@@ -1,7 +1,7 @@
 <h1 align="center">Laravel MCP Server by OP.GG</h1>
 
 <p align="center">
-  一个强大的 Laravel 扩展包，用于无缝构建 Model Context Protocol 服务器
+  一个强大的 Laravel 扩展包，用于无缝构建模型上下文协议服务器
 </p>
 
 <p align="center">
@@ -28,7 +28,7 @@
 
 ## ⚠️ v1.1.0 版本的重大变更
 
-v1.1.0 版本对 `ToolInterface` 引入了重大的破坏性变更。如果你正在从 v1.0.x 升级，你**必须**更新你的工具实现以符合新的接口。
+v1.1.0 版本对 `ToolInterface` 引入了重大的破坏性变更。如果你正在从 v1.0.x 升级，**必须**更新你的工具实现以符合新的接口。
 
 **`ToolInterface` 的关键变更：**
 
@@ -37,7 +37,7 @@ v1.1.0 版本对 `ToolInterface` 引入了重大的破坏性变更。如果你�
 1.  **新增方法：**
 
     - `messageType(): ProcessMessageType`
-      - 此方法对于新的 HTTP 流支持至关重要，用于确定正在处理的消息类型。
+      - 此方法对新的 HTTP 流支持至关重要，用于确定正在处理的消息类型。
 
 2.  **方法重命名：**
     - `getName()` 现在是 `name()`
@@ -55,12 +55,12 @@ v1.1.0 版本对 `ToolInterface` 引入了重大的破坏性变更。如果你�
 php artisan mcp:migrate-tools {path?}
 ```
 
-**它的作用：**
+**功能说明：**
 
 此命令将扫描指定目录中的 PHP 文件（默认为 `app/MCP/Tools/`）并尝试：
 
-1.  **识别旧工具：** 它查找实现了带有旧方法签名的 `ToolInterface` 的类。
-2.  **创建备份：** 在进行任何更改之前，它将创建原始工具文件的备份，扩展名为 `.backup`（例如 `YourTool.php.backup`）。如果备份文件已存在，将跳过原始文件以防止意外数据丢失。
+1.  **识别旧工具：** 查找实现了旧方法签名的 `ToolInterface` 的类。
+2.  **创建备份：** 在进行任何更改之前，会创建原始工具文件的备份，扩展名为 `.backup`（例如 `YourTool.php.backup`）。如果备份文件已存在，将跳过原始文件以防止意外数据丢失。
 3.  **重构工具：**
     - 重命名方法：
       - `getName()` 改为 `name()`
@@ -72,21 +72,21 @@ php artisan mcp:migrate-tools {path?}
 
 **使用方法：**
 
-在将 `opgginc/laravel-mcp-server` 包更新到 v1.1.0 或更高版本后，如果你有为 v1.0.x 编写的现有工具，强烈建议运行此命令：
+将 `opgginc/laravel-mcp-server` 包更新到 v1.1.0 或更高版本后，如果你有为 v1.0.x 编写的现有工具，强烈建议运行此命令：
 
 ```bash
 php artisan mcp:migrate-tools
 ```
 
-如果你的工具位于 `app/MCP/Tools/` 以外的目录中，你可以指定路径：
+如果你的工具位于 `app/MCP/Tools/` 以外的目录，可以指定路径：
 
 ```bash
 php artisan mcp:migrate-tools path/to/your/tools
 ```
 
-该命令将输出其进度，指示正在处理、备份和迁移哪些文件。请务必检查工具所做的更改。虽然它力求准确，但复杂或格式异常的工具文件可能需要手动调整。
+该命令将输出其进度，指示正在处理、备份和迁移哪些文件。请始终检查工具所做的更改。虽然它力求准确，但复杂或格式异常的工具文件可能需要手动调整。
 
-此工具应该大大简化迁移过程，并帮助你快速适应新的接口结构。
+此工具应该大大简化迁移过程，帮助你快速适应新的接口结构。
 
 ### 手动迁移
 
@@ -157,7 +157,7 @@ class MyNewTool implements ToolInterface
     // 添加新的 messageType() 方法
     public function messageType(): ProcessMessageType
     {
-        // 返回适当的消息类型，例如，对于标准工具
+        // 返回适当的消息类型，例如对于标准工具
         return ProcessMessageType::SSE;
     }
 
@@ -171,43 +171,43 @@ class MyNewTool implements ToolInterface
 
 ## Laravel MCP Server 概述
 
-Laravel MCP Server 是一个强大的扩展包，旨在简化在 Laravel 应用程序中实现 Model Context Protocol (MCP) 服务器。**与大多数使用标准输入/输出 (stdio) 传输的 Laravel MCP 包不同**，此包专注于 **Streamable HTTP** 传输，并仍包含一个**传统 SSE 提供者**以保持向后兼容性，提供安全且可控的集成方法。
+Laravel MCP Server 是一个强大的扩展包，旨在简化在 Laravel 应用程序中实现模型上下文协议（MCP）服务器。**与大多数使用标准输入/输出（stdio）传输的 Laravel MCP 包不同**，此包专注于**可流式 HTTP** 传输，并仍包含**传统 SSE 提供程序**以实现向后兼容，提供安全且受控的集成方法。
 
-### 为什么选择 Streamable HTTP 而不是 STDIO？
+### 为什么选择可流式 HTTP 而不是 STDIO？
 
 虽然 stdio 简单直接且在 MCP 实现中广泛使用，但它对企业环境有重大的安全影响：
 
 - **安全风险**：STDIO 传输可能暴露内部系统详细信息和 API 规范
 - **数据保护**：组织需要保护专有 API 端点和内部系统架构
-- **控制**：Streamable HTTP 在 LLM 客户端和你的应用程序之间的通信通道上提供更好的控制
+- **控制**：可流式 HTTP 在 LLM 客户端和你的应用程序之间的通信通道上提供更好的控制
 
-通过使用 Streamable HTTP 传输实现 MCP 服务器，企业可以：
+通过使用可流式 HTTP 传输实现 MCP 服务器，企业可以：
 
 - 仅暴露必要的工具和资源，同时保持专有 API 详细信息的私密性
 - 保持对身份验证和授权过程的控制
 
 主要优势：
 
-- 在现有 Laravel 项目中无缝快速实现 Streamable HTTP
+- 在现有 Laravel 项目中无缝快速实现可流式 HTTP
 - 支持最新的 Laravel 和 PHP 版本
 - 高效的服务器通信和实时数据处理
 - 为企业环境增强安全性
 
-## 主要特性
+## 核心功能
 
-- 通过 Streamable HTTP 与 SSE 集成支持实时通信
-- 实现符合 Model Context Protocol 规范的工具和资源
+- 通过可流式 HTTP 与 SSE 集成支持实时通信
+- 实现符合模型上下文协议规范的工具和资源
 - 基于适配器的设计架构，采用发布/订阅消息模式（从 Redis 开始，计划更多适配器）
 - 简单的路由和中间件配置
 
-### 传输提供者
+### 传输提供程序
 
-配置选项 `server_provider` 控制使用哪种传输。可用的提供者有：
+配置选项 `server_provider` 控制使用哪种传输。可用的提供程序有：
 
-1. **streamable_http** – 推荐的默认选项。使用标准 HTTP 请求，避免在大约一分钟后关闭 SSE 连接的平台上出现问题（例如许多无服务器环境）。
-2. **sse** – 为保持向后兼容性而保留的传统提供者。它依赖于长期存在的 SSE 连接，在 HTTP 超时较短的平台上可能无法工作。
+1. **streamable_http** – 推荐的默认选项。使用标准 HTTP 请求，避免在大约一分钟后关闭 SSE 连接的平台（例如许多无服务器环境）的问题。
+2. **sse** – 为向后兼容而保留的传统提供程序。它依赖于长期存在的 SSE 连接，在 HTTP 超时较短的平台上可能无法工作。
 
-MCP 协议还定义了"Streamable HTTP SSE"模式，但此包不实现它，也没有计划这样做。
+MCP 协议还定义了"可流式 HTTP SSE"模式，但此包未实现它，也没有计划这样做。
 
 ## 系统要求
 
@@ -229,9 +229,50 @@ MCP 协议还定义了"Streamable HTTP SSE"模式，但此包不实现它，也�
 
 ## 基本用法
 
+### 域名限制
+
+你可以将 MCP 服务器路由限制到特定域名，以获得更好的安全性和组织性：
+
+```php
+// config/mcp-server.php
+
+// 允许从所有域名访问（默认）
+'domain' => null,
+
+// 限制到单个域名
+'domain' => 'api.example.com',
+
+// 限制到多个域名
+'domain' => ['api.example.com', 'admin.example.com'],
+```
+
+**何时使用域名限制：**
+- 在不同子域上运行多个应用程序
+- 将 API 端点与主应用程序分离
+- 实现多租户架构，其中每个租户都有自己的子域
+- 跨多个域名提供相同的 MCP 服务
+
+**示例场景：**
+
+```php
+// 单个 API 子域
+'domain' => 'api.op.gg',
+
+// 不同环境的多个子域
+'domain' => ['api.op.gg', 'staging-api.op.gg'],
+
+// 多租户架构
+'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
+
+// 不同域名上的不同服务
+'domain' => ['api.op.gg', 'api.kargn.as'],
+```
+
+> **注意：** 使用多个域名时，包会自动为每个域名注册单独的路由，以确保在所有指定域名上正确路由。
+
 ### 创建和添加自定义工具
 
-该包提供便捷的 Artisan 命令来生成新工具：
+包提供了便捷的 Artisan 命令来生成新工具：
 
 ```bash
 php artisan make:mcp-tool MyCustomTool
@@ -242,7 +283,7 @@ php artisan make:mcp-tool MyCustomTool
 - 处理各种输入格式（空格、连字符、混合大小写）
 - 自动将名称转换为正确的大小写格式
 - 在 `app/MCP/Tools` 中创建结构正确的工具类
-- 提供自动在配置中注册工具的选项
+- 提供在配置中自动注册工具的选项
 
 你也可以在 `config/mcp-server.php` 中手动创建和注册工具：
 
@@ -255,9 +296,9 @@ class MyCustomTool implements ToolInterface
 }
 ```
 
-### 理解工具结构 (ToolInterface)
+### 理解工具结构（ToolInterface）
 
-当你通过实现 `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` 创建工具时，你需要定义几个方法。以下是每个方法及其用途的详细说明：
+当你通过实现 `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` 创建工具时，需要定义几个方法。以下是每个方法及其用途的详细说明：
 
 ```php
 <?php
@@ -294,10 +335,10 @@ interface ToolInterface
 
 此方法指定工具的消息处理类型。它返回一个 `ProcessMessageType` 枚举值。可用类型有：
 
-- `ProcessMessageType::HTTP`：用于通过标准 HTTP 请求/响应交互的工具。对新工具最常见。
-- `ProcessMessageType::SSE`：用于专门设计与服务器发送事件配合使用的工具。
+- `ProcessMessageType::HTTP`：用于通过标准 HTTP 请求/响应交互的工具。对于新工具最常见。
+- `ProcessMessageType::SSE`：用于专门设计与服务器发送事件一起工作的工具。
 
-对于大多数工具，特别是那些为主要的 `streamable_http` 提供者设计的工具，你将返回 `ProcessMessageType::HTTP`。
+对于大多数工具，特别是那些为主要的 `streamable_http` 提供程序设计的工具，你将返回 `ProcessMessageType::HTTP`。
 
 **`name(): string`**
 
@@ -309,7 +350,7 @@ interface ToolInterface
 
 **`inputSchema(): array`**
 
-此方法对于定义工具的预期输入参数至关重要。它应该返回一个遵循类似 JSON Schema 结构的数组。此架构用于：
+此方法对于定义工具的预期输入参数至关重要。它应该返回一个遵循类似 JSON Schema 结构的数组。此模式用于：
 
 - 客户端了解要发送什么数据。
 - 服务器或客户端可能用于输入验证。
@@ -325,11 +366,11 @@ public function inputSchema(): array
         'properties' => [
             'userId' => [
                 'type' => 'integer',
-                'description' => '用户的唯一标识符。',
+                'description' => 'The unique identifier for the user.',
             ],
             'includeDetails' => [
                 'type' => 'boolean',
-                'description' => '是否在响应中包含扩展详细信息。',
+                'description' => 'Whether to include extended details in the response.',
                 'default' => false, // 你可以指定默认值
             ],
         ],
@@ -362,13 +403,13 @@ if ($validator->fails()) {
 
 **标准 MCP 注释：**
 
-Model Context Protocol 定义了几个客户端理解的标准注释：
+模型上下文协议定义了几个客户端理解的标准注释：
 
-- **`title`** (string)：工具的人类可读标题，在客户端 UI 中显示
-- **`readOnlyHint`** (boolean)：指示工具是否仅读取数据而不修改环境（默认：false）
-- **`destructiveHint`** (boolean)：建议工具是否可能执行破坏性操作，如删除数据（默认：true）
-- **`idempotentHint`** (boolean)：指示使用相同参数的重复调用是否没有额外效果（默认：false）
-- **`openWorldHint`** (boolean)：表示工具是否与本地环境之外的外部实体交互（默认：true）
+- **`title`**（字符串）：工具的人类可读标题，显示在客户端 UI 中
+- **`readOnlyHint`**（布尔值）：指示工具是否只读取数据而不修改环境（默认：false）
+- **`destructiveHint`**（布尔值）：建议工具是否可能执行破坏性操作，如删除数据（默认：true）
+- **`idempotentHint`**（布尔值）：指示使用相同参数的重复调用是否没有额外效果（默认：false）
+- **`openWorldHint`**（布尔值）：表示工具是否与本地环境之外的外部实体交互（默认：true）
 
 **重要：** 这些是提示，不是保证。它们帮助客户端提供更好的用户体验，但不应用于安全关键决策。
 
@@ -378,11 +419,11 @@ Model Context Protocol 定义了几个客户端理解的标准注释：
 public function annotations(): array
 {
     return [
-        'title' => '用户资料获取器',
-        'readOnlyHint' => true,        // 工具仅读取用户数据
+        'title' => 'User Profile Fetcher',
+        'readOnlyHint' => true,        // 工具只读取用户数据
         'destructiveHint' => false,    // 工具不删除或修改数据
         'idempotentHint' => true,      // 多次调用是安全的
-        'openWorldHint' => false,      // 工具仅访问本地数据库
+        'openWorldHint' => false,      // 工具只访问本地数据库
     ];
 }
 ```
@@ -394,7 +435,7 @@ public function annotations(): array
 public function annotations(): array
 {
     return [
-        'title' => '数据库查询工具',
+        'title' => 'Database Query Tool',
         'readOnlyHint' => true,
         'destructiveHint' => false,
         'idempotentHint' => true,
@@ -402,14 +443,14 @@ public function annotations(): array
     ];
 }
 
-// 文章删除工具
+// 帖子删除工具
 public function annotations(): array
 {
     return [
-        'title' => '博客文章删除工具',
+        'title' => 'Blog Post Deletion Tool',
         'readOnlyHint' => false,
-        'destructiveHint' => true,     // 可以删除文章
-        'idempotentHint' => false,     // 删除两次有不同的效果
+        'destructiveHint' => true,     // 可以删除帖子
+        'idempotentHint' => false,     // 删除两次有不同效果
         'openWorldHint' => false,
     ];
 }
@@ -418,7 +459,7 @@ public function annotations(): array
 public function annotations(): array
 {
     return [
-        'title' => '天气 API',
+        'title' => 'Weather API',
         'readOnlyHint' => true,
         'destructiveHint' => false,
         'idempotentHint' => true,
@@ -434,13 +475,13 @@ public function annotations(): array
 {
     return [
         // 标准 MCP 注释
-        'title' => '自定义工具',
+        'title' => 'Custom Tool',
         'readOnlyHint' => true,
 
-        // 应用程序的自定义注释
+        // 为你的应用程序自定义注释
         'category' => 'data-analysis',
         'version' => '2.1.0',
-        'author' => '数据团队',
+        'author' => 'Data Team',
         'requires_permission' => 'analytics.read',
     ];
 }
@@ -448,7 +489,7 @@ public function annotations(): array
 
 ### 测试 MCP 工具
 
-该包包含一个特殊命令，用于测试你的 MCP 工具，无需真正的 MCP 客户端：
+包包含一个特殊命令，用于测试你的 MCP 工具，无需真正的 MCP 客户端：
 
 ```bash
 # 交互式测试特定工具
@@ -457,27 +498,27 @@ php artisan mcp:test-tool MyCustomTool
 # 列出所有可用工具
 php artisan mcp:test-tool --list
 
-# 使用特定 JSON 输入进行测试
+# 使用特定 JSON 输入测试
 php artisan mcp:test-tool MyCustomTool --input='{"param":"value"}'
 ```
 
 这通过以下方式帮助你快速开发和调试工具：
 
-- 显示工具的输入架构并验证输入
+- 显示工具的输入模式并验证输入
 - 使用你提供的输入执行工具
 - 显示格式化的结果或详细的错误信息
 - 支持复杂的输入类型，包括对象和数组
 
 ### 使用 Inspector 可视化 MCP 工具
 
-你也可以使用 Model Context Protocol Inspector 来可视化和测试你的 MCP 工具：
+你也可以使用模型上下文协议 Inspector 来可视化和测试你的 MCP 工具：
 
 ```bash
-# 运行 MCP Inspector 而无需安装
+# 无需安装即可运行 MCP Inspector
 npx @modelcontextprotocol/inspector node build/index.js
 ```
 
-这通常会在 `localhost:6274` 打开一个 web 界面。要测试你的 MCP 服务器：
+这通常会在 `localhost:6274` 打开一个 Web 界面。要测试你的 MCP 服务器：
 
 1. **警告**：`php artisan serve` **不能**与此包一起使用，因为它无法同时处理多个 PHP 连接。由于 MCP SSE 需要并发处理多个连接，你必须使用以下替代方案之一：
 
@@ -501,24 +542,24 @@ npx @modelcontextprotocol/inspector node build/index.js
      - Apache + PHP-FPM
      - 自定义 Docker 设置
 
-   * 任何正确支持 SSE 流的 web 服务器（仅传统 SSE 提供者需要）
+   * 任何正确支持 SSE 流的 Web 服务器（仅传统 SSE 提供程序需要）
 
-2. 在 Inspector 界面中，输入你的 Laravel 服务器的 MCP 端点 URL（例如 `http://localhost:8000/mcp`）。如果你使用传统 SSE 提供者，请改用 SSE URL（`http://localhost:8000/mcp/sse`）。
-3. 连接并可视化探索可用工具
+2. 在 Inspector 界面中，输入你的 Laravel 服务器的 MCP 端点 URL（例如 `http://localhost:8000/mcp`）。如果你使用传统 SSE 提供程序，请改用 SSE URL（`http://localhost:8000/mcp/sse`）。
+3. 连接并可视化地探索可用工具
 
 MCP 端点遵循模式：`http://[your-laravel-server]/[default_path]`，其中 `default_path` 在你的 `config/mcp-server.php` 文件中定义。
 
-## 高级特性
+## 高级功能
 
-### 使用 SSE 适配器的发布/订阅架构（传统提供者）
+### 使用 SSE 适配器的发布/订阅架构（传统提供程序）
 
-该包通过其适配器系统实现发布/订阅（pub/sub）消息模式：
+包通过其适配器系统实现发布/订阅（pub/sub）消息模式：
 
 1. **发布者（服务器）**：当客户端向 `/message` 端点发送请求时，服务器处理这些请求并通过配置的适配器发布响应。
 
 2. **消息代理（适配器）**：适配器（例如 Redis）为每个客户端维护消息队列，通过唯一的客户端 ID 标识。这提供了可靠的异步通信层。
 
-3. **订阅者（SSE 连接）**：长期存在的 SSE 连接订阅其各自客户端的消息并实时传递它们。这仅在使用传统 SSE 提供者时适用。
+3. **订阅者（SSE 连接）**：长期存在的 SSE 连接订阅其各自客户端的消息并实时传递它们。这仅在使用传统 SSE 提供程序时适用。
 
 此架构实现：
 
@@ -542,24 +583,9 @@ MCP 端点遵循模式：`http://[your-laravel-server]/[default_path]`，其中 
 ],
 ```
 
-## 环境变量
-
-该包支持以下环境变量，允许在不修改配置文件的情况下进行配置：
-
-| 变量                   | 描述                                     | 默认值    |
-| ---------------------- | ---------------------------------------- | --------- |
-| `MCP_SERVER_ENABLED`   | 启用或禁用 MCP 服务器                    | `true`    |
-
-### .env 配置示例
-
-```
-# 在特定环境中禁用 MCP 服务器
-MCP_SERVER_ENABLED=false
-```
-
 ## 翻译 README.md
 
-使用 Claude API 将此 README 翻译为其他语言（并行处理）：
+使用 Claude API 将此 README 翻译成其他语言（并行处理）：
 
 ```bash
 pip install -r scripts/requirements.txt

@@ -28,18 +28,18 @@
 
 ## ⚠️ Zmiany łamiące kompatybilność w v1.1.0
 
-Wersja 1.1.0 wprowadziła znaczącą i łamiącą kompatybilność zmianę w `ToolInterface`. Jeśli aktualizujesz z v1.0.x, **musisz** zaktualizować swoje implementacje narzędzi, aby były zgodne z nowym interfejsem.
+Wersja 1.1.0 wprowadziła znaczącą zmianę łamiącą kompatybilność w `ToolInterface`. Jeśli aktualizujesz z v1.0.x, **musisz** zaktualizować swoje implementacje narzędzi, aby były zgodne z nowym interfejsem.
 
 **Kluczowe zmiany w `ToolInterface`:**
 
 `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` został zaktualizowany w następujący sposób:
 
-1.  **Dodana nowa metoda:**
+1.  **Dodano nową metodę:**
 
     - `messageType(): ProcessMessageType`
       - Ta metoda jest kluczowa dla nowego wsparcia HTTP stream i określa typ przetwarzanej wiadomości.
 
-2.  **Zmiana nazw metod:**
+2.  **Zmieniono nazwy metod:**
     - `getName()` to teraz `name()`
     - `getDescription()` to teraz `description()`
     - `getInputSchema()` to teraz `inputSchema()`
@@ -60,19 +60,19 @@ php artisan mcp:migrate-tools {path?}
 Ta komenda przeskanuje pliki PHP w określonym katalogu (domyślnie `app/MCP/Tools/`) i spróbuje:
 
 1.  **Zidentyfikować stare narzędzia:** Szuka klas implementujących `ToolInterface` ze starymi sygnaturami metod.
-2.  **Utworzyć kopie zapasowe:** Przed wprowadzeniem jakichkolwiek zmian utworzy kopię zapasową oryginalnego pliku narzędzia z rozszerzeniem `.backup` (np. `YourTool.php.backup`). Jeśli plik kopii zapasowej już istnieje, oryginalny plik zostanie pominięty, aby zapobiec przypadkowej utracie danych.
+2.  **Utworzyć kopie zapasowe:** Przed wprowadzeniem jakichkolwiek zmian, utworzy kopię zapasową oryginalnego pliku narzędzia z rozszerzeniem `.backup` (np. `YourTool.php.backup`). Jeśli plik kopii zapasowej już istnieje, oryginalny plik zostanie pominięty, aby zapobiec przypadkowej utracie danych.
 3.  **Zrefaktoryzować narzędzie:**
     - Zmienić nazwy metod:
       - `getName()` na `name()`
       - `getDescription()` na `description()`
       - `getInputSchema()` na `inputSchema()`
       - `getAnnotations()` na `annotations()`
-    - Dodać nową metodę `messageType()`, która domyślnie będzie zwracać `ProcessMessageType::SSE`.
+    - Dodać nową metodę `messageType()`, która domyślnie zwróci `ProcessMessageType::SSE`.
     - Upewnić się, że instrukcja `use OPGG\LaravelMcpServer\Enums\ProcessMessageType;` jest obecna.
 
 **Użycie:**
 
-Po aktualizacji pakietu `opgginc/laravel-mcp-server` do v1.1.0 lub nowszej, jeśli masz istniejące narzędzia napisane dla v1.0.x, zdecydowanie zaleca się uruchomienie tej komendy:
+Po zaktualizowaniu pakietu `opgginc/laravel-mcp-server` do v1.1.0 lub nowszej, jeśli masz istniejące narzędzia napisane dla v1.0.x, zdecydowanie zaleca się uruchomienie tej komendy:
 
 ```bash
 php artisan mcp:migrate-tools
@@ -84,7 +84,7 @@ Jeśli twoje narzędzia znajdują się w katalogu innym niż `app/MCP/Tools/`, m
 php artisan mcp:migrate-tools path/to/your/tools
 ```
 
-Komenda będzie wyświetlać swój postęp, wskazując które pliki są przetwarzane, kopiowane i migrowane. Zawsze przejrzyj zmiany wprowadzone przez narzędzie. Choć ma na celu być dokładne, złożone lub nietypowo sformatowane pliki narzędzi mogą wymagać ręcznych poprawek.
+Komenda wyświetli swój postęp, wskazując, które pliki są przetwarzane, kopiowane i migrowane. Zawsze przejrzyj zmiany wprowadzone przez narzędzie. Chociaż ma na celu być dokładne, złożone lub nietypowo sformatowane pliki narzędzi mogą wymagać ręcznych poprawek.
 
 To narzędzie powinno znacznie ułatwić proces migracji i pomóc ci szybko dostosować się do nowej struktury interfejsu.
 
@@ -150,7 +150,7 @@ Musisz je zaktualizować dla v1.1.0 w następujący sposób:
 
 ```php
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
-use OPGG\LaravelMcpServer\Enums\ProcessMessageType; // Importuj enum
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType; // Zaimportuj enum
 
 class MyNewTool implements ToolInterface
 {
@@ -171,14 +171,14 @@ class MyNewTool implements ToolInterface
 
 ## Przegląd Laravel MCP Server
 
-Laravel MCP Server to potężny pakiet zaprojektowany do usprawnienia implementacji serwerów Model Context Protocol (MCP) w aplikacjach Laravel. **W przeciwieństwie do większości pakietów Laravel MCP, które używają transportu Standard Input/Output (stdio)**, ten pakiet skupia się na transporcie **Streamable HTTP** i nadal zawiera **legacy SSE provider** dla kompatybilności wstecznej, zapewniając bezpieczną i kontrolowaną metodę integracji.
+Laravel MCP Server to potężny pakiet zaprojektowany do usprawnienia implementacji serwerów Model Context Protocol (MCP) w aplikacjach Laravel. **W przeciwieństwie do większości pakietów Laravel MCP, które używają transportu Standard Input/Output (stdio)**, ten pakiet skupia się na transporcie **Streamable HTTP** i nadal zawiera **legacy provider SSE** dla kompatybilności wstecznej, zapewniając bezpieczną i kontrolowaną metodę integracji.
 
 ### Dlaczego Streamable HTTP zamiast STDIO?
 
-Choć stdio jest proste i szeroko używane w implementacjach MCP, ma znaczące implikacje bezpieczeństwa dla środowisk korporacyjnych:
+Chociaż stdio jest proste i szeroko używane w implementacjach MCP, ma znaczące implikacje bezpieczeństwa dla środowisk korporacyjnych:
 
 - **Ryzyko bezpieczeństwa**: Transport STDIO potencjalnie ujawnia szczegóły wewnętrznego systemu i specyfikacje API
-- **Ochrona danych**: Organizacje muszą chronić zastrzeżone endpointy API i wewnętrzną architekturę systemu
+- **Ochrona danych**: Organizacje muszą chronić zastrzeżone endpointy API i architekturę wewnętrznego systemu
 - **Kontrola**: Streamable HTTP oferuje lepszą kontrolę nad kanałem komunikacji między klientami LLM a twoją aplikacją
 
 Implementując serwer MCP z transportem Streamable HTTP, przedsiębiorstwa mogą:
@@ -190,14 +190,14 @@ Kluczowe korzyści:
 
 - Bezproblemowa i szybka implementacja Streamable HTTP w istniejących projektach Laravel
 - Wsparcie dla najnowszych wersji Laravel i PHP
-- Efektywna komunikacja serwera i przetwarzanie danych w czasie rzeczywistym
+- Wydajna komunikacja serwera i przetwarzanie danych w czasie rzeczywistym
 - Zwiększone bezpieczeństwo dla środowisk korporacyjnych
 
 ## Kluczowe funkcje
 
 - Wsparcie komunikacji w czasie rzeczywistym przez Streamable HTTP z integracją SSE
 - Implementacja narzędzi i zasobów zgodnych ze specyfikacjami Model Context Protocol
-- Architektura oparta na adapterach z wzorcem komunikatów Pub/Sub (zaczynając od Redis, planowane są kolejne adaptery)
+- Architektura oparta na adapterach z wzorcem Pub/Sub messaging (zaczynając od Redis, planowane są kolejne adaptery)
 - Prosta konfiguracja routingu i middleware
 
 ### Dostawcy transportu
@@ -222,12 +222,53 @@ Protokół MCP definiuje również tryb "Streamable HTTP SSE", ale ten pakiet go
    composer require opgginc/laravel-mcp-server
    ```
 
-2. Opublikuj plik konfiguracji:
+2. Opublikuj plik konfiguracyjny:
    ```bash
    php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider"
    ```
 
 ## Podstawowe użycie
+
+### Ograniczenie domeny
+
+Możesz ograniczyć trasy serwera MCP do określonych domen dla lepszego bezpieczeństwa i organizacji:
+
+```php
+// config/mcp-server.php
+
+// Zezwól na dostęp ze wszystkich domen (domyślnie)
+'domain' => null,
+
+// Ogranicz do jednej domeny
+'domain' => 'api.example.com',
+
+// Ogranicz do wielu domen
+'domain' => ['api.example.com', 'admin.example.com'],
+```
+
+**Kiedy używać ograniczenia domeny:**
+- Uruchamianie wielu aplikacji na różnych subdomenach
+- Oddzielanie endpointów API od głównej aplikacji
+- Implementacja architektur multi-tenant, gdzie każdy tenant ma własną subdomenę
+- Dostarczanie tych samych usług MCP na wielu domenach
+
+**Przykładowe scenariusze:**
+
+```php
+// Pojedyncza subdomena API
+'domain' => 'api.op.gg',
+
+// Wiele subdomen dla różnych środowisk
+'domain' => ['api.op.gg', 'staging-api.op.gg'],
+
+// Architektura multi-tenant
+'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
+
+// Różne usługi na różnych domenach
+'domain' => ['api.op.gg', 'api.kargn.as'],
+```
+
+> **Uwaga:** Przy używaniu wielu domen, pakiet automatycznie rejestruje oddzielne trasy dla każdej domeny, aby zapewnić prawidłowy routing na wszystkich określonych domenach.
 
 ### Tworzenie i dodawanie niestandardowych narzędzi
 
@@ -242,9 +283,9 @@ Ta komenda:
 - Obsługuje różne formaty wejściowe (spacje, myślniki, mieszane wielkości liter)
 - Automatycznie konwertuje nazwę do odpowiedniego formatu
 - Tworzy prawidłowo ustrukturyzowaną klasę narzędzia w `app/MCP/Tools`
-- Oferuje automatyczną rejestrację narzędzia w twojej konfiguracji
+- Oferuje automatyczną rejestrację narzędzia w konfiguracji
 
-Możesz również ręcznie tworzyć i rejestrować narzędzia w `config/mcp-server.php`:
+Możesz także ręcznie tworzyć i rejestrować narzędzia w `config/mcp-server.php`:
 
 ```php
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
@@ -255,9 +296,9 @@ class MyCustomTool implements ToolInterface
 }
 ```
 
-### Zrozumienie struktury twojego narzędzia (ToolInterface)
+### Zrozumienie struktury narzędzia (ToolInterface)
 
-Kiedy tworzysz narzędzie implementując `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface`, musisz zdefiniować kilka metod. Oto rozbicie każdej metody i jej przeznaczenia:
+Gdy tworzysz narzędzie implementując `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface`, musisz zdefiniować kilka metod. Oto omówienie każdej metody i jej celu:
 
 ```php
 <?php
@@ -297,7 +338,7 @@ Ta metoda określa typ przetwarzania wiadomości dla twojego narzędzia. Zwraca 
 - `ProcessMessageType::HTTP`: Dla narzędzi współpracujących przez standardowe żądanie/odpowiedź HTTP. Najczęściej używane dla nowych narzędzi.
 - `ProcessMessageType::SSE`: Dla narzędzi specjalnie zaprojektowanych do pracy z Server-Sent Events.
 
-Dla większości narzędzi, szczególnie tych zaprojektowanych dla głównego dostawcy `streamable_http`, zwrócisz `ProcessMessageType::HTTP`.
+Dla większości narzędzi, szczególnie tych zaprojektowanych dla głównego providera `streamable_http`, zwrócisz `ProcessMessageType::HTTP`.
 
 **`name(): string`**
 
@@ -309,7 +350,7 @@ Jasny, zwięzły opis funkcjonalności twojego narzędzia. Jest używany w dokum
 
 **`inputSchema(): array`**
 
-Ta metoda jest kluczowa dla definiowania oczekiwanych parametrów wejściowych twojego narzędzia. Powinna zwracać tablicę, która podąża za strukturą podobną do JSON Schema. Ten schemat jest używany:
+Ta metoda jest kluczowa dla definiowania oczekiwanych parametrów wejściowych twojego narzędzia. Powinna zwrócić tablicę, która podąża za strukturą podobną do JSON Schema. Ten schemat jest używany:
 
 - Przez klientów do zrozumienia, jakie dane wysłać.
 - Potencjalnie przez serwer lub klienta do walidacji wejścia.
@@ -338,7 +379,7 @@ public function inputSchema(): array
 }
 ```
 
-W twojej metodzie `execute` możesz następnie walidować przychodzące argumenty. Przykład `HelloWorldTool` używa `Illuminate\Support\Facades\Validator` do tego:
+W swojej metodzie `execute` możesz następnie zwalidować przychodzące argumenty. Przykład `HelloWorldTool` używa `Illuminate\Support\Facades\Validator` do tego:
 
 ```php
 // Wewnątrz twojej metody execute():
@@ -358,7 +399,7 @@ if ($validator->fails()) {
 
 **`annotations(): array`**
 
-Ta metoda zapewnia metadane o zachowaniu i charakterystykach twojego narzędzia, podążając za oficjalną [specyfikacją MCP Tool Annotations](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations). Adnotacje pomagają klientom MCP kategoryzować narzędzia, podejmować świadome decyzje o zatwierdzaniu narzędzi i zapewniać odpowiednie interfejsy użytkownika.
+Ta metoda dostarcza metadane o zachowaniu i charakterystykach twojego narzędzia, zgodnie z oficjalną [specyfikacją MCP Tool Annotations](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations). Adnotacje pomagają klientom MCP kategoryzować narzędzia, podejmować świadome decyzje o zatwierdzaniu narzędzi i zapewniać odpowiednie interfejsy użytkownika.
 
 **Standardowe adnotacje MCP:**
 
@@ -368,7 +409,7 @@ Model Context Protocol definiuje kilka standardowych adnotacji, które klienci r
 - **`readOnlyHint`** (boolean): Wskazuje, czy narzędzie tylko odczytuje dane bez modyfikowania środowiska (domyślnie: false)
 - **`destructiveHint`** (boolean): Sugeruje, czy narzędzie może wykonywać destrukcyjne operacje jak usuwanie danych (domyślnie: true)
 - **`idempotentHint`** (boolean): Wskazuje, czy powtarzające się wywołania z tymi samymi argumentami nie mają dodatkowego efektu (domyślnie: false)
-- **`openWorldHint`** (boolean): Sygnalizuje, czy narzędzie współdziała z zewnętrznymi podmiotami poza lokalnym środowiskiem (domyślnie: true)
+- **`openWorldHint`** (boolean): Sygnalizuje, czy narzędzie współdziała z zewnętrznymi encjami poza lokalnym środowiskiem (domyślnie: true)
 
 **Ważne:** To są wskazówki, nie gwarancje. Pomagają klientom zapewniać lepsze doświadczenia użytkownika, ale nie powinny być używane do decyzji krytycznych dla bezpieczeństwa.
 
@@ -438,7 +479,7 @@ public function annotations(): array
         'readOnlyHint' => true,
 
         // Niestandardowe adnotacje dla twojej aplikacji
-        'category' => 'analiza-danych',
+        'category' => 'data-analysis',
         'version' => '2.1.0',
         'author' => 'Zespół danych',
         'requires_permission' => 'analytics.read',
@@ -451,33 +492,33 @@ public function annotations(): array
 Pakiet zawiera specjalną komendę do testowania twoich narzędzi MCP bez potrzeby prawdziwego klienta MCP:
 
 ```bash
-# Testuj konkretne narzędzie interaktywnie
+# Testuj określone narzędzie interaktywnie
 php artisan mcp:test-tool MyCustomTool
 
 # Wylistuj wszystkie dostępne narzędzia
 php artisan mcp:test-tool --list
 
-# Testuj z konkretnym wejściem JSON
+# Testuj z określonym wejściem JSON
 php artisan mcp:test-tool MyCustomTool --input='{"param":"value"}'
 ```
 
 To pomaga ci szybko rozwijać i debugować narzędzia przez:
 
 - Pokazywanie schematu wejściowego narzędzia i walidację wejść
-- Wykonywanie narzędzia z twoim podanym wejściem
+- Wykonywanie narzędzia z twoim dostarczonym wejściem
 - Wyświetlanie sformatowanych wyników lub szczegółowych informacji o błędach
 - Wsparcie złożonych typów wejściowych włączając obiekty i tablice
 
 ### Wizualizacja narzędzi MCP z Inspectorem
 
-Możesz również użyć Model Context Protocol Inspector do wizualizacji i testowania swoich narzędzi MCP:
+Możesz także użyć Model Context Protocol Inspector do wizualizacji i testowania swoich narzędzi MCP:
 
 ```bash
 # Uruchom MCP Inspector bez instalacji
 npx @modelcontextprotocol/inspector node build/index.js
 ```
 
-To zazwyczaj otworzy interfejs webowy pod `localhost:6274`. Aby przetestować swój serwer MCP:
+To zazwyczaj otworzy interfejs webowy na `localhost:6274`. Aby przetestować swój serwer MCP:
 
 1. **Ostrzeżenie**: `php artisan serve` NIE MOŻE być używane z tym pakietem, ponieważ nie może obsługiwać wielu połączeń PHP jednocześnie. Ponieważ MCP SSE wymaga przetwarzania wielu połączeń równocześnie, musisz użyć jednej z tych alternatyw:
 
@@ -492,7 +533,7 @@ To zazwyczaj otworzy interfejs webowy pod `localhost:6274`. Aby przetestować sw
      php artisan octane:start
      ```
 
-     > **Ważne**: Podczas instalacji Laravel Octane upewnij się, że używasz FrankenPHP jako serwera. Pakiet może nie działać poprawnie z RoadRunner z powodu problemów kompatybilności z połączeniami SSE. Jeśli możesz pomóc naprawić ten problem kompatybilności z RoadRunner, proszę prześlij Pull Request - twój wkład byłby bardzo doceniony!
+     > **Ważne**: Podczas instalacji Laravel Octane, upewnij się, że używasz FrankenPHP jako serwera. Pakiet może nie działać prawidłowo z RoadRunner z powodu problemów kompatybilności z połączeniami SSE. Jeśli możesz pomóc naprawić ten problem kompatybilności z RoadRunner, proszę prześlij Pull Request - twój wkład byłby bardzo doceniony!
 
      Szczegóły znajdziesz w [dokumentacji Laravel Octane](https://laravel.com/docs/12.x/octane)
 
@@ -501,30 +542,30 @@ To zazwyczaj otworzy interfejs webowy pod `localhost:6274`. Aby przetestować sw
      - Apache + PHP-FPM
      - Niestandardowa konfiguracja Docker
 
-   * Każdy serwer webowy, który prawidłowo wspiera streaming SSE (wymagane tylko dla legacy SSE provider)
+   * Dowolny serwer webowy, który prawidłowo wspiera streaming SSE (wymagane tylko dla legacy providera SSE)
 
-2. W interfejsie Inspectora wprowadź URL endpointu MCP twojego serwera Laravel (np. `http://localhost:8000/mcp`). Jeśli używasz legacy SSE provider, użyj zamiast tego URL SSE (`http://localhost:8000/mcp/sse`).
+2. W interfejsie Inspectora wprowadź URL endpointu MCP twojego serwera Laravel (np. `http://localhost:8000/mcp`). Jeśli używasz legacy providera SSE, użyj zamiast tego URL SSE (`http://localhost:8000/mcp/sse`).
 3. Połącz się i eksploruj dostępne narzędzia wizualnie
 
-Endpoint MCP podąża za wzorcem: `http://[twój-serwer-laravel]/[default_path]` gdzie `default_path` jest zdefiniowane w twoim pliku `config/mcp-server.php`.
+Endpoint MCP podąża za wzorcem: `http://[twój-serwer-laravel]/[default_path]` gdzie `default_path` jest zdefiniowany w twoim pliku `config/mcp-server.php`.
 
 ## Zaawansowane funkcje
 
 ### Architektura Pub/Sub z adapterami SSE (legacy provider)
 
-Pakiet implementuje wzorzec komunikatów publish/subscribe (pub/sub) przez swój system adapterów:
+Pakiet implementuje wzorzec publish/subscribe (pub/sub) messaging przez swój system adapterów:
 
-1. **Publisher (Serwer)**: Kiedy klienci wysyłają żądania do endpointu `/message`, serwer przetwarza te żądania i publikuje odpowiedzi przez skonfigurowany adapter.
+1. **Publisher (Serwer)**: Gdy klienci wysyłają żądania do endpointu `/message`, serwer przetwarza te żądania i publikuje odpowiedzi przez skonfigurowany adapter.
 
-2. **Message Broker (Adapter)**: Adapter (np. Redis) utrzymuje kolejki wiadomości dla każdego klienta, identyfikowane przez unikalne ID klientów. To zapewnia niezawodną asynchroniczną warstwę komunikacji.
+2. **Message Broker (Adapter)**: Adapter (np. Redis) utrzymuje kolejki wiadomości dla każdego klienta, identyfikowane przez unikalne ID klientów. To zapewnia niezawodną warstwę komunikacji asynchronicznej.
 
-3. **Subscriber (połączenie SSE)**: Długotrwałe połączenia SSE subskrybują wiadomości dla swoich odpowiednich klientów i dostarczają je w czasie rzeczywistym. To dotyczy tylko używania legacy SSE provider.
+3. **Subscriber (połączenie SSE)**: Długotrwałe połączenia SSE subskrybują wiadomości dla swoich odpowiednich klientów i dostarczają je w czasie rzeczywistym. To dotyczy tylko używania legacy providera SSE.
 
 Ta architektura umożliwia:
 
 - Skalowalną komunikację w czasie rzeczywistym
 - Niezawodne dostarczanie wiadomości nawet podczas tymczasowych rozłączeń
-- Efektywną obsługę wielu równoczesnych połączeń klientów
+- Wydajną obsługę wielu równoczesnych połączeń klientów
 - Potencjał dla rozproszonych wdrożeń serwera
 
 ### Konfiguracja adaptera Redis
@@ -542,24 +583,9 @@ Domyślny adapter Redis może być skonfigurowany w następujący sposób:
 ],
 ```
 
-## Zmienne środowiskowe
-
-Pakiet wspiera następujące zmienne środowiskowe, aby umożliwić konfigurację bez modyfikowania plików konfiguracyjnych:
-
-| Zmienna                | Opis                                    | Domyślna |
-| ---------------------- | --------------------------------------- | -------- |
-| `MCP_SERVER_ENABLED`   | Włącz lub wyłącz serwer MCP             | `true`   |
-
-### Przykład konfiguracji .env
-
-```
-# Wyłącz serwer MCP w określonych środowiskach
-MCP_SERVER_ENABLED=false
-```
-
 ## Tłumaczenie README.md
 
-Aby przetłumaczyć ten README na inne języki używając Claude API (przetwarzanie równoległe):
+Aby przetłumaczyć to README na inne języki używając Claude API (przetwarzanie równoległe):
 
 ```bash
 pip install -r scripts/requirements.txt
@@ -567,7 +593,7 @@ export ANTHROPIC_API_KEY='your-api-key'
 python scripts/translate_readme.py
 ```
 
-Możesz również tłumaczyć konkretne języki:
+Możesz także tłumaczyć określone języki:
 
 ```bash
 python scripts/translate_readme.py es ko

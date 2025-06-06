@@ -26,11 +26,11 @@
   <a href="README.es.md">Español</a>
 </p>
 
-## ⚠️ v1.1.0 版本重大變更
+## ⚠️ v1.1.0 的重大變更
 
-v1.1.0 版本對 `ToolInterface` 引入了重大且破壞性的變更。如果你正在從 v1.0.x 升級，你**必須**更新你的工具實作以符合新的介面。
+版本 1.1.0 對 `ToolInterface` 引入了重大且不相容的變更。如果你正在從 v1.0.x 升級，你**必須**更新你的工具實作以符合新的介面。
 
-**`ToolInterface` 的重要變更：**
+**`ToolInterface` 的關鍵變更：**
 
 `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` 已更新如下：
 
@@ -47,9 +47,9 @@ v1.1.0 版本對 `ToolInterface` 引入了重大且破壞性的變更。如果�
 
 **如何更新你的工具：**
 
-### v1.1.0 自動化工具遷移
+### v1.1.0 的自動化工具遷移
 
-為了協助轉換到 v1.1.0 引入的新 `ToolInterface`，我們提供了一個 Artisan 指令來幫助自動重構你現有的工具：
+為了協助過渡到 v1.1.0 中引入的新 `ToolInterface`，我們提供了一個 Artisan 指令來幫助自動化重構你現有的工具：
 
 ```bash
 php artisan mcp:migrate-tools {path?}
@@ -60,7 +60,7 @@ php artisan mcp:migrate-tools {path?}
 這個指令會掃描指定目錄中的 PHP 檔案（預設為 `app/MCP/Tools/`）並嘗試：
 
 1.  **識別舊工具：** 尋找實作舊方法簽名的 `ToolInterface` 類別。
-2.  **建立備份：** 在進行任何變更之前，會建立原始工具檔案的備份，副檔名為 `.backup`（例如 `YourTool.php.backup`）。如果備份檔案已存在，將跳過原始檔案以防止意外資料遺失。
+2.  **建立備份：** 在進行任何變更之前，會建立原始工具檔案的備份，副檔名為 `.backup`（例如 `YourTool.php.backup`）。如果備份檔案已存在，原始檔案會被跳過以防止意外的資料遺失。
 3.  **重構工具：**
     - 重新命名方法：
       - `getName()` 改為 `name()`
@@ -72,19 +72,19 @@ php artisan mcp:migrate-tools {path?}
 
 **使用方式：**
 
-在將 `opgginc/laravel-mcp-server` 套件更新到 v1.1.0 或更新版本後，如果你有為 v1.0.x 編寫的現有工具，強烈建議執行此指令：
+在將 `opgginc/laravel-mcp-server` 套件更新到 v1.1.0 或更新版本後，如果你有為 v1.0.x 撰寫的現有工具，強烈建議執行這個指令：
 
 ```bash
 php artisan mcp:migrate-tools
 ```
 
-如果你的工具位於 `app/MCP/Tools/` 以外的目錄，可以指定路徑：
+如果你的工具位於 `app/MCP/Tools/` 以外的目錄，你可以指定路徑：
 
 ```bash
 php artisan mcp:migrate-tools path/to/your/tools
 ```
 
-指令會輸出進度，顯示正在處理、備份和遷移的檔案。請務必檢查工具所做的變更。雖然它力求準確，但複雜或格式異常的工具檔案可能需要手動調整。
+指令會輸出進度，顯示正在處理、備份和遷移的檔案。請務必檢視工具所做的變更。雖然它力求準確，但複雜或格式異常的工具檔案可能需要手動調整。
 
 這個工具應該能大幅簡化遷移過程，幫助你快速適應新的介面結構。
 
@@ -129,9 +129,9 @@ interface ToolInterface
 }
 ```
 
-**更新後工具的範例：**
+**更新後的工具範例：**
 
-如果你的 v1.0.x 工具長這樣：
+如果你的 v1.0.x 工具看起來像這樣：
 
 ```php
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
@@ -171,15 +171,15 @@ class MyNewTool implements ToolInterface
 
 ## Laravel MCP Server 概述
 
-Laravel MCP Server 是一個強大的套件，專為簡化在 Laravel 應用程式中實作 Model Context Protocol (MCP) 伺服器而設計。**與大多數使用標準輸入/輸出 (stdio) 傳輸的 Laravel MCP 套件不同**，這個套件專注於 **Streamable HTTP** 傳輸，同時仍包含**舊版 SSE provider** 以確保向後相容性，提供安全且可控的整合方法。
+Laravel MCP Server 是一個強大的套件，專為在 Laravel 應用程式中簡化 Model Context Protocol (MCP) 伺服器的實作而設計。**與大多數使用標準輸入/輸出 (stdio) 傳輸的 Laravel MCP 套件不同**，這個套件專注於 **Streamable HTTP** 傳輸，並仍包含一個**舊版 SSE provider** 以保持向後相容性，提供安全且受控的整合方法。
 
 ### 為什麼選擇 Streamable HTTP 而非 STDIO？
 
-雖然 stdio 簡單直接且在 MCP 實作中廣泛使用，但對企業環境來說有重大的安全隱憂：
+雖然 stdio 簡單直接且在 MCP 實作中廣泛使用，但它對企業環境有重大的安全影響：
 
 - **安全風險**：STDIO 傳輸可能暴露內部系統細節和 API 規格
-- **資料保護**：組織需要保護專有 API 端點和內部系統架構
-- **控制性**：Streamable HTTP 對 LLM 客戶端與你的應用程式之間的通訊通道提供更好的控制
+- **資料保護**：組織需要保護專有的 API 端點和內部系統架構
+- **控制**：Streamable HTTP 對 LLM 客戶端與你的應用程式之間的通訊通道提供更好的控制
 
 透過使用 Streamable HTTP 傳輸實作 MCP 伺服器，企業可以：
 
@@ -188,7 +188,7 @@ Laravel MCP Server 是一個強大的套件，專為簡化在 Laravel 應用程�
 
 主要優勢：
 
-- 在現有 Laravel 專案中無縫且快速實作 Streamable HTTP
+- 在現有 Laravel 專案中無縫且快速地實作 Streamable HTTP
 - 支援最新的 Laravel 和 PHP 版本
 - 高效的伺服器通訊和即時資料處理
 - 為企業環境提供增強的安全性
@@ -197,15 +197,15 @@ Laravel MCP Server 是一個強大的套件，專為簡化在 Laravel 應用程�
 
 - 透過 Streamable HTTP 與 SSE 整合支援即時通訊
 - 實作符合 Model Context Protocol 規格的工具和資源
-- 基於適配器的設計架構，採用 Pub/Sub 訊息模式（從 Redis 開始，計劃支援更多適配器）
+- 基於適配器的設計架構，採用 Pub/Sub 訊息模式（從 Redis 開始，計劃更多適配器）
 - 簡單的路由和中介軟體配置
 
 ### 傳輸 Provider
 
-配置選項 `server_provider` 控制使用哪種傳輸方式。可用的 provider 包括：
+配置選項 `server_provider` 控制使用哪種傳輸。可用的 provider 有：
 
-1. **streamable_http** – 建議的預設選項。使用標準 HTTP 請求，避免在約一分鐘後關閉 SSE 連線的平台問題（例如許多 serverless 環境）。
-2. **sse** – 為向後相容性保留的舊版 provider。它依賴長時間的 SSE 連線，在 HTTP 超時時間短的平台上可能無法正常運作。
+1. **streamable_http** – 推薦的預設選項。使用標準 HTTP 請求，避免在約一分鐘後關閉 SSE 連接的平台問題（例如許多 serverless 環境）。
+2. **sse** – 為向後相容性保留的舊版 provider。它依賴長時間的 SSE 連接，在 HTTP 超時時間短的平台上可能無法正常運作。
 
 MCP 協定也定義了「Streamable HTTP SSE」模式，但此套件未實作且沒有實作計劃。
 
@@ -228,6 +228,47 @@ MCP 協定也定義了「Streamable HTTP SSE」模式，但此套件未實作且
    ```
 
 ## 基本使用
+
+### 網域限制
+
+你可以將 MCP 伺服器路由限制在特定網域，以獲得更好的安全性和組織：
+
+```php
+// config/mcp-server.php
+
+// 允許從所有網域存取（預設）
+'domain' => null,
+
+// 限制單一網域
+'domain' => 'api.example.com',
+
+// 限制多個網域
+'domain' => ['api.example.com', 'admin.example.com'],
+```
+
+**何時使用網域限制：**
+- 在不同子網域上執行多個應用程式
+- 將 API 端點與主應用程式分離
+- 實作多租戶架構，每個租戶都有自己的子網域
+- 在多個網域間提供相同的 MCP 服務
+
+**範例情境：**
+
+```php
+// 單一 API 子網域
+'domain' => 'api.op.gg',
+
+// 不同環境的多個子網域
+'domain' => ['api.op.gg', 'staging-api.op.gg'],
+
+// 多租戶架構
+'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
+
+// 不同網域上的不同服務
+'domain' => ['api.op.gg', 'api.kargn.as'],
+```
+
+> **注意：** 使用多個網域時，套件會自動為每個網域註冊獨立的路由，以確保在所有指定網域間的正確路由。
 
 ### 建立和新增自訂工具
 
@@ -268,7 +309,7 @@ use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 
 interface ToolInterface
 {
-    // 決定工具訊息的處理方式，通常與傳輸方式相關。
+    // 決定工具訊息的處理方式，通常與傳輸相關。
     public function messageType(): ProcessMessageType;
 
     // 你的工具的唯一可呼叫名稱（例如 'get-user-details'）。
@@ -292,9 +333,9 @@ interface ToolInterface
 
 **`messageType(): ProcessMessageType`**
 
-這個方法指定工具的訊息處理類型。它回傳一個 `ProcessMessageType` enum 值。可用的類型包括：
+這個方法指定工具的訊息處理類型。它回傳一個 `ProcessMessageType` enum 值。可用的類型有：
 
-- `ProcessMessageType::HTTP`：用於透過標準 HTTP 請求/回應互動的工具。新工具最常用。
+- `ProcessMessageType::HTTP`：用於透過標準 HTTP 請求/回應互動的工具。對新工具最常見。
 - `ProcessMessageType::SSE`：專為與 Server-Sent Events 搭配使用而設計的工具。
 
 對於大多數工具，特別是為主要 `streamable_http` provider 設計的工具，你會回傳 `ProcessMessageType::HTTP`。
@@ -333,7 +374,7 @@ public function inputSchema(): array
                 'default' => false, // 你可以指定預設值
             ],
         ],
-        'required' => ['userId'], // 指定哪些屬性是必填的
+        'required' => ['userId'], // 指定哪些屬性是必要的
     ];
 }
 ```
@@ -358,11 +399,11 @@ if ($validator->fails()) {
 
 **`annotations(): array`**
 
-這個方法提供關於工具行為和特性的中繼資料，遵循官方 [MCP Tool Annotations 規格](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations)。註解幫助 MCP 客戶端分類工具、對工具核准做出明智決策，並提供適當的使用者介面。
+這個方法提供關於工具行為和特性的中繼資料，遵循官方的 [MCP Tool Annotations 規格](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations)。註解幫助 MCP 客戶端分類工具、對工具批准做出明智決策，並提供適當的使用者介面。
 
 **標準 MCP 註解：**
 
-Model Context Protocol 定義了幾個客戶端能理解的標準註解：
+Model Context Protocol 定義了幾個客戶端理解的標準註解：
 
 - **`title`** (string)：工具的人類可讀標題，顯示在客戶端 UI 中
 - **`readOnlyHint`** (boolean)：指示工具是否只讀取資料而不修改環境（預設：false）
@@ -381,7 +422,7 @@ public function annotations(): array
         'title' => 'User Profile Fetcher',
         'readOnlyHint' => true,        // 工具只讀取使用者資料
         'destructiveHint' => false,    // 工具不刪除或修改資料
-        'idempotentHint' => true,      // 可安全多次呼叫
+        'idempotentHint' => true,      // 多次呼叫是安全的
         'openWorldHint' => false,      // 工具只存取本地資料庫
     ];
 }
@@ -479,12 +520,12 @@ npx @modelcontextprotocol/inspector node build/index.js
 
 這通常會在 `localhost:6274` 開啟一個網頁介面。要測試你的 MCP 伺服器：
 
-1. **警告**：`php artisan serve` **無法**與此套件一起使用，因為它無法同時處理多個 PHP 連線。由於 MCP SSE 需要同時處理多個連線，你必須使用以下替代方案之一：
+1. **警告**：`php artisan serve` **無法**與此套件一起使用，因為它無法同時處理多個 PHP 連接。由於 MCP SSE 需要同時處理多個連接，你必須使用以下替代方案之一：
 
    - **Laravel Octane**（最簡單的選項）：
 
      ```bash
-     # 安裝並設定 Laravel Octane 與 FrankenPHP（建議）
+     # 安裝並設定 Laravel Octane 與 FrankenPHP（推薦）
      composer require laravel/octane
      php artisan octane:install --server=frankenphp
 
@@ -492,19 +533,19 @@ npx @modelcontextprotocol/inspector node build/index.js
      php artisan octane:start
      ```
 
-     > **重要**：安裝 Laravel Octane 時，請確保使用 FrankenPHP 作為伺服器。由於 SSE 連線的相容性問題，套件可能無法與 RoadRunner 正常運作。如果你能幫助修復這個 RoadRunner 相容性問題，請提交 Pull Request - 我們非常感謝你的貢獻！
+     > **重要**：安裝 Laravel Octane 時，請確保使用 FrankenPHP 作為伺服器。由於 SSE 連接的相容性問題，套件可能無法與 RoadRunner 正常運作。如果你能幫助修復這個 RoadRunner 相容性問題，請提交 Pull Request - 你的貢獻將非常受歡迎！
 
-     詳情請參閱 [Laravel Octane 文件](https://laravel.com/docs/12.x/octane)
+     詳細資訊請參閱 [Laravel Octane 文件](https://laravel.com/docs/12.x/octane)
 
-   - **正式環境等級選項**：
+   - **正式環境級選項**：
      - Nginx + PHP-FPM
      - Apache + PHP-FPM
      - 自訂 Docker 設定
 
-   * 任何適當支援 SSE streaming 的網頁伺服器（僅舊版 SSE provider 需要）
+   * 任何適當支援 SSE 串流的網頁伺服器（僅舊版 SSE provider 需要）
 
 2. 在 Inspector 介面中，輸入你的 Laravel 伺服器的 MCP 端點 URL（例如 `http://localhost:8000/mcp`）。如果你使用舊版 SSE provider，請改用 SSE URL（`http://localhost:8000/mcp/sse`）。
-3. 連線並視覺化探索可用工具
+3. 連接並視覺化探索可用工具
 
 MCP 端點遵循模式：`http://[your-laravel-server]/[default_path]`，其中 `default_path` 在你的 `config/mcp-server.php` 檔案中定義。
 
@@ -514,17 +555,17 @@ MCP 端點遵循模式：`http://[your-laravel-server]/[default_path]`，其中 
 
 套件透過其適配器系統實作發布/訂閱（pub/sub）訊息模式：
 
-1. **發布者（伺服器）**：當客戶端傳送請求到 `/message` 端點時，伺服器處理這些請求並透過配置的適配器發布回應。
+1. **發布者（伺服器）**：當客戶端向 `/message` 端點傳送請求時，伺服器處理這些請求並透過配置的適配器發布回應。
 
-2. **訊息代理（適配器）**：適配器（例如 Redis）為每個客戶端維護訊息佇列，透過唯一的客戶端 ID 識別。這提供可靠的非同步通訊層。
+2. **訊息代理（適配器）**：適配器（例如 Redis）為每個客戶端維護訊息佇列，由唯一的客戶端 ID 識別。這提供了可靠的非同步通訊層。
 
-3. **訂閱者（SSE 連線）**：長時間的 SSE 連線訂閱各自客戶端的訊息並即時傳遞。這僅適用於使用舊版 SSE provider 時。
+3. **訂閱者（SSE 連接）**：長時間的 SSE 連接訂閱各自客戶端的訊息並即時傳遞。這僅適用於使用舊版 SSE provider 時。
 
 這個架構實現：
 
 - 可擴展的即時通訊
-- 即使在暫時斷線期間也能可靠傳遞訊息
-- 高效處理多個並發客戶端連線
+- 即使在暫時斷線期間也能可靠地傳遞訊息
+- 高效處理多個並發客戶端連接
 - 分散式伺服器部署的潛力
 
 ### Redis 適配器配置
@@ -536,25 +577,10 @@ MCP 端點遵循模式：`http://[your-laravel-server]/[default_path]`，其中 
 'adapters' => [
     'redis' => [
         'prefix' => 'mcp_sse_',    // Redis 鍵的前綴
-        'connection' => 'default', // 來自 database.php 的 Redis 連線
+        'connection' => 'default', // 來自 database.php 的 Redis 連接
         'ttl' => 100,              // 訊息 TTL（秒）
     ],
 ],
-```
-
-## 環境變數
-
-套件支援以下環境變數，允許在不修改配置檔案的情況下進行配置：
-
-| 變數                   | 描述                                    | 預設值    |
-| ---------------------- | --------------------------------------- | --------- |
-| `MCP_SERVER_ENABLED`   | 啟用或停用 MCP 伺服器                   | `true`    |
-
-### .env 配置範例
-
-```
-# 在特定環境中停用 MCP 伺服器
-MCP_SERVER_ENABLED=false
 ```
 
 ## 翻譯 README.md
@@ -573,6 +599,6 @@ python scripts/translate_readme.py
 python scripts/translate_readme.py es ko
 ```
 
-## 授權條款
+## 授權
 
 本專案採用 MIT 授權條款發布。
