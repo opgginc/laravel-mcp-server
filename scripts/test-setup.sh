@@ -167,7 +167,8 @@ curl -X POST "$HTTP_ENDPOINT" \
       "protocolVersion": "2024-11-05",
       "capabilities": {
         "tools": {},
-        "resources": {}
+        "resources": {},
+        "sampling": {}
       },
       "clientInfo": {
         "name": "test-client",

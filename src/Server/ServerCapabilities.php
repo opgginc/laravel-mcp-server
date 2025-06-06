@@ -48,6 +48,10 @@ final class ServerCapabilities
      */
     private ?array $promptsConfig = null;
 
+    private bool $supportsSampling = false;
+
+    private ?array $samplingConfig = null;
+
     /**
      * Enables the tools capability for the server instance.
      * Allows specifying optional configuration details for the tools feature.
@@ -88,6 +92,14 @@ final class ServerCapabilities
         return $this;
     }
 
+    public function withSampling(?array $config = []): self
+    {
+        $this->supportsSampling = true;
+        $this->samplingConfig = $config;
+
+        return $this;
+    }
+
     /**
      * Converts the server capabilities configuration into an array format suitable for JSON serialization.
      * Only includes capabilities that are actively enabled.
@@ -110,6 +122,10 @@ final class ServerCapabilities
 
         if ($this->supportsPrompts) {
             $capabilities['prompts'] = $this->promptsConfig ?? new stdClass;
+        }
+
+        if ($this->supportsSampling) {
+            $capabilities['sampling'] = $this->samplingConfig ?? new stdClass;
         }
 
         return $capabilities;

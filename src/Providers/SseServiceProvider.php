@@ -9,6 +9,7 @@ use OPGG\LaravelMcpServer\Server\MCPServer;
 use OPGG\LaravelMcpServer\Server\ServerCapabilities;
 use OPGG\LaravelMcpServer\Services\PromptService\PromptRepository;
 use OPGG\LaravelMcpServer\Services\ResourceService\ResourceRepository;
+use OPGG\LaravelMcpServer\Services\SamplingService\SamplingService;
 use OPGG\LaravelMcpServer\Services\SseAdapterFactory;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 use OPGG\LaravelMcpServer\Transports\SseTransport;
@@ -74,10 +75,16 @@ final class SseServiceProvider extends ServiceProvider
                     'prompts' => $promptRepository->getPromptSchemas(),
                 ]]);
 
+                $capabilities->withSampling();
+
                 return MCPServer::create(protocol: $protocol, name: $serverInfo['name'], version: $serverInfo['version'], capabilities: $capabilities)
                     ->registerToolRepository(toolRepository: $toolRepository)
                     ->registerResourceRepository(repository: $resourceRepository)
                     ->registerPromptRepository(repository: $promptRepository);
+            });
+
+            $this->app->singleton(SamplingService::class, function ($app) {
+                return new SamplingService(app(MCPServer::class));
             });
         }
     }

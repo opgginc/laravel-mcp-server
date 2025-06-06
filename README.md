@@ -660,6 +660,29 @@ This helps you rapidly develop and debug tools by:
 - Displaying formatted results or detailed error information
 - Supporting complex input types including objects and arrays
 
+### Requesting Sampling
+
+MCP servers can ask connected clients to perform language model sampling. Create
+sampler classes using:
+
+```bash
+php artisan make:mcp-sampler AskQuestion
+```
+
+This generates a class in `app/MCP/Samplers` extending the base `Sampler`. Use
+`SamplingService` to send `sampling/createMessage` requests to a client:
+
+```php
+use App\MCP\Samplers\AskQuestionSampler;
+use OPGG\LaravelMcpServer\Services\SamplingService\SamplingService;
+
+$sampler = new AskQuestionSampler;
+$result = app(SamplingService::class)->createMessage($clientId, $sampler);
+```
+
+The `$clientId` comes from the initialization handshake when using the SSE
+transport.
+
 ### Visualizing MCP Tools with Inspector
 
 You can also use the Model Context Protocol Inspector to visualize and test your MCP tools:

@@ -1,0 +1,18 @@
+<?php
+
+namespace {{ namespace }};
+
+use OPGG\LaravelMcpServer\Services\SamplingService\Sampler;
+
+class {{ className }} extends Sampler
+{
+    public array $messages = [
+        [
+            'role' => 'user',
+            'content' => [
+                'type' => 'text',
+                'text' => 'Your message here',
+            ],
+        ],
+    ];
+}
