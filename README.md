@@ -485,6 +485,7 @@ public function annotations(): array
         'requires_permission' => 'analytics.read',
     ];
 }
+```
 
 ### Working with Resources
 
