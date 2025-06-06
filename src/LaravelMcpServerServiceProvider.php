@@ -4,6 +4,9 @@ namespace OPGG\LaravelMcpServer;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use OPGG\LaravelMcpServer\Console\Commands\MakeMcpPromptCommand;
+use OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand;
+use OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceTemplateCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MigrateToolsCommand;
 use OPGG\LaravelMcpServer\Console\Commands\TestMcpToolCommand;
@@ -30,6 +33,9 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
             ->hasConfigFile('mcp-server')
             ->hasCommands([
                 MakeMcpToolCommand::class,
+                MakeMcpResourceCommand::class,
+                MakeMcpResourceTemplateCommand::class,
+                MakeMcpPromptCommand::class,
                 TestMcpToolCommand::class,
                 MigrateToolsCommand::class,
             ]);

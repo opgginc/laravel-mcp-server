@@ -166,7 +166,8 @@ curl -X POST "$HTTP_ENDPOINT" \
     "params": {
       "protocolVersion": "2024-11-05",
       "capabilities": {
-        "tools": {}
+        "tools": {},
+        "resources": {}
       },
       "clientInfo": {
         "name": "test-client",
@@ -221,6 +222,74 @@ curl -X POST "$HTTP_ENDPOINT" \
     "params": {
       "name": "check-version",
       "arguments": {}
+    }
+  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+
+echo ""
+echo ""
+# Test 5: List resources
+echo "📚 Test 5: List available resources"
+curl -X POST "$HTTP_ENDPOINT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "resources/list"
+  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+
+echo ""
+echo ""
+# Test 6: Read example resource
+echo "📖 Test 6: Read example log resource"
+curl -X POST "$HTTP_ENDPOINT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "resources/read",
+    "params": { "uri": "file:///logs/example.log" }
+  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+
+echo ""
+echo ""
+# Test 6.5: List resource templates
+echo "📑 Test 6.5: List resource templates"
+curl -X POST "$HTTP_ENDPOINT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 65,
+    "method": "resources/templates/list"
+  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+
+echo ""
+echo ""
+# Test 7: List prompts
+echo "📝 Test 7: List available prompts"
+curl -X POST "$HTTP_ENDPOINT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "prompts/list"
+  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+
+echo ""
+echo ""
+# Test 8: Render prompt
+echo "🗒 Test 8: Get welcome prompt"
+curl -X POST "$HTTP_ENDPOINT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 8,
+    "method": "prompts/get",
+    "params": { 
+      "name": "welcome-user",
+      "arguments": {
+        "username": "Test User",
+        "role": "admin"
+      }
     }
   }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
 

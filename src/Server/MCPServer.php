@@ -12,8 +12,15 @@ use OPGG\LaravelMcpServer\Protocol\Handlers\RequestHandler;
 use OPGG\LaravelMcpServer\Protocol\MCPProtocol;
 use OPGG\LaravelMcpServer\Server\Request\InitializeHandler;
 use OPGG\LaravelMcpServer\Server\Request\PingHandler;
+use OPGG\LaravelMcpServer\Server\Request\PromptsGetHandler;
+use OPGG\LaravelMcpServer\Server\Request\PromptsListHandler;
+use OPGG\LaravelMcpServer\Server\Request\ResourcesListHandler;
+use OPGG\LaravelMcpServer\Server\Request\ResourcesReadHandler;
+use OPGG\LaravelMcpServer\Server\Request\ResourcesTemplatesListHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsListHandler;
+use OPGG\LaravelMcpServer\Services\PromptService\PromptRepository;
+use OPGG\LaravelMcpServer\Services\ResourceService\ResourceRepository;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 
 /**
@@ -123,6 +130,29 @@ final class MCPServer
     {
         $this->registerRequestHandler(new ToolsListHandler($toolRepository));
         $this->registerRequestHandler(new ToolsCallHandler($toolRepository));
+
+        return $this;
+    }
+
+    /**
+     * Registers request handlers required for MCP Resources.
+     */
+    public function registerResourceRepository(ResourceRepository $repository): self
+    {
+        $this->registerRequestHandler(new ResourcesListHandler($repository));
+        $this->registerRequestHandler(new ResourcesReadHandler($repository));
+        $this->registerRequestHandler(new ResourcesTemplatesListHandler($repository));
+
+        return $this;
+    }
+
+    /**
+     * Registers request handlers for MCP Prompts.
+     */
+    public function registerPromptRepository(PromptRepository $repository): self
+    {
+        $this->registerRequestHandler(new PromptsListHandler($repository));
+        $this->registerRequestHandler(new PromptsGetHandler($repository));
 
         return $this;
     }

@@ -485,7 +485,158 @@ public function annotations(): array
         'requires_permission' => 'analytics.read',
     ];
 }
+
+### Working with Resources
+
+Resources expose data from your server that can be read by MCP clients. They are
+**application-controlled**, meaning the client decides when and how to use them.
+Create concrete resources or URI templates in `app/MCP/Resources` and
+`app/MCP/ResourceTemplates` using the Artisan helpers:
+
+```bash
+php artisan make:mcp-resource SystemLogResource
+php artisan make:mcp-resource-template UserLogTemplate
 ```
+
+Register the generated classes in `config/mcp-server.php` under the `resources`
+and `resource_templates` arrays. Each resource class extends the base
+`Resource` class and implements a `read()` method that returns either `text` or
+`blob` content. Templates extend `ResourceTemplate` and describe dynamic URI
+patterns clients can use. A resource is identified by a URI such as
+`file:///logs/app.log` and may optionally define metadata like `mimeType` or
+`size`.
+
+List available resources using the `resources/list` endpoint and read their
+contents with `resources/read`. The `resources/list` endpoint returns both
+concrete resources and resource templates in a single response:
+
+```json
+{
+  "resources": [...],          // Array of concrete resources
+  "resourceTemplates": [...]   // Array of URI templates
+}
+```
+
+Resource templates allow clients to construct dynamic resource identifiers
+using URI templates (RFC 6570). You can also list templates separately using
+the `resources/templates/list` endpoint:
+
+```bash
+# List only resource templates
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"resources/templates/list"}'
+```
+
+When running your Laravel MCP server remotely, the HTTP transport works with
+standard JSON-RPC requests. Here is a simple example using `curl` to list and
+read resources:
+
+```bash
+# List resources
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"resources/list"}'
+
+# Read a specific resource
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"file:///logs/app.log"}}'
+```
+
+The server responds with JSON messages streamed over the HTTP connection, so
+`curl --no-buffer` can be used if you want to see incremental output.
+
+### Working with Prompts
+
+Prompts provide reusable text snippets with argument support that your tools or users can request.
+Create prompt classes in `app/MCP/Prompts` using:
+
+```bash
+php artisan make:mcp-prompt WelcomePrompt
+```
+
+Register them in `config/mcp-server.php` under `prompts`. Each prompt class
+extends the `Prompt` base class and defines:
+- `name`: Unique identifier (e.g., "welcome-user")
+- `description`: Optional human-readable description  
+- `arguments`: Array of argument definitions with name, description, and required fields
+- `text`: The prompt template with placeholders like `{username}`
+
+List prompts via the `prompts/list` endpoint and fetch them using
+`prompts/get` with arguments:
+
+```bash
+# Fetch a welcome prompt with arguments
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"welcome-user","arguments":{"username":"Alice","role":"admin"}}}'
+```
+
+### MCP Prompts
+
+When crafting prompts that reference your tools or resources, consult the [official prompt guidelines](https://modelcontextprotocol.io/docs/concepts/prompts). Prompts are reusable templates that can accept arguments, include resource context and even describe multi-step workflows.
+
+**Prompt structure**
+
+```json
+{
+  "name": "string",
+  "description": "string",
+  "arguments": [
+    {
+      "name": "string",
+      "description": "string",
+      "required": true
+    }
+  ]
+}
+```
+
+Clients discover prompts via `prompts/list` and request specific ones with `prompts/get`:
+
+```json
+{
+  "method": "prompts/get",
+  "params": {
+    "name": "analyze-code",
+    "arguments": {
+      "language": "php"
+    }
+  }
+}
+```
+
+**Example Prompt Class**
+
+```php
+use OPGG\LaravelMcpServer\Services\PromptService\Prompt;
+
+class WelcomePrompt extends Prompt
+{
+    public string $name = 'welcome-user';
+    
+    public ?string $description = 'A customizable welcome message for users';
+    
+    public array $arguments = [
+        [
+            'name' => 'username',
+            'description' => 'The name of the user to welcome',
+            'required' => true,
+        ],
+        [
+            'name' => 'role',
+            'description' => 'The role of the user (optional)',
+            'required' => false,
+        ],
+    ];
+    
+    public string $text = 'Welcome, {username}! You are logged in as {role}.';
+}
+```
+
+Prompts can embed resources and return sequences of messages to guide an LLM. See the official documentation for advanced examples and best practices.
+
 
 ### Testing MCP Tools
 
