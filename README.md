@@ -466,11 +466,26 @@ patterns clients can use. A resource is identified by a URI such as
 `size`.
 
 List available resources using the `resources/list` endpoint and read their
-contents with `resources/read`. Servers may also expose URI templates so clients
-can construct dynamic resource identifiers.
+contents with `resources/read`. The `resources/list` endpoint returns both
+concrete resources and resource templates in a single response:
 
-You can query available resources with the `resources/list` endpoint and fetch
-their contents using `resources/read`.
+```json
+{
+  "resources": [...],          // Array of concrete resources
+  "resourceTemplates": [...]   // Array of URI templates
+}
+```
+
+Resource templates allow clients to construct dynamic resource identifiers
+using URI templates (RFC 6570). You can also list templates separately using
+the `resources/templates/list` endpoint:
+
+```bash
+# List only resource templates
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"resources/templates/list"}'
+```
 
 When running your Laravel MCP server remotely, the HTTP transport works with
 standard JSON-RPC requests. Here is a simple example using `curl` to list and
@@ -493,7 +508,7 @@ The server responds with JSON messages streamed over the HTTP connection, so
 
 ### Working with Prompts
 
-Prompts provide reusable text snippets that your tools or users can request.
+Prompts provide reusable text snippets with argument support that your tools or users can request.
 Create prompt classes in `app/MCP/Prompts` using:
 
 ```bash
@@ -501,18 +516,20 @@ php artisan make:mcp-prompt WelcomePrompt
 ```
 
 Register them in `config/mcp-server.php` under `prompts`. Each prompt class
-extends the `Prompt` base class and defines an `identifier`, `name`, optional
-`description`, and the `text` contents. Identifiers and text may include
-placeholders like `{name}` for substitution when rendering.
+extends the `Prompt` base class and defines:
+- `name`: Unique identifier (e.g., "welcome-user")
+- `description`: Optional human-readable description  
+- `arguments`: Array of argument definitions with name, description, and required fields
+- `text`: The prompt template with placeholders like `{username}`
 
 List prompts via the `prompts/list` endpoint and fetch them using
-`prompts/get` with optional variables:
+`prompts/get` with arguments:
 
 ```bash
-# Fetch a greeting prompt
+# Fetch a welcome prompt with arguments
 curl -X POST https://your-server.com/mcp \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"identifier":"prompt://greet/Alice"}}'
+  -d '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"welcome-user","arguments":{"username":"Alice","role":"admin"}}}'
 ```
 
 ### MCP Prompts
@@ -546,6 +563,34 @@ Clients discover prompts via `prompts/list` and request specific ones with `prom
       "language": "php"
     }
   }
+}
+```
+
+**Example Prompt Class**
+
+```php
+use OPGG\LaravelMcpServer\Services\PromptService\Prompt;
+
+class WelcomePrompt extends Prompt
+{
+    public string $name = 'welcome-user';
+    
+    public ?string $description = 'A customizable welcome message for users';
+    
+    public array $arguments = [
+        [
+            'name' => 'username',
+            'description' => 'The name of the user to welcome',
+            'required' => true,
+        ],
+        [
+            'name' => 'role',
+            'description' => 'The role of the user (optional)',
+            'required' => false,
+        ],
+    ];
+    
+    public string $text = 'Welcome, {username}! You are logged in as {role}.';
 }
 ```
 

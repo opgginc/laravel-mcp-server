@@ -21,22 +21,20 @@ class PromptsGetHandler extends RequestHandler
 
     public function execute(string $method, ?array $params = null): array
     {
-        $identifier = $params['identifier'] ?? null;
-        $variables = $params['variables'] ?? [];
-        if (! is_string($identifier)) {
-            throw new JsonRpcErrorException(message: 'identifier is required', code: JsonRpcErrorCode::INVALID_REQUEST);
+        $name = $params['name'] ?? null;
+        $arguments = $params['arguments'] ?? [];
+        if (! is_string($name)) {
+            throw new JsonRpcErrorException(message: 'name is required', code: JsonRpcErrorCode::INVALID_REQUEST);
         }
-        if (! is_array($variables)) {
-            $variables = [];
+        if (! is_array($arguments)) {
+            $arguments = [];
         }
 
-        $content = $this->repository->render($identifier, $variables);
+        $content = $this->repository->render($name, $arguments);
         if ($content === null) {
             throw new JsonRpcErrorException(message: 'Prompt not found', code: JsonRpcErrorCode::INVALID_PARAMS);
         }
 
-        return [
-            'prompt' => $content,
-        ];
+        return $content;
     }
 }

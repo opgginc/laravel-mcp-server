@@ -10,11 +10,6 @@ abstract class Prompt
     /**
      * Unique identifier for this prompt.
      */
-    public string $identifier;
-
-    /**
-     * Human readable name.
-     */
     public string $name;
 
     /**
@@ -23,18 +18,25 @@ abstract class Prompt
     public ?string $description = null;
 
     /**
+     * Arguments that can be used in the prompt.
+     *
+     * @var array<int, array{name: string, description?: string, required?: bool}>
+     */
+    public array $arguments = [];
+
+    /**
      * The prompt text. Can include placeholder variables like {name}.
      */
     public string $text;
 
     /**
-     * Attempt to match the given identifier against this prompt's identifier
+     * Attempt to match the given identifier against this prompt's name
      * template. If it matches, extracted variables are returned via the
      * provided array reference.
      */
     public function matches(string $identifier, array &$variables = []): bool
     {
-        $regex = '/^'.preg_quote($this->identifier, '/').'$/';
+        $regex = '/^'.preg_quote($this->name, '/').'$/';
         $regex = str_replace('\\{', '(?P<', $regex);
         $regex = str_replace('\\}', '>[^\/]+)', $regex);
 
@@ -49,38 +51,70 @@ abstract class Prompt
 
     public function toArray(): array
     {
-        return array_filter([
-            'identifier' => $this->identifier,
+        $data = [
             'name' => $this->name,
-            'description' => $this->description,
-        ], static fn ($v) => $v !== null);
+        ];
+
+        if ($this->description !== null) {
+            $data['description'] = $this->description;
+        }
+
+        if (! empty($this->arguments)) {
+            $data['arguments'] = $this->arguments;
+        }
+
+        return $data;
     }
 
     /**
-     * Render the prompt text using provided variables.
+     * Render the prompt text using provided arguments.
      *
-     * @param  array<string, string>  $variables
+     * @param  array<string, string>  $arguments
      */
-    public function render(array $variables = []): array
+    public function render(array $arguments = []): array
     {
+        $this->validateArguments($arguments);
+
         $rendered = $this->text;
-        foreach ($variables as $key => $value) {
+        foreach ($arguments as $key => $value) {
             $rendered = str_replace('{'.$key.'}', $value, $rendered);
         }
 
-        return [
-            'identifier' => $this->expandIdentifier($variables),
-            'text' => $rendered,
+        $response = [
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => [
+                        'type' => 'text',
+                        'text' => $rendered,
+                    ],
+                ],
+            ],
         ];
-    }
 
-    protected function expandIdentifier(array $variables): string
-    {
-        $id = $this->identifier;
-        foreach ($variables as $key => $value) {
-            $id = str_replace('{'.$key.'}', $value, $id);
+        if ($this->description !== null) {
+            $response['description'] = $this->description;
         }
 
-        return $id;
+        return $response;
+    }
+
+    /**
+     * Validate that all required arguments are provided.
+     *
+     * @param  array<string, string>  $providedArguments
+     *
+     * @throws \InvalidArgumentException
+     */
+    protected function validateArguments(array $providedArguments): void
+    {
+        foreach ($this->arguments as $argument) {
+            $argName = $argument['name'];
+            $isRequired = $argument['required'] ?? false;
+
+            if ($isRequired && ! isset($providedArguments[$argName])) {
+                throw new \InvalidArgumentException("Required argument '{$argName}' is missing");
+            }
+        }
     }
 }

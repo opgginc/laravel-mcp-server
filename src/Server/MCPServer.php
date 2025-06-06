@@ -16,6 +16,7 @@ use OPGG\LaravelMcpServer\Server\Request\PromptsGetHandler;
 use OPGG\LaravelMcpServer\Server\Request\PromptsListHandler;
 use OPGG\LaravelMcpServer\Server\Request\ResourcesListHandler;
 use OPGG\LaravelMcpServer\Server\Request\ResourcesReadHandler;
+use OPGG\LaravelMcpServer\Server\Request\ResourcesTemplatesListHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsListHandler;
 use OPGG\LaravelMcpServer\Services\PromptService\PromptRepository;
@@ -140,6 +141,7 @@ final class MCPServer
     {
         $this->registerRequestHandler(new ResourcesListHandler($repository));
         $this->registerRequestHandler(new ResourcesReadHandler($repository));
+        $this->registerRequestHandler(new ResourcesTemplatesListHandler($repository));
 
         return $this;
     }

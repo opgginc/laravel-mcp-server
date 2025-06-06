@@ -252,6 +252,18 @@ curl -X POST "$HTTP_ENDPOINT" \
 
 echo ""
 echo ""
+# Test 6.5: List resource templates
+echo "📑 Test 6.5: List resource templates"
+curl -X POST "$HTTP_ENDPOINT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 65,
+    "method": "resources/templates/list"
+  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+
+echo ""
+echo ""
 # Test 7: List prompts
 echo "📝 Test 7: List available prompts"
 curl -X POST "$HTTP_ENDPOINT" \
@@ -265,14 +277,20 @@ curl -X POST "$HTTP_ENDPOINT" \
 echo ""
 echo ""
 # Test 8: Render prompt
-echo "🗒 Test 8: Get greeting prompt"
+echo "🗒 Test 8: Get welcome prompt"
 curl -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
     "id": 8,
     "method": "prompts/get",
-    "params": { "identifier": "prompt://greet/Test" }
+    "params": { 
+      "name": "welcome-user",
+      "arguments": {
+        "username": "Test User",
+        "role": "admin"
+      }
+    }
   }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
 
 echo ""

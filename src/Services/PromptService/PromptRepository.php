@@ -39,7 +39,7 @@ class PromptRepository
             throw new InvalidArgumentException('Prompt must extend '.Prompt::class);
         }
 
-        $this->prompts[$prompt->identifier] = $prompt;
+        $this->prompts[$prompt->name] = $prompt;
 
         return $this;
     }
@@ -52,15 +52,15 @@ class PromptRepository
         return array_values(array_map(fn (Prompt $p) => $p->toArray(), $this->prompts));
     }
 
-    public function render(string $identifier, array $vars = []): ?array
+    public function render(string $name, array $arguments = []): ?array
     {
-        if (isset($this->prompts[$identifier])) {
-            return $this->prompts[$identifier]->render($vars);
+        if (isset($this->prompts[$name])) {
+            return $this->prompts[$name]->render($arguments);
         }
 
         foreach ($this->prompts as $prompt) {
-            if ($prompt->matches($identifier, $vars)) {
-                return $prompt->render($vars);
+            if ($prompt->matches($name, $arguments)) {
+                return $prompt->render($arguments);
             }
         }
 
