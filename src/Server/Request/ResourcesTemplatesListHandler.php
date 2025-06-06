@@ -24,3 +24,4 @@ class ResourcesTemplatesListHandler extends RequestHandler
         ];
     }
 }
+
