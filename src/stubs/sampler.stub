@@ -4,15 +4,100 @@ namespace {{ namespace }};
 
 use OPGG\LaravelMcpServer\Services\SamplingService\Sampler;
 
+/**
+ * {{ className }} - MCP Sampling Implementation
+ *
+ * Samplers allow MCP servers to request language model generations from connected
+ * clients. This enables "nested" LLM calls where your server can ask the client
+ * to perform AI-powered tasks with human oversight and approval.
+ *
+ * REQUIRED PROPERTIES:
+ * --------------------
+ * @property array $messages
+ *     Array of conversation messages in OpenAI format. Each message should have:
+ *     - role: 'user', 'assistant', or 'system'
+ *     - content: Message content (can be string or structured content)
+ *
+ * OPTIONAL PROPERTIES:
+ * -------------------
+ * @property ?array $modelPreferences
+ *     Hints about preferred model characteristics. Can include:
+ *     - hints: Array of model family preferences (e.g., ['name' => 'claude'])
+ *     - capabilities: Array of desired capabilities like 'cost', 'speed', 'intelligence'
+ *
+ * @property ?string $systemPrompt
+ *     System-level instructions sent to the model. Use this to set context,
+ *     behavior guidelines, or task-specific instructions.
+ *
+ * @property ?int $maxTokens
+ *     Maximum number of tokens the model should generate in response.
+ *     Helps control response length and manage costs.
+ *
+ * MESSAGE CONTENT TYPES:
+ * ---------------------
+ * Text content:
+ *   ['type' => 'text', 'text' => 'Your message']
+ *
+ * Image content (base64 encoded):
+ *   ['type' => 'image', 'data' => 'base64-encoded-image', 'mimeType' => 'image/png']
+ *
+ * Mixed content:
+ *   [
+ *     ['type' => 'text', 'text' => 'Analyze this image:'],
+ *     ['type' => 'image', 'data' => 'base64...', 'mimeType' => 'image/jpeg']
+ *   ]
+ *
+ * USAGE EXAMPLE:
+ * -------------
+ * use App\MCP\Samplers\{{ className }};
+ * use OPGG\LaravelMcpServer\Services\SamplingService\SamplingService;
+ *
+ * $sampler = new {{ className }};
+ * $result = app(SamplingService::class)->createMessage($clientId, $sampler);
+ *
+ * SECURITY CONSIDERATIONS:
+ * -----------------------
+ * - Clients should implement user approval flows for sampling requests
+ * - Be mindful of sensitive information in prompts and responses
+ * - Consider rate limiting and cost controls
+ * - Validate and sanitize any user-provided content
+ *
+ * @see https://modelcontextprotocol.io/specification/draft/client/sampling
+ */
 class {{ className }} extends Sampler
 {
+    /**
+     * Conversation messages for the sampling request.
+     * Structure your conversation to provide clear context and instructions.
+     */
     public array $messages = [
         [
             'role' => 'user',
             'content' => [
                 'type' => 'text',
-                'text' => 'Your message here',
+                'text' => 'Please help me with [describe your specific task or question here]',
             ],
         ],
     ];
+
+    /**
+     * Optional model preference hints.
+     * Guide the client toward models suited for your use case.
+     */
+    public ?array $modelPreferences = null;
+    // Example: ['hints' => [['name' => 'claude']], 'capabilities' => ['intelligence']]
+
+    /**
+     * Optional system prompt for additional context.
+     * Use this to set the AI's role, behavior, or provide task-specific guidelines.
+     */
+    public ?string $systemPrompt = null;
+    // Example: 'You are a helpful coding assistant. Focus on clear, maintainable solutions.'
+
+    /**
+     * Optional maximum tokens limit.
+     * Set appropriate limits based on your use case and cost considerations.
+     */
+    public ?int $maxTokens = null;
+    // Example: 1000
 }

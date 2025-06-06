@@ -21,6 +21,7 @@ use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsListHandler;
 use OPGG\LaravelMcpServer\Services\PromptService\PromptRepository;
 use OPGG\LaravelMcpServer\Services\ResourceService\ResourceRepository;
+use OPGG\LaravelMcpServer\Services\SamplingService\SamplingServerInterface;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 
 /**
@@ -33,7 +34,7 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
  *
  * @see https://modelcontextprotocol.io/docs/concepts/architecture Describes the overall MCP architecture.
  */
-final class MCPServer
+final class MCPServer implements SamplingServerInterface
 {
     /**
      * The protocol handler instance responsible for communication logic.

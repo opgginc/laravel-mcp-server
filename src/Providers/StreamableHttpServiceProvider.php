@@ -81,6 +81,11 @@ final class StreamableHttpServiceProvider extends ServiceProvider
             $this->app->singleton(SamplingService::class, function ($app) {
                 return new SamplingService(app(MCPServer::class));
             });
+
+            $this->app->bind(
+                \OPGG\LaravelMcpServer\Services\SamplingService\SamplingServerInterface::class,
+                MCPServer::class
+            );
         }
     }
 }

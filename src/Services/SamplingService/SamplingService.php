@@ -4,11 +4,10 @@ namespace OPGG\LaravelMcpServer\Services\SamplingService;
 
 use Illuminate\Support\Str;
 use OPGG\LaravelMcpServer\Data\ProcessMessageData;
-use OPGG\LaravelMcpServer\Server\MCPServer;
 
 class SamplingService
 {
-    public function __construct(private MCPServer $server) {}
+    public function __construct(private SamplingServerInterface $server) {}
 
     /**
      * Request a language model generation from the connected client.
