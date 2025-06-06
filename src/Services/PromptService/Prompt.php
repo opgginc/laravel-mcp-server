@@ -112,8 +112,8 @@ abstract class Prompt
             $argName = $argument['name'];
             $isRequired = $argument['required'] ?? false;
 
-            if ($isRequired && ! isset($providedArguments[$argName])) {
-                throw new \InvalidArgumentException("Required argument '{$argName}' is missing");
+            if ($isRequired && (! isset($providedArguments[$argName]) || trim($providedArguments[$argName]) === '')) {
+                throw new \InvalidArgumentException("Required argument '{$argName}' is missing or empty");
             }
         }
     }

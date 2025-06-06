@@ -30,7 +30,12 @@ class PromptsGetHandler extends RequestHandler
             $arguments = [];
         }
 
-        $content = $this->repository->render($name, $arguments);
+        try {
+            $content = $this->repository->render($name, $arguments);
+        } catch (\InvalidArgumentException $e) {
+            throw new JsonRpcErrorException(message: $e->getMessage(), code: JsonRpcErrorCode::INVALID_PARAMS);
+        }
+
         if ($content === null) {
             throw new JsonRpcErrorException(message: 'Prompt not found', code: JsonRpcErrorCode::INVALID_PARAMS);
         }
