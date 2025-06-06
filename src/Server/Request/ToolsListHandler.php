@@ -2,21 +2,22 @@
 
 namespace OPGG\LaravelMcpServer\Server\Request;
 
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Protocol\Handlers\RequestHandler;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 
-class ToolsListHandler implements RequestHandler
+class ToolsListHandler extends RequestHandler
 {
+    protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+
+    protected const HANDLE_METHOD = 'tools/list';
+
     private ToolRepository $toolRepository;
 
     public function __construct(ToolRepository $toolRepository)
     {
+        parent::__construct();
         $this->toolRepository = $toolRepository;
-    }
-
-    public function isHandle(string $method): bool
-    {
-        return $method === 'tools/list';
     }
 
     public function execute(string $method, ?array $params = null): array

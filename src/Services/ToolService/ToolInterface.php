@@ -2,15 +2,19 @@
 
 namespace OPGG\LaravelMcpServer\Services\ToolService;
 
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
+
 interface ToolInterface
 {
-    public function getName(): string;
+    public function messageType(): ProcessMessageType;
 
-    public function getDescription(): string;
+    public function name(): string;
 
-    public function getInputSchema(): array;
+    public function description(): string;
 
-    public function getAnnotations(): array;
+    public function inputSchema(): array;
+
+    public function annotations(): array;
 
     public function execute(array $arguments): mixed;
 }

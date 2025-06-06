@@ -2,6 +2,7 @@
 
 namespace OPGG\LaravelMcpServer\Server;
 
+use OPGG\LaravelMcpServer\Data\ProcessMessageData;
 use OPGG\LaravelMcpServer\Data\Requests\InitializeData;
 use OPGG\LaravelMcpServer\Data\Resources\InitializeResource;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
@@ -10,6 +11,7 @@ use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
 use OPGG\LaravelMcpServer\Protocol\Handlers\RequestHandler;
 use OPGG\LaravelMcpServer\Protocol\MCPProtocol;
 use OPGG\LaravelMcpServer\Server\Request\InitializeHandler;
+use OPGG\LaravelMcpServer\Server\Request\PingHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsListHandler;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
@@ -73,6 +75,9 @@ final class MCPServer
 
         // Register the handler for the mandatory 'initialize' method.
         $this->registerRequestHandler(new InitializeHandler($this));
+
+        // Initialize Default Handlers
+        $this->registerRequestHandler(new PingHandler);
     }
 
     /**
@@ -193,8 +198,8 @@ final class MCPServer
      * @param  string  $clientId  The identifier of the target client.
      * @param  array<string, mixed>  $message  The request message payload (following JSON-RPC structure).
      */
-    public function requestMessage(string $clientId, array $message): void
+    public function requestMessage(string $clientId, array $message): ProcessMessageData
     {
-        $this->protocol->requestMessage(clientId: $clientId, message: $message);
+        return $this->protocol->handleMessage(clientId: $clientId, message: $message);
     }
 }

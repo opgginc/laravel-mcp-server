@@ -2,9 +2,35 @@
 
 namespace OPGG\LaravelMcpServer\Protocol\Handlers;
 
-interface RequestHandler
-{
-    public function execute(string $method, ?array $params = null): array;
+use Exception;
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
+use stdClass;
 
-    public function isHandle(string $method): bool;
+abstract class RequestHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+
+    protected const HANDLE_METHOD = null;
+
+    public function __construct()
+    {
+        if (static::HANDLE_METHOD === null) {
+            throw new Exception('HANDLE_METHOD constant must be defined.');
+        }
+        if (static::MESSAGE_TYPE === null) {
+            throw new Exception('MESSAGE_TYPE constant must be defined.');
+        }
+    }
+
+    abstract public function execute(string $method, ?array $params = null): array|stdClass;
+
+    public function getMessageType(?array $params = null): ProcessMessageType
+    {
+        return static::MESSAGE_TYPE;
+    }
+
+    public function getHandleMethod(): string|array
+    {
+        return static::HANDLE_METHOD;
+    }
 }

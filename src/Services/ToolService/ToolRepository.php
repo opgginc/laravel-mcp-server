@@ -72,7 +72,7 @@ class ToolRepository
             throw new InvalidArgumentException('Tool must implement the '.ToolInterface::class);
         }
 
-        $this->tools[$tool->getName()] = $tool;
+        $this->tools[$tool->name()] = $tool;
 
         return $this;
     }
@@ -109,7 +109,7 @@ class ToolRepository
         $schemas = [];
         foreach ($this->tools as $tool) {
             $injectArray = [];
-            if (empty($tool->getInputSchema())) {
+            if (empty($tool->inputSchema())) {
                 // inputSchema cannot be empty, set a default value.
                 $injectArray['inputSchema'] = [
                     'type' => 'object',
@@ -117,14 +117,14 @@ class ToolRepository
                     'required' => [],
                 ];
             }
-            if (! empty($tool->getAnnotations())) {
-                $injectArray['annotations'] = $tool->getAnnotations();
+            if (! empty($tool->annotations())) {
+                $injectArray['annotations'] = $tool->annotations();
             }
 
             $schemas[] = [
-                'name' => $tool->getName(),
-                'description' => $tool->getDescription(),
-                'inputSchema' => $tool->getInputSchema(),
+                'name' => $tool->name(),
+                'description' => $tool->description(),
+                'inputSchema' => $tool->inputSchema(),
                 ...$injectArray,
             ];
         }

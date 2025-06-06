@@ -13,9 +13,12 @@ class SseController extends Controller
     {
         $server = app(MCPServer::class);
 
+        set_time_limit(0);
+
         return new StreamedResponse(fn () => $server->connect(), headers: [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ]);
     }

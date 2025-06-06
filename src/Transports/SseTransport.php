@@ -110,8 +110,11 @@ final class SseTransport implements TransportInterface
         }
 
         // 모든 버퍼 비우기
-        while (ob_get_level() > 0) {
-            ob_end_flush();
+        if (! extension_loaded('swoole')) {
+            // Limpa qualquer buffer de saída se não estiver usando Swoole
+            while (ob_get_level() > 0) {
+                ob_end_flush();
+            }
         }
 
         echo sprintf('event: %s', $event).PHP_EOL;
@@ -196,16 +199,6 @@ final class SseTransport implements TransportInterface
     }
 
     /**
-     * Registers a callback for processing adapter-mediated messages via `processMessage()`.
-     *
-     * @param  callable  $handler  The callback (receives string clientId, array message).
-     */
-    public function onMessage(callable $handler): void
-    {
-        $this->messageHandlers[] = $handler;
-    }
-
-    /**
      * Checks if the client connection is still active using `connection_aborted()`.
      *
      * @return bool True if connected, false if aborted.
@@ -269,29 +262,6 @@ final class SseTransport implements TransportInterface
     }
 
     /**
-     * Processes a message payload by invoking all registered message handlers.
-     * Typically called after `receive()`. Catches exceptions within handlers.
-     *
-     * @param  string  $clientId  The client ID associated with the message.
-     * @param  array  $message  The message payload (usually an array).
-     */
-    public function processMessage(string $clientId, array $message): void
-    {
-        foreach ($this->messageHandlers as $handler) {
-            try {
-                $handler($clientId, $message);
-            } catch (Exception $e) {
-                Log::error('Error processing SSE message via handler: '.$e->getMessage(), [
-                    'clientId' => $clientId,
-                    // Avoid logging potentially sensitive message content in production
-                    // 'message_summary' => is_array($message) ? json_encode(array_keys($message)) : substr($message, 0, 100)
-                ]);
-                throw $e;
-            }
-        }
-    }
-
-    /**
      * Pushes a message to the adapter for later retrieval by the target client.
      * Encodes the message to JSON before pushing.
      *
@@ -306,7 +276,7 @@ final class SseTransport implements TransportInterface
             throw new Exception('Cannot push message: SSE Adapter is not configured.');
         }
 
-        $messageString = json_encode($message);
+        $messageString = json_encode($message, JSON_UNESCAPED_UNICODE);
         if ($messageString === false) {
             throw new Exception('Failed to JSON encode message for pushing: '.json_last_error_msg());
         }

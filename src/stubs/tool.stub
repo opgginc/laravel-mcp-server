@@ -3,76 +3,191 @@
 namespace {{ namespace }};
 
 use Illuminate\Support\Facades\Validator;
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
+use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
+use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
+/**
+ * {{ className }} - MCP Tool Implementation
+ *
+ * This tool follows the ToolInterface specification introduced in v1.1.0.
+ * All methods are required for proper MCP tool functionality.
+ *
+ * @see https://modelcontextprotocol.io/docs/concepts/tools
+ */
 class {{ className }} implements ToolInterface
 {
     /**
-     * Get the tool name.
+     * Determines how the tool's messages are processed by the transport layer.
      *
-     * @return string
+     * ProcessMessageType::HTTP - For tools interacting via standard HTTP (recommended)
+     * ProcessMessageType::SSE - For tools specifically designed for Server-Sent Events
+     * ProcessMessageType::PROTOCOL - Legacy type for older SSE implementations
+     *
+     * @return ProcessMessageType The message processisng type for this tool
      */
-    public function getName(): string
+    public function messageType(): ProcessMessageType
+    {
+        return ProcessMessageType::HTTP;
+    }
+
+    /**
+     * Very important -- The unique, callable name of your tool.
+     *
+     * This identifier is used by MCP clients to request your tool,
+     * also the LLM will see this name to determine if it should use this tool.
+     *
+     * Use descriptive, usually kebab-case names (e.g., 'get-user-details', 'calculate-sum').
+     *
+     * @return string The unique tool identifier
+     */
+    public function name(): string
     {
         return '{{ toolName }}';
     }
 
     /**
-     * Get the tool description.
+     * Very important -- A human-readable description of what your tool does for LLMs.
      *
-     * @return string
+     * This description is shown in MCP client UIs and documentation,
+     * also the LLM will see this description to determine if it should use this tool.
+     *
+     * Be clear and concise about the tool's functionality and purpose.
+     *
+     * @return string The tool description
      */
-    public function getDescription(): string
+    public function description(): string
     {
-        return 'Description of {{ className }}';
+        return 'Description of {{ className }} - explain what this tool does and its purpose';
     }
 
     /**
-     * Get the input schema for the tool.
+     * Defines the expected input parameters using JSON Schema-like structure.
      *
-     * @return array
+     * This schema is used by:
+     * - Clients to understand what data to send
+     * - Validation systems to verify input
+     * - Tools like MCP Inspector to generate test forms
+     *
+     * Example structure:
+     * [
+     *     'type' => 'object',
+     *     'properties' => [
+     *         'userId' => [
+     *             'type' => 'integer',
+     *             'description' => 'The unique identifier for the user',
+     *         ],
+     *         'includeDetails' => [
+     *             'type' => 'boolean',
+     *             'description' => 'Whether to include extended details',
+     *             'default' => false,
+     *         ],
+     *     ],
+     *     'required' => ['userId'],
+     * ]
+     *
+     * @return array The JSON Schema-like input specification
      */
-    public function getInputSchema(): array
+    public function inputSchema(): array
     {
         return [
             'type' => 'object',
             'properties' => [
                 'param1' => [
                     'type' => 'string',
-                    'description' => 'First parameter description',
+                    'description' => 'First parameter description - be specific about expected format and purpose',
+                ],
+                'param2' => [
+                    'type' => 'integer',
+                    'description' => 'Optional second parameter',
+                    'minimum' => 1,
+                    'maximum' => 100,
                 ],
                 // Add more parameters as needed
             ],
-            'required' => ['param1'],
+            'required' => ['param1'], // Specify which parameters are mandatory
         ];
     }
 
     /**
-     * Get the tool annotations.
+     * Provides metadata about the tool's behavior and characteristics.
      *
-     * @return array
+     * Annotations help clients categorize tools and make informed decisions
+     * about tool approval and usage. These are hints, not guarantees.
+     *
+     * Standard MCP annotations:
+     * - 'title': Human-readable title for the tool
+     * - 'readOnlyHint': true if tool doesn't modify environment (default: false)
+     * - 'destructiveHint': true if tool may perform destructive operations (default: true)
+     * - 'idempotentHint': true if repeated calls have no additional effect (default: false)
+     * - 'openWorldHint': true if tool interacts with external entities (default: true)
+     *
+     * @see https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations
+     * @return array Associative array of tool metadata and behavioral hints
      */
-    public function getAnnotations(): array
+    public function annotations(): array
     {
-        return [];
+        return [
+            'title' => '{{ className }}',
+            'readOnlyHint' => false,
+            'destructiveHint' => false,
+            'idempotentHint' => false,
+            'openWorldHint' => false,
+
+            // Custom annotations are also allowed
+        ];
     }
 
     /**
-     * Execute the tool.
+     * The core logic of your tool.
      *
-     * @param array $arguments Tool arguments
-     * @return mixed
+     * This method receives validated arguments and should return the tool's result.
+     * Always validate input against your inputSchema and handle errors gracefully.
+     *
+     * @param array $arguments Associative array of input parameters from the client
+     * @return mixed The tool's result (will be JSON-encoded in the response)
+     * @throws JsonRpcErrorException When validation fails or execution errors occur
      */
-    public function execute(array $arguments): string
+    public function execute(array $arguments): mixed
     {
-        Validator::make($arguments, [
-            'param1' => ['required', 'string'],
-            // Add more validation rules as needed
-        ])->validate();
+        // Validate input arguments against your schema
+        $validator = Validator::make($arguments, [
+            'param1' => ['required', 'string', 'min:1'],
+            'param2' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            // Add more validation rules matching your inputSchema
+        ]);
 
-        $param1 = $arguments['param1'] ?? 'default';
+        if ($validator->fails()) {
+            throw new JsonRpcErrorException(
+                message: 'Validation failed: ' . $validator->errors()->first(),
+                code: JsonRpcErrorCode::INVALID_REQUEST
+            );
+        }
 
-        // Implement your tool logic here
-        return "Tool executed with parameter: {$param1}";
+        // Extract validated parameters with defaults
+        $param1 = $arguments['param1'];
+        $param2 = $arguments['param2'] ?? 1;
+
+        try {
+            // Implement your tool's core logic here
+            // This is where you'd interact with databases, APIs, services, etc.
+
+            $result = [
+                'param1' => $param1,
+                'param2' => $param2,
+                'message' => "Tool executed successfully with parameter: {$param1}",
+                'timestamp' => now()->toISOString(),
+            ];
+
+            return $result;
+
+        } catch (\Exception $e) {
+            // Handle any execution errors gracefully
+            throw new JsonRpcErrorException(
+                message: 'Tool execution failed: ' . $e->getMessage(),
+                code: JsonRpcErrorCode::INTERNAL_ERROR
+            );
+        }
     }
 }

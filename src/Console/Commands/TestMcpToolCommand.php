@@ -61,12 +61,12 @@ class TestMcpToolCommand extends Command
             return 1;
         }
 
-        $this->info("Testing tool: {$tool->getName()} ({$toolClass})");
-        $this->line("Description: {$tool->getDescription()}");
+        $this->info("Testing tool: {$tool->name()} ({$toolClass})");
+        $this->line("Description: {$tool->description()}");
         $this->newLine();
 
         // Get input schema
-        $inputSchema = $tool->getInputSchema();
+        $inputSchema = $tool->inputSchema();
         $this->line('Input schema:');
         $this->displaySchema($inputSchema);
         $this->newLine();
@@ -132,7 +132,7 @@ class TestMcpToolCommand extends Command
             if (class_exists($toolClass)) {
                 $instance = App::make($toolClass);
                 if ($instance instanceof ToolInterface &&
-                    strtolower($instance->getName()) === strtolower($identifier)) {
+                    strtolower($instance->name()) === strtolower($identifier)) {
                     return $toolClass;
                 }
             }
@@ -319,9 +319,9 @@ class TestMcpToolCommand extends Command
                     $instance = App::make($toolClass);
                     if ($instance instanceof ToolInterface) {
                         $tools[] = [
-                            'name' => $instance->getName(),
+                            'name' => $instance->name(),
                             'class' => $toolClass,
-                            'description' => Str::limit($instance->getDescription(), 50),
+                            'description' => Str::limit($instance->description(), 50),
                         ];
                     }
                 }
@@ -361,7 +361,7 @@ class TestMcpToolCommand extends Command
                 if (class_exists($toolClass)) {
                     $instance = App::make($toolClass);
                     if ($instance instanceof ToolInterface) {
-                        $name = $instance->getName();
+                        $name = $instance->name();
                         $choices[] = "{$name} ({$toolClass})";
                         $validTools[] = $toolClass;
                     }
