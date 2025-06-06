@@ -144,4 +144,35 @@ return [
         // Register your custom tools here
         // App\MCP\Tools\YourCustomTool::class,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | MCP Resources Registry
+    |--------------------------------------------------------------------------
+    |
+    | Register resources and templates to expose to clients.
+    |
+    */
+    'resources' => [
+        \OPGG\LaravelMcpServer\Services\ResourceService\Examples\LogFileResource::class,
+        // App\MCP\Resources\YourResource::class,
+    ],
+
+    'resource_templates' => [
+        \OPGG\LaravelMcpServer\Services\ResourceService\Examples\LogFileTemplate::class,
+        // App\MCP\ResourceTemplates\YourTemplate::class,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | MCP Prompts Registry
+    |--------------------------------------------------------------------------
+    |
+    | Register prompts available to clients.
+    |
+    */
+    'prompts' => [
+        \OPGG\LaravelMcpServer\Services\PromptService\Examples\WelcomePrompt::class,
+        // App\MCP\Prompts\YourPrompt::class,
+    ],
 ];

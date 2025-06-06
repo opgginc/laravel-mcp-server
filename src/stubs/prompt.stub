@@ -1,0 +1,111 @@
+<?php
+
+namespace {{ namespace }};
+
+use OPGG\LaravelMcpServer\Services\PromptService\Prompt;
+
+/**
+ * {{ className }} - MCP Prompt Implementation
+ *
+ * Prompts are reusable templates that help LLMs understand how to use your
+ * application's tools and resources effectively. They provide structured
+ * guidance and can be parameterized for different scenarios.
+ *
+ * REQUIRED PROPERTIES:
+ * --------------------
+ * @property string $name
+ *     Unique identifier for this prompt. Use kebab-case naming.
+ *     Examples: "debug-code", "analyze-logs", "generate-report"
+ *
+ * @property string $text
+ *     The actual prompt template. Use {placeholders} for dynamic values.
+ *     These will be replaced with argument values when the prompt is requested.
+ *
+ * OPTIONAL PROPERTIES:
+ * -------------------
+ * @property ?string $description
+ *     Human-readable description explaining what this prompt does.
+ *     This helps users understand when and how to use the prompt.
+ *
+ * @property array $arguments
+ *     Defines the parameters that can be passed to this prompt.
+ *     Each argument should have:
+ *     - name: string (required) - The placeholder name used in {braces}
+ *     - description: string (optional) - Explains what this argument is for
+ *     - required: bool (optional, default: false) - Whether this argument must be provided
+ *
+ * USAGE EXAMPLE:
+ * -------------
+ * When a client requests this prompt:
+ * {
+ *   "method": "prompts/get",
+ *   "params": {
+ *     "name": "{{ name }}",
+ *     "arguments": {
+ *       "example_arg": "World",
+ *       "optional_arg": "Laravel"
+ *     }
+ *   }
+ * }
+ *
+ * The response will contain the processed prompt with placeholders replaced.
+ *
+ * @see https://modelcontextprotocol.io/docs/concepts/prompts
+ */
+class {{ className }} extends Prompt
+{
+    /**
+     * Unique identifier for this prompt.
+     * Best practice: Use descriptive kebab-case names.
+     */
+    public string $name = 'example-prompt';
+
+    /**
+     * Optional description shown in prompt listings.
+     * Help users understand what this prompt is designed for.
+     */
+    public ?string $description = 'A template for [describe the specific use case]';
+
+    /**
+     * Define the arguments this prompt accepts.
+     * Each argument can be required or optional.
+     */
+    public array $arguments = [
+        [
+            'name' => 'example_arg',
+            'description' => 'The main parameter for this prompt',
+            'required' => true,
+        ],
+        [
+            'name' => 'optional_arg',
+            'description' => 'An optional parameter that enhances the prompt',
+            'required' => false,
+        ],
+    ];
+
+    /**
+     * The prompt template text.
+     * 
+     * Best practices:
+     * - Be clear and specific about what you want the LLM to do
+     * - Use {placeholders} for all dynamic values
+     * - Include context about available tools or resources if relevant
+     * - Structure complex prompts with clear sections
+     */
+    public string $text = <<<'PROMPT'
+You are assisting with {example_arg}.
+
+{optional_arg}
+
+Please follow these guidelines:
+1. [First instruction]
+2. [Second instruction]
+3. [Third instruction]
+
+Available tools for this task:
+- tool-name: Description of what it does
+- another-tool: Description of its purpose
+
+Begin by analyzing the requirements and proceed step by step.
+PROMPT;
+}
