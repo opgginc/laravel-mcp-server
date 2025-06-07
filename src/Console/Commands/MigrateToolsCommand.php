@@ -13,14 +13,14 @@ class MigrateToolsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'mcp:migrate-tools {path? : The path to your MCP tools directory}';
+    protected $signature = 'mcp:migrate-tools {path? : The path to your MCP tools directory} {--no-backup : Skip creating backup files}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Migrates older MCP tools to v1.3.0: removes messageType() method, adds isStreaming() only for SSE tools (supports v1.0.x → v1.3.0 and v1.1.x/v1.2.x → v1.3.0).';
+    protected $description = 'Migrates older MCP tools to v1.3.0: removes messageType() method, adds isStreaming() only for SSE tools. Creates backup files by default (supports v1.0.x → v1.3.0 and v1.1.x/v1.2.x → v1.3.0).';
 
     /**
      * Execute the console command.
@@ -50,6 +50,7 @@ class MigrateToolsCommand extends Command
         }
 
         $potentialCandidates = 0;
+        $createBackups = null;
 
         foreach ($finder as $file) {
             $content = $file->getContents();
@@ -63,43 +64,60 @@ class MigrateToolsCommand extends Command
                 $this->line("Found {$toolVersion} tool requiring migration to 1.3.0: {$filePath}");
                 $potentialCandidates++;
 
+                // Ask about backup creation only once
+                if ($createBackups === null && !$this->option('no-backup')) {
+                    $createBackups = $this->confirm(
+                        'Do you want to create backup files before migration? (Recommended)',
+                        true // Default to yes
+                    );
+                    
+                    if ($createBackups) {
+                        $this->info('Backup files will be created with .backup extension.');
+                    } else {
+                        $this->warn('No backup files will be created. Migration will modify files directly.');
+                    }
+                } elseif ($this->option('no-backup')) {
+                    $createBackups = false;
+                }
+
                 $backupFilePath = $filePath.'.backup';
 
-                if (File::exists($backupFilePath)) {
+                // Check if backup already exists when backups are enabled
+                if ($createBackups && File::exists($backupFilePath)) {
                     $this->warn("Backup for '{$filePath}' already exists at '{$backupFilePath}'. Skipping migration for this file.");
-
                     continue; // Skip to the next file
                 }
 
                 try {
-                    if (File::copy($filePath, $backupFilePath)) {
-                        $this->info("Backed up '{$filePath}' to '{$backupFilePath}'.");
-
-                        // Proceed with migration
-                        $originalContent = File::get($filePath);
-
-                        // Apply migration strategy based on detected version
-                        $this->info("Performing migration from {$toolVersion} to 1.3.0...");
-                        $modifiedContent = $this->applyMigrationStrategy($toolVersion, $originalContent);
-
-                        if ($modifiedContent !== $originalContent) {
-                            if (File::put($filePath, $modifiedContent)) {
-                                $this->info("Successfully migrated '{$filePath}'.");
-                            } else {
-                                $this->error("Failed to write changes to '{$filePath}'. Restoring from backup might be needed.");
-                            }
+                    // Create backup if requested
+                    if ($createBackups) {
+                        if (File::copy($filePath, $backupFilePath)) {
+                            $this->info("Backed up '{$filePath}' to '{$backupFilePath}'.");
                         } else {
-                            $this->info("No changes were necessary for '{$filePath}' during migration content generation (this might indicate an issue or already migrated parts).");
+                            $this->error("Failed to create backup for '{$filePath}'. Skipping migration for this file.");
+                            continue;
                         }
-
-                    } else {
-                        $this->error("Failed to create backup for '{$filePath}'. Skipping migration for this file.");
-
-                        continue;
                     }
-                } catch (\Exception $e) {
-                    $this->error("Error creating backup or migrating '{$filePath}': ".$e->getMessage().'. Skipping migration for this file.');
 
+                    // Proceed with migration
+                    $originalContent = File::get($filePath);
+
+                    // Apply migration strategy based on detected version
+                    $this->info("Performing migration from {$toolVersion} to 1.3.0...");
+                    $modifiedContent = $this->applyMigrationStrategy($toolVersion, $originalContent);
+
+                    if ($modifiedContent !== $originalContent) {
+                        if (File::put($filePath, $modifiedContent)) {
+                            $this->info("Successfully migrated '{$filePath}'.");
+                        } else {
+                            $this->error("Failed to write changes to '{$filePath}'." . ($createBackups ? " You can restore from backup if needed." : ""));
+                        }
+                    } else {
+                        $this->info("No changes were necessary for '{$filePath}' during migration content generation (this might indicate an issue or already migrated parts).");
+                    }
+
+                } catch (\Exception $e) {
+                    $this->error("Error migrating '{$filePath}': ".$e->getMessage().'. Skipping migration for this file.');
                     continue;
                 }
 

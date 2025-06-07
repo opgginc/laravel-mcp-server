@@ -110,6 +110,8 @@ test('command migrates old tool successfully', function () {
         ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
         ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
         ->expectsOutput("Found 1.0.x tool requiring migration to 1.3.0: {$toolPath}")
+        ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'yes')
+        ->expectsOutput('Backup files will be created with .backup extension.')
         ->expectsOutput("Backed up '{$toolPath}' to '{$backupPath}'.")
         ->expectsOutput('Performing migration from 1.0.x to 1.3.0...')
         ->expectsOutput("Successfully migrated '{$toolPath}'.")
@@ -132,6 +134,8 @@ test('command skips if backup exists', function () {
 
     $this->artisan('mcp:migrate-tools', ['path' => dirname($toolPath)])
         ->expectsOutput("Found 1.0.x tool requiring migration to 1.3.0: {$toolPath}")
+        ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'yes')
+        ->expectsOutput('Backup files will be created with .backup extension.')
         ->expectsOutput("Backup for '{$toolPath}' already exists at '{$backupPath}'. Skipping migration for this file.")
         ->assertExitCode(0);
 
@@ -203,6 +207,8 @@ test('command migrates v1.2 tool to v1.3 successfully', function () {
         ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
         ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
         ->expectsOutput("Found 1.1.x tool requiring migration to 1.3.0: {$toolPath}")
+        ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'yes')
+        ->expectsOutput('Backup files will be created with .backup extension.')
         ->expectsOutput("Backed up '{$toolPath}' to '{$backupPath}'.")
         ->expectsOutput('Performing migration from 1.1.x to 1.3.0...')
         ->expectsOutput("Successfully migrated '{$toolPath}'.")
@@ -274,6 +280,8 @@ test('command migrates v1.1 tool to v1.3 successfully', function () {
         ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
         ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
         ->expectsOutput("Found 1.1.x tool requiring migration to 1.3.0: $toolPath")
+        ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'yes')
+        ->expectsOutput('Backup files will be created with .backup extension.')
         ->expectsOutput("Backed up '$toolPath' to '$backupPath'.")
         ->expectsOutput('Performing migration from 1.1.x to 1.3.0...')
         ->expectsOutput("Successfully migrated '$toolPath'.")
@@ -306,4 +314,52 @@ test('command handles no php files in path', function () {
     $this->artisan('mcp:migrate-tools', ['path' => $emptyDir])
         ->expectsOutput('No PHP files found in the specified path.')
         ->assertExitCode(0);
+});
+
+test('command works with --no-backup flag', function () {
+    $toolPath = setUpMockToolFile('MyNoBackupTool.php', getOldToolContent('MyNoBackupTool'));
+    $backupPath = $toolPath.'.backup';
+    $toolDir = dirname($toolPath);
+
+    $this->artisan('mcp:migrate-tools', ['path' => $toolDir, '--no-backup' => true])
+        ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
+        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
+        ->expectsOutput("Found 1.0.x tool requiring migration to 1.3.0: {$toolPath}")
+        ->expectsOutput('Performing migration from 1.0.x to 1.3.0...')
+        ->expectsOutput("Successfully migrated '{$toolPath}'.")
+        ->expectsOutput('Scan complete. Processed 1 potential candidates.')
+        ->assertExitCode(0);
+
+    // No backup file should be created
+    expect(File::exists($backupPath))->toBeFalse();
+
+    // Tool should still be migrated
+    $expectedContent = trim(preg_replace('/\R/', "\n", getExpectedNewToolContent('MyNoBackupTool')));
+    $actualContent = trim(preg_replace('/\R/', "\n", File::get($toolPath)));
+    expect($actualContent)->toBe($expectedContent);
+});
+
+test('command allows declining backup creation', function () {
+    $toolPath = setUpMockToolFile('MyDeclinedBackupTool.php', getOldToolContent('MyDeclinedBackupTool'));
+    $backupPath = $toolPath.'.backup';
+    $toolDir = dirname($toolPath);
+
+    $this->artisan('mcp:migrate-tools', ['path' => $toolDir])
+        ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
+        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
+        ->expectsOutput("Found 1.0.x tool requiring migration to 1.3.0: {$toolPath}")
+        ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'no')
+        ->expectsOutput('No backup files will be created. Migration will modify files directly.')
+        ->expectsOutput('Performing migration from 1.0.x to 1.3.0...')
+        ->expectsOutput("Successfully migrated '{$toolPath}'.")
+        ->expectsOutput('Scan complete. Processed 1 potential candidates.')
+        ->assertExitCode(0);
+
+    // No backup file should be created
+    expect(File::exists($backupPath))->toBeFalse();
+
+    // Tool should still be migrated
+    $expectedContent = trim(preg_replace('/\R/', "\n", getExpectedNewToolContent('MyDeclinedBackupTool')));
+    $actualContent = trim(preg_replace('/\R/', "\n", File::get($toolPath)));
+    expect($actualContent)->toBe($expectedContent);
 });
