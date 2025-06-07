@@ -14,7 +14,26 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
  * This tool follows the ToolInterface specification introduced in v1.1.0.
  * All methods are required for proper MCP tool functionality.
  *
+ * QUICK START GUIDE:
+ * ==================
+ * 1. Update the name() method with your tool's unique identifier
+ * 2. Write a clear description() explaining what your tool does
+ * 3. Define inputSchema() with your required and optional parameters
+ * 4. Set appropriate annotations() for your tool's behavior
+ * 5. Implement the execute() method with your core logic
+ * 6. Test with: php artisan mcp:test-tool {{ className }}
+ *
+ * DEVELOPMENT TIPS:
+ * ================
+ * - Use Laravel's built-in features (Eloquent, HTTP client, Cache, etc.)
+ * - Follow Laravel conventions and patterns
+ * - Add comprehensive error handling
+ * - Include logging for debugging
+ * - Write unit tests for your tool logic
+ * - Document any external dependencies
+ *
  * @see https://modelcontextprotocol.io/docs/concepts/tools
+ * @see https://laravel.com/docs - Laravel framework documentation
  */
 class {{ className }} implements ToolInterface
 {
@@ -53,13 +72,23 @@ class {{ className }} implements ToolInterface
      * This description is shown in MCP client UIs and documentation,
      * also the LLM will see this description to determine if it should use this tool.
      *
-     * Be clear and concise about the tool's functionality and purpose.
+     * BEST PRACTICES:
+     * - Start with an action verb ("Retrieves", "Calculates", "Creates", etc.)
+     * - Mention what data is returned and in what format
+     * - Note any side effects or state changes
+     * - Include usage scenarios or examples
+     *
+     * EXAMPLES:
+     * - "Retrieves user profile information including name, email, and preferences"
+     * - "Calculates the total cost of items in a shopping cart with tax and shipping"
+     * - "Creates a new blog post and returns the generated URL and ID"
+     * - "Searches the product database by name or SKU and returns matching items"
      *
      * @return string The tool description
      */
     public function description(): string
     {
-        return 'Description of {{ className }} - explain what this tool does and its purpose';
+        return 'Description of {{ className }} - explain what this tool does and its purpose. Replace with specific details about functionality, inputs, outputs, and use cases.';
     }
 
     /**
@@ -69,22 +98,54 @@ class {{ className }} implements ToolInterface
      * - Clients to understand what data to send
      * - Validation systems to verify input
      * - Tools like MCP Inspector to generate test forms
+     * - IDE auto-completion and type hints
      *
-     * Example structure:
-     * [
+     * SUPPORTED TYPES:
+     * - string: Text values (support for pattern, minLength, maxLength)
+     * - integer: Whole numbers (support for minimum, maximum)
+     * - number: Decimal numbers (support for minimum, maximum)
+     * - boolean: True/false values
+     * - array: Lists of items (support for items schema)
+     * - object: Nested objects (support for properties)
+     *
+     * ADVANCED FEATURES:
+     * - enum: Restrict to specific values
+     * - default: Default value if not provided
+     * - pattern: Regex validation for strings
+     * - format: Built-in formats (email, uri, date-time, etc.)
+     *
+     * EXAMPLES:
+     *
+     * Simple string parameter:
+     * 'username' => [
+     *     'type' => 'string',
+     *     'description' => 'The username to look up',
+     *     'minLength' => 3,
+     *     'maxLength' => 50
+     * ]
+     *
+     * Enum with predefined values:
+     * 'status' => [
+     *     'type' => 'string',
+     *     'description' => 'User status filter',
+     *     'enum' => ['active', 'inactive', 'pending'],
+     *     'default' => 'active'
+     * ]
+     *
+     * Nested object:
+     * 'filters' => [
      *     'type' => 'object',
+     *     'description' => 'Search filters',
      *     'properties' => [
-     *         'userId' => [
-     *             'type' => 'integer',
-     *             'description' => 'The unique identifier for the user',
-     *         ],
-     *         'includeDetails' => [
-     *             'type' => 'boolean',
-     *             'description' => 'Whether to include extended details',
-     *             'default' => false,
-     *         ],
-     *     ],
-     *     'required' => ['userId'],
+     *         'category' => ['type' => 'string'],
+     *         'price_range' => [
+     *             'type' => 'object',
+     *             'properties' => [
+     *                 'min' => ['type' => 'number', 'minimum' => 0],
+     *                 'max' => ['type' => 'number', 'minimum' => 0]
+     *             ]
+     *         ]
+     *     ]
      * ]
      *
      * @return array The JSON Schema-like input specification
@@ -116,12 +177,72 @@ class {{ className }} implements ToolInterface
      * Annotations help clients categorize tools and make informed decisions
      * about tool approval and usage. These are hints, not guarantees.
      *
-     * Standard MCP annotations:
-     * - 'title': Human-readable title for the tool
-     * - 'readOnlyHint': true if tool doesn't modify environment (default: false)
-     * - 'destructiveHint': true if tool may perform destructive operations (default: true)
-     * - 'idempotentHint': true if repeated calls have no additional effect (default: false)
-     * - 'openWorldHint': true if tool interacts with external entities (default: true)
+     * STANDARD MCP ANNOTATIONS:
+     * ========================
+     * These annotations are understood by all MCP clients and should be set accurately:
+     *
+     * @param string title - Human-readable title displayed in client UIs
+     * @param bool readOnlyHint - Tool only reads data, doesn't modify anything (default: false)
+     * @param bool destructiveHint - Tool may delete or irreversibly modify data (default: true)
+     * @param bool idempotentHint - Repeated calls with same args have no additional effect (default: false)
+     * @param bool openWorldHint - Tool interacts with external systems beyond local environment (default: true)
+     *
+     * EXAMPLES BY TOOL TYPE:
+     * =====================
+     *
+     * READ-ONLY TOOLS (database queries, file reading, API fetching):
+     * [
+     *     'title' => 'User Profile Reader',
+     *     'readOnlyHint' => true,
+     *     'destructiveHint' => false,
+     *     'idempotentHint' => true,
+     *     'openWorldHint' => false, // if reading local database
+     * ]
+     *
+     * DATA MODIFICATION TOOLS (creating, updating records):
+     * [
+     *     'title' => 'Create User Account',
+     *     'readOnlyHint' => false,
+     *     'destructiveHint' => false, // creating isn't destructive
+     *     'idempotentHint' => false, // creates new data each time
+     *     'openWorldHint' => false,
+     * ]
+     *
+     * DESTRUCTIVE TOOLS (deleting, irreversible operations):
+     * [
+     *     'title' => 'Delete User Account',
+     *     'readOnlyHint' => false,
+     *     'destructiveHint' => true,
+     *     'idempotentHint' => true, // deleting twice has same effect
+     *     'openWorldHint' => false,
+     * ]
+     *
+     * EXTERNAL API TOOLS (weather, payments, third-party services):
+     * [
+     *     'title' => 'Weather Information',
+     *     'readOnlyHint' => true,
+     *     'destructiveHint' => false,
+     *     'idempotentHint' => true,
+     *     'openWorldHint' => true, // accesses external weather API
+     * ]
+     *
+     * CUSTOM ANNOTATIONS:
+     * ==================
+     * You can add custom annotations for your application's needs:
+     *
+     * [
+     *     // Standard MCP annotations
+     *     'title' => 'Custom Tool',
+     *     'readOnlyHint' => true,
+     *
+     *     // Custom annotations
+     *     'category' => 'analytics',
+     *     'version' => '2.1.0',
+     *     'author' => 'Analytics Team',
+     *     'requires_permission' => 'analytics.read',
+     *     'rate_limit' => '100/hour',
+     *     'cost_per_call' => 0.01,
+     * ]
      *
      * @see https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations
      * @return array Associative array of tool metadata and behavioral hints
@@ -144,6 +265,60 @@ class {{ className }} implements ToolInterface
      *
      * This method receives validated arguments and should return the tool's result.
      * Always validate input against your inputSchema and handle errors gracefully.
+     *
+     * BEST PRACTICES:
+     * ==============
+     * 1. Always validate input parameters
+     * 2. Use descriptive error messages
+     * 3. Return structured, consistent data
+     * 4. Handle edge cases and errors gracefully
+     * 5. Log important operations for debugging
+     * 6. Keep operations atomic when possible
+     * 7. Return helpful metadata (timestamps, IDs, etc.)
+     *
+     * ERROR HANDLING:
+     * ==============
+     * Use JsonRpcErrorException with appropriate error codes:
+     * - INVALID_REQUEST: Bad input parameters
+     * - INVALID_PARAMS: Parameter validation failed
+     * - INTERNAL_ERROR: Unexpected server errors
+     * - METHOD_NOT_FOUND: Resource not found
+     *
+     * RETURN VALUE GUIDELINES:
+     * ======================
+     * - Return arrays/objects for structured data
+     * - Include status information when relevant
+     * - Add timestamps for tracking
+     * - Include IDs for created/modified resources
+     * - Provide pagination info for large datasets
+     * - Return meaningful error details in exceptions
+     *
+     * EXAMPLE PATTERNS:
+     * ================
+     *
+     * Simple data retrieval:
+     * return [
+     *     'user' => $user->toArray(),
+     *     'retrieved_at' => now()->toISOString(),
+     * ];
+     *
+     * Resource creation:
+     * return [
+     *     'success' => true,
+     *     'created_id' => $newResource->id,
+     *     'url' => route('resource.show', $newResource),
+     *     'created_at' => $newResource->created_at->toISOString(),
+     * ];
+     *
+     * List with pagination:
+     * return [
+     *     'data' => $items->items(),
+     *     'pagination' => [
+     *         'current_page' => $items->currentPage(),
+     *         'total' => $items->total(),
+     *         'per_page' => $items->perPage(),
+     *     ],
+     * ];
      *
      * @param array $arguments Associative array of input parameters from the client
      * @return mixed The tool's result (will be JSON-encoded in the response)
@@ -170,19 +345,70 @@ class {{ className }} implements ToolInterface
         $param2 = $arguments['param2'] ?? 1;
 
         try {
-            // Implement your tool's core logic here
-            // This is where you'd interact with databases, APIs, services, etc.
+            // TODO: Implement your tool's core logic here
+            //
+            // Examples of common operations:
+            //
+            // Database operations:
+            // $user = User::where('username', $param1)->first();
+            // if (!$user) {
+            //     throw new JsonRpcErrorException(
+            //         message: "User '{$param1}' not found",
+            //         code: JsonRpcErrorCode::METHOD_NOT_FOUND
+            //     );
+            // }
+            //
+            // API calls:
+            // $response = Http::get("https://api.example.com/data/{$param1}");
+            // if (!$response->successful()) {
+            //     throw new JsonRpcErrorException(
+            //         message: 'External API request failed: ' . $response->body(),
+            //         code: JsonRpcErrorCode::INTERNAL_ERROR
+            //     );
+            // }
+            //
+            // File operations:
+            // $filePath = storage_path("app/data/{$param1}.json");
+            // if (!File::exists($filePath)) {
+            //     throw new JsonRpcErrorException(
+            //         message: "File '{$param1}.json' not found",
+            //         code: JsonRpcErrorCode::METHOD_NOT_FOUND
+            //     );
+            // }
+            // $data = json_decode(File::get($filePath), true);
+            //
+            // Cache operations:
+            // $cacheKey = "tool_result_{$param1}";
+            // $result = Cache::remember($cacheKey, 3600, function () use ($param1) {
+            //     return $this->performExpensiveOperation($param1);
+            // });
 
             $result = [
-                'param1' => $param1,
-                'param2' => $param2,
-                'message' => "Tool executed successfully with parameter: {$param1}",
-                'timestamp' => now()->toISOString(),
+                'success' => true,
+                'data' => [
+                    'param1' => $param1,
+                    'param2' => $param2,
+                    'message' => "Tool executed successfully with parameter: {$param1}",
+                    // Add your actual result data here
+                ],
+                'metadata' => [
+                    'executed_at' => now()->toISOString(),
+                    'tool_version' => '1.0.0',
+                    'execution_time_ms' => 0, // Track performance if needed
+                ],
             ];
 
             return $result;
 
         } catch (\Exception $e) {
+            // Log the error for debugging
+            \Log::error('Tool execution failed', [
+                'tool' => static::class,
+                'arguments' => $arguments,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             // Handle any execution errors gracefully
             throw new JsonRpcErrorException(
                 message: 'Tool execution failed: ' . $e->getMessage(),

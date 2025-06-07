@@ -117,3 +117,38 @@ DESC;
     // Optional path: 'file:///data{/type}{/subtype}/latest.json'
     // Multiple formats: 'api://export/{dataset}.{format}' where format = json|csv|xml
 }
+
+/*
+ * TESTING YOUR RESOURCE TEMPLATE:
+ * ===============================
+ * 
+ * 1. Register the template in config/mcp-server.php
+ * 2. Test discovery:
+ *    curl -X POST http://localhost:8000/mcp \
+ *      -H "Content-Type: application/json" \
+ *      -d '{"jsonrpc":"2.0","id":1,"method":"resources/templates/list"}'
+ * 
+ * 3. Test with specific URI:
+ *    curl -X POST http://localhost:8000/mcp \
+ *      -H "Content-Type: application/json" \
+ *      -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"file:///{{ className|lower }}/123.json"}}'
+ * 
+ * 4. Use MCP Inspector for interactive testing:
+ *    npx @modelcontextprotocol/inspector
+ * 
+ * TROUBLESHOOTING:
+ * ===============
+ * - Verify your ResourceRepository can handle the generated URIs
+ * - Check that variable substitution works correctly
+ * - Ensure MIME types match your actual content
+ * - Test edge cases (missing variables, invalid formats)
+ * - Validate that LLMs can understand your variable documentation
+ * 
+ * PERFORMANCE CONSIDERATIONS:
+ * ==========================
+ * - Cache expensive resource operations
+ * - Implement rate limiting for complex queries
+ * - Consider pagination for large datasets
+ * - Optimize database queries used by your resources
+ * - Monitor template usage patterns
+ */
