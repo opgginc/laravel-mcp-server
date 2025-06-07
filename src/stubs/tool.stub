@@ -20,7 +20,26 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
  * 5. Implement the execute() method with your core logic
  * 6. Test with: php artisan mcp:test-tool {{ className }}
  *
+ * QUICK START GUIDE:
+ * ==================
+ * 1. Update the name() method with your tool's unique identifier
+ * 2. Write a clear description() explaining what your tool does
+ * 3. Define inputSchema() with your required and optional parameters
+ * 4. Set appropriate annotations() for your tool's behavior
+ * 5. Implement the execute() method with your core logic
+ * 6. Test with: php artisan mcp:test-tool {{ className }}
+ *
+ * DEVELOPMENT TIPS:
+ * ================
+ * - Use Laravel's built-in features (Eloquent, HTTP client, Cache, etc.)
+ * - Follow Laravel conventions and patterns
+ * - Add comprehensive error handling
+ * - Include logging for debugging
+ * - Write unit tests for your tool logic
+ * - Document any external dependencies
+ *
  * @see https://modelcontextprotocol.io/docs/concepts/tools
+ * @see https://laravel.com/docs - Laravel framework documentation
  */
 class {{ className }} implements ToolInterface
 {
