@@ -11,13 +11,6 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 /**
  * {{ className }} - MCP Tool Implementation
  *
- * This tool follows the ToolInterface specification (v1.3.0).
- * All methods are required for proper MCP tool functionality.
- *
- * v1.3.0 CHANGES:
- * - Added isStreaming() method for better communication control
- * - messageType() is now deprecated (will be removed in v2.0.0)
- *
  * QUICK START GUIDE:
  * ==================
  * 1. Update the name() method with your tool's unique identifier
@@ -27,17 +20,7 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
  * 5. Implement the execute() method with your core logic
  * 6. Test with: php artisan mcp:test-tool {{ className }}
  *
- * DEVELOPMENT TIPS:
- * ================
- * - Use Laravel's built-in features (Eloquent, HTTP client, Cache, etc.)
- * - Follow Laravel conventions and patterns
- * - Add comprehensive error handling
- * - Include logging for debugging
- * - Write unit tests for your tool logic
- * - Document any external dependencies
- *
  * @see https://modelcontextprotocol.io/docs/concepts/tools
- * @see https://laravel.com/docs - Laravel framework documentation
  */
 class {{ className }} implements ToolInterface
 {
