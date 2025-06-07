@@ -18,10 +18,11 @@ interface ToolInterface
      * OPTIONAL: Determines if this tool requires streaming (SSE) instead of standard HTTP.
      * Most tools should return false (use HTTP for better performance and compatibility).
      * Only return true if you specifically need real-time streaming capabilities.
-     * 
+     *
      * If not implemented, defaults to false (HTTP transport).
-     * 
+     *
      * @since v1.3.0
+     *
      * @return bool
      */
     // public function isStreaming(): bool;
