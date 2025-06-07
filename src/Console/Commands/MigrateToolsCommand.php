@@ -20,7 +20,7 @@ class MigrateToolsCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Migrates older MCP tools to the current ToolInterface structure (supports v1.0.x → v1.3.0 and v1.1.x/v1.2.x → v1.3.0).';
+    protected $description = 'Migrates older MCP tools to v1.3.0: removes messageType() method, adds isStreaming() only for SSE tools (supports v1.0.x → v1.3.0 and v1.1.x/v1.2.x → v1.3.0).';
 
     /**
      * Execute the console command.
@@ -167,30 +167,13 @@ class MigrateToolsCommand extends Command
     }
 
     /**
-     * Migrate v1.0.x tools to v1.3.0 (full migration)
+     * Migrate v1.0.x tools to v1.3.0 (rename methods only, no isStreaming since v1.0.x defaulted to HTTP)
      */
     private function migrateFromV1_0(string $content): string
     {
         $modifiedContent = $content;
 
-        // 1. Add isStreaming() method
-        $isStreamingMethod = PHP_EOL.
-            '    public function isStreaming(): bool'.PHP_EOL.
-            '    {'.PHP_EOL.
-            '        return false;'.PHP_EOL.
-            '    }'.PHP_EOL;
-
-        // Add it after the class opening brace and ToolInterface implementation
-        if (! str_contains($modifiedContent, 'public function isStreaming(): bool')) {
-            $modifiedContent = preg_replace(
-                '/(implements\s+ToolInterface\s*\{)/',
-                '$1'.$isStreamingMethod,
-                $modifiedContent,
-                1
-            );
-        }
-
-        // 2. Rename methods
+        // Rename methods only - v1.0.x tools defaulted to HTTP so no isStreaming() needed
         $replacements = [
             'public function getName(): string' => 'public function name(): string',
             'public function getDescription(): string' => 'public function description(): string',
@@ -206,33 +189,37 @@ class MigrateToolsCommand extends Command
     }
 
     /**
-     * Migrate v1.1.x/v1.2.x tools to v1.3.0 (add isStreaming method)
+     * Migrate v1.1.x/v1.2.x tools to v1.3.0 (remove messageType and conditionally add isStreaming)
      */
     private function migrateFromV1_1(string $content): string
     {
         $modifiedContent = $content;
 
-        // Add isStreaming() method after messageType() method
-        $isStreamingMethod = PHP_EOL.PHP_EOL.
-            '    public function isStreaming(): bool'.PHP_EOL.
-            '    {'.PHP_EOL.
-            '        return false;'.PHP_EOL.
-            '    }';
-
-        // Find messageType method and add isStreaming after it
+        // Find messageType method and determine if it's SSE or HTTP
         if (preg_match('/(public function messageType\(\): ProcessMessageType\s*\{[^}]*\})/s', $content, $matches)) {
             $messageTypeMethod = $matches[1];
-            $replacement = $messageTypeMethod.$isStreamingMethod;
-            $modifiedContent = str_replace($messageTypeMethod, $replacement, $modifiedContent);
-        } else {
-            // If messageType method not found, add isStreaming after class opening
-            if (! str_contains($modifiedContent, 'public function isStreaming(): bool')) {
-                $modifiedContent = preg_replace(
-                    '/(implements\s+ToolInterface\s*\{)/',
-                    '$1'.PHP_EOL.'    public function isStreaming(): bool'.PHP_EOL.'    {'.PHP_EOL.'        return false;'.PHP_EOL.'    }'.PHP_EOL,
-                    $modifiedContent,
-                    1
-                );
+            
+            // Check if the messageType returns SSE
+            $isSSE = str_contains($messageTypeMethod, 'ProcessMessageType::SSE');
+            
+            if ($isSSE) {
+                // For SSE tools: Replace messageType with isStreaming() returning true
+                $isStreamingMethod = '    public function isStreaming(): bool'.PHP_EOL.
+                    '    {'.PHP_EOL.
+                    '        return true;'.PHP_EOL.
+                    '    }';
+                $modifiedContent = str_replace($messageTypeMethod, $isStreamingMethod, $modifiedContent);
+            } else {
+                // For HTTP tools: Just remove the messageType method completely
+                $modifiedContent = str_replace($messageTypeMethod, '', $modifiedContent);
+                
+                // Clean up any extra newlines left behind
+                $modifiedContent = preg_replace('/\n\s*\n\s*\n/', "\n\n", $modifiedContent);
+            }
+            
+            // Remove the ProcessMessageType import if it's no longer needed
+            if (!$isSSE && !str_contains($modifiedContent, 'ProcessMessageType::')) {
+                $modifiedContent = preg_replace('/use OPGG\\\\LaravelMcpServer\\\\Enums\\\\ProcessMessageType;\s*\n/', '', $modifiedContent);
             }
         }
 

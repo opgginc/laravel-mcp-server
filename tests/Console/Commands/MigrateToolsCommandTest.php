@@ -62,8 +62,7 @@ PHP;
 
 function getExpectedNewToolContent(string $className = 'OldTool'): string
 {
-    // Note: The actual output might have slightly different EOL character handling
-    // depending on the preg_replace and str_replace logic. This is an ideal state.
+    // v1.0.x tools don't get isStreaming() method since they default to HTTP
     return <<<PHP
 <?php
 
@@ -74,11 +73,6 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
 class {$className} implements ToolInterface
 {
-    public function isStreaming(): bool
-    {
-        return false;
-    }
-
     public function name(): string
     {
         return 'old_tool';
@@ -218,9 +212,12 @@ test('command migrates v1.2 tool to v1.3 successfully', function () {
     expect(File::exists($backupPath))->toBeTrue();
     expect(File::get($backupPath))->toBe(getV1_2ToolContent('MyV12Tool'));
 
-    // Check that isStreaming method was added
+    // Check that messageType method was removed for HTTP tools
     $migratedContent = File::get($toolPath);
-    expect($migratedContent)->toContain('public function isStreaming(): bool');
+    expect($migratedContent)->not->toContain('public function messageType(): ProcessMessageType');
+    expect($migratedContent)->not->toContain('return ProcessMessageType::HTTP');
+    // HTTP tools don't get isStreaming() method since they default to HTTP
+    expect($migratedContent)->not->toContain('public function isStreaming(): bool');
 });
 
 function getV1_1ToolContent(string $className = 'V11Tool'): string
@@ -286,11 +283,13 @@ test('command migrates v1.1 tool to v1.3 successfully', function () {
     expect(File::exists($backupPath))->toBeTrue();
     expect(File::get($backupPath))->toBe(getV1_1ToolContent('MyV11Tool'));
 
-    // Check that isStreaming method was added
+    // Check that messageType method was replaced with isStreaming for SSE tools
     $migratedContent = File::get($toolPath);
     expect($migratedContent)->toContain('public function isStreaming(): bool');
-    // Original messageType method should still be there for backward compatibility
-    expect($migratedContent)->toContain('return ProcessMessageType::SSE');
+    expect($migratedContent)->toContain('return true;');
+    // Original messageType method should be removed
+    expect($migratedContent)->not->toContain('public function messageType(): ProcessMessageType');
+    expect($migratedContent)->not->toContain('return ProcessMessageType::SSE');
 });
 
 test('command handles invalid path', function () {
