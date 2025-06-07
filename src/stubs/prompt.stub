@@ -34,8 +34,10 @@ use OPGG\LaravelMcpServer\Services\PromptService\Prompt;
  *     - description: string (optional) - Explains what this argument is for
  *     - required: bool (optional, default: false) - Whether this argument must be provided
  *
- * USAGE EXAMPLE:
- * -------------
+ * USAGE EXAMPLES:
+ * ===============
+ * 
+ * Basic Usage:
  * When a client requests this prompt:
  * {
  *   "method": "prompts/get",
@@ -48,7 +50,53 @@ use OPGG\LaravelMcpServer\Services\PromptService\Prompt;
  *   }
  * }
  *
- * The response will contain the processed prompt with placeholders replaced.
+ * Advanced Usage with cURL:
+ * curl -X POST http://localhost:8000/mcp \
+ *   -H "Content-Type: application/json" \
+ *   -d '{
+ *     "jsonrpc": "2.0",
+ *     "id": 1,
+ *     "method": "prompts/get",
+ *     "params": {
+ *       "name": "{{ name }}",
+ *       "arguments": {
+ *         "example_arg": "AI Assistant",
+ *         "optional_arg": "Advanced Mode"
+ *       }
+ *     }
+ *   }'
+ *
+ * Testing with Artisan:
+ * php artisan mcp:test-tool --list
+ * 
+ * Using MCP Inspector:
+ * npx @modelcontextprotocol/inspector
+ * # Then connect to your Laravel server endpoint
+ *
+ * ADVANCED PROMPT PATTERNS:
+ * ========================
+ * 
+ * Multi-Message Prompts:
+ * You can return arrays of messages for complex interactions:
+ * return [
+ *   ['role' => 'system', 'content' => 'You are a helpful assistant...'],
+ *   ['role' => 'user', 'content' => $this->text],
+ * ];
+ *
+ * Conditional Content:
+ * Use PHP logic to customize prompts based on arguments:
+ * $content = "Base prompt text";
+ * if ($arguments['advanced_mode']) {
+ *   $content .= " Include technical details and advanced options.";
+ * }
+ *
+ * Resource References:
+ * Include references to your resources in prompts:
+ * "Analyze the data from file:///logs/{date}.log and provide insights."
+ *
+ * Tool Integration:
+ * Guide LLMs on which tools to use:
+ * "Use the search-products tool to find items matching {criteria}."
  *
  * @see https://modelcontextprotocol.io/docs/concepts/prompts
  */
@@ -56,9 +104,15 @@ class {{ className }} extends Prompt
 {
     /**
      * Unique identifier for this prompt.
-     * Best practice: Use descriptive kebab-case names.
+     * Used by clients to request this specific prompt.
+     *
+     * NAMING BEST PRACTICES:
+     * - Use descriptive, action-oriented names
+     * - Include context or domain when relevant
+     * - Examples: 'analyze-sales-data', 'debug-api-error', 'generate-user-report'
+     * - Use kebab-case naming convention
      */
-    public string $name = 'example-prompt';
+    public string $name = '{{ name }}';
 
     /**
      * Optional description shown in prompt listings.
