@@ -44,7 +44,10 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 class {{ className }} implements ToolInterface
 {
     /**
-     * Determines if this tool requires streaming (SSE) instead of standard HTTP.
+     * OPTIONAL: Determines if this tool requires streaming (SSE) instead of standard HTTP.
+     *
+     * This method is optional and only needed if you want to use streaming.
+     * If not implemented, the tool defaults to HTTP transport (recommended).
      *
      * Most tools should return false for better performance and compatibility.
      * Only return true if you specifically need real-time streaming capabilities.
