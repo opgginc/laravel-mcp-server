@@ -3,16 +3,15 @@
 namespace OPGG\LaravelMcpServer\Services\ToolService\Examples;
 
 use Illuminate\Support\Facades\Validator;
-use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
 class HelloWorldTool implements ToolInterface
 {
-    public function messageType(): ProcessMessageType
+    public function isStreaming(): bool
     {
-        return ProcessMessageType::HTTP;
+        return false;
     }
 
     public function name(): string

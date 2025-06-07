@@ -11,8 +11,14 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 /**
  * {{ className }} - MCP Tool Implementation
  *
- * This tool follows the ToolInterface specification introduced in v1.1.0.
- * All methods are required for proper MCP tool functionality.
+ * QUICK START GUIDE:
+ * ==================
+ * 1. Update the name() method with your tool's unique identifier
+ * 2. Write a clear description() explaining what your tool does
+ * 3. Define inputSchema() with your required and optional parameters
+ * 4. Set appropriate annotations() for your tool's behavior
+ * 5. Implement the execute() method with your core logic
+ * 6. Test with: php artisan mcp:test-tool {{ className }}
  *
  * QUICK START GUIDE:
  * ==================
@@ -38,17 +44,32 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 class {{ className }} implements ToolInterface
 {
     /**
-     * Determines how the tool's messages are processed by the transport layer.
+     * OPTIONAL: Determines if this tool requires streaming (SSE) instead of standard HTTP.
      *
-     * ProcessMessageType::HTTP - For tools interacting via standard HTTP (recommended)
-     * ProcessMessageType::SSE - For tools specifically designed for Server-Sent Events
-     * ProcessMessageType::PROTOCOL - Legacy type for older SSE implementations
+     * This method is optional and only needed if you want to use streaming.
+     * If not implemented, the tool defaults to HTTP transport (recommended).
      *
-     * @return ProcessMessageType The message processing type for this tool
+     * Most tools should return false for better performance and compatibility.
+     * Only return true if you specifically need real-time streaming capabilities.
+     *
+     * WHEN TO USE STREAMING (return true):
+     * - Real-time progress updates for long-running operations
+     * - Live data feeds or monitoring tools
+     * - Interactive tools requiring bidirectional communication
+     * - Tools that need to push multiple updates during execution
+     *
+     * WHEN TO USE HTTP (return false - RECOMMENDED):
+     * - Standard CRUD operations
+     * - API calls and data retrieval
+     * - File operations and calculations
+     * - Most business logic tools
+     *
+     * @since v1.3.0
+     * @return bool True if the tool requires streaming, false for standard HTTP
      */
-    public function messageType(): ProcessMessageType
+    public function isStreaming(): bool
     {
-        return ProcessMessageType::HTTP;
+        return false;
     }
 
     /**

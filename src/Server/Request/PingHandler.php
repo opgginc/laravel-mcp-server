@@ -8,7 +8,7 @@ use stdClass;
 
 class PingHandler extends RequestHandler
 {
-    protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
 
     protected const HANDLE_METHOD = 'ping';
 

@@ -10,7 +10,7 @@ use OPGG\LaravelMcpServer\Services\PromptService\PromptRepository;
 
 class PromptsGetHandler extends RequestHandler
 {
-    protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
 
     protected const HANDLE_METHOD = 'prompts/get';
 

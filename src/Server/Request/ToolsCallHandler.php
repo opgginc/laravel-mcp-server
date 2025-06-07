@@ -10,7 +10,7 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 
 class ToolsCallHandler extends RequestHandler
 {
-    protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
 
     protected const HANDLE_METHOD = ['tools/call', 'tools/execute'];
 
@@ -34,7 +34,18 @@ class ToolsCallHandler extends RequestHandler
             throw new JsonRpcErrorException(message: "Tool '{$name}' not found", code: JsonRpcErrorCode::METHOD_NOT_FOUND);
         }
 
-        return $tool->messageType();
+        // Check for new isStreaming() method first (v1.3.0+)
+        if (method_exists($tool, 'isStreaming')) {
+            return $tool->isStreaming() ? ProcessMessageType::SSE : ProcessMessageType::HTTP;
+        }
+
+        // Fallback to legacy messageType() method for backward compatibility
+        if (method_exists($tool, 'messageType')) {
+            return $tool->messageType();
+        }
+
+        // Default to HTTP if neither method exists
+        return ProcessMessageType::HTTP;
     }
 
     public function execute(string $method, ?array $params = null): array

@@ -10,7 +10,7 @@ use OPGG\LaravelMcpServer\Server\MCPServer;
 
 class InitializeHandler extends RequestHandler
 {
-    protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
 
     protected const HANDLE_METHOD = 'initialize';
 

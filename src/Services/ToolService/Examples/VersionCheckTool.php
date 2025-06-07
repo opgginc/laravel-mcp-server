@@ -3,15 +3,14 @@
 namespace OPGG\LaravelMcpServer\Services\ToolService\Examples;
 
 use Illuminate\Support\Facades\App;
-use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use stdClass;
 
 class VersionCheckTool implements ToolInterface
 {
-    public function messageType(): ProcessMessageType
+    public function isStreaming(): bool
     {
-        return ProcessMessageType::HTTP;
+        return false;
     }
 
     public function name(): string
