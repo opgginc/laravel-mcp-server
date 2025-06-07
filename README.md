@@ -26,7 +26,22 @@
   <a href="README.es.md">Español</a>
 </p>
 
-## ⚠️ Breaking Changes in v1.1.0
+## ⚠️ Version Information & Breaking Changes
+
+### v1.3.0 Changes (Current)
+
+Version 1.3.0 introduces improvements to the `ToolInterface` for better communication control:
+
+**New Features:**
+- Added `isStreaming(): bool` method for clearer communication pattern selection
+- Improved migration tools supporting upgrades from v1.1.x, v1.2.x to v1.3.0
+- Enhanced stub files with comprehensive v1.3.0 documentation
+
+**Deprecated Features:**
+- `messageType(): ProcessMessageType` method is now deprecated (will be removed in v2.0.0)
+- Use `isStreaming(): bool` instead for better clarity and simplicity
+
+### Breaking Changes in v1.1.0
 
 Version 1.1.0 introduced a significant and breaking change to the `ToolInterface`. If you are upgrading from v1.0.x, you **must** update your tool implementations to conform to the new interface.
 
@@ -154,17 +169,23 @@ use OPGG\LaravelMcpServer\Enums\ProcessMessageType; // Import the enum
 
 class MyNewTool implements ToolInterface
 {
-    // Add the new messageType() method
+    /**
+     * @deprecated since v1.3.0, use isStreaming() instead. Will be removed in v2.0.0
+     */
     public function messageType(): ProcessMessageType
     {
-        // Return the appropriate message type, e.g., for a standard tool
-        return ProcessMessageType::SSE;
+        return ProcessMessageType::HTTP;
     }
 
-    public function name(): string { return 'MyNewTool'; } // Renamed
-    public function description(): string { return 'This is my new tool.'; } // Renamed
-    public function inputSchema(): array { return []; } // Renamed
-    public function annotations(): array { return []; } // Renamed
+    public function isStreaming(): bool
+    {
+        return false; // Most tools should return false
+    }
+
+    public function name(): string { return 'MyNewTool'; }
+    public function description(): string { return 'This is my new tool.'; }
+    public function inputSchema(): array { return []; }
+    public function annotations(): array { return []; }
     public function execute(array $arguments): mixed { /* ... */ }
 }
 ```
@@ -309,8 +330,13 @@ use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 
 interface ToolInterface
 {
-    // Determines how the tool's messages are processed, often related to the transport.
+    /**
+     * @deprecated since v1.3.0, use isStreaming() instead. Will be removed in v2.0.0
+     */
     public function messageType(): ProcessMessageType;
+
+    // NEW in v1.3.0: Determines if this tool requires streaming (SSE) instead of standard HTTP.
+    public function isStreaming(): bool;
 
     // The unique, callable name of your tool (e.g., 'get-user-details').
     public function name(): string;
@@ -331,7 +357,9 @@ interface ToolInterface
 
 Let's dive deeper into some of these methods:
 
-**`messageType(): ProcessMessageType`**
+**`messageType(): ProcessMessageType` (Deprecated in v1.3.0)**
+
+⚠️ **This method is deprecated since v1.3.0.** Use `isStreaming(): bool` instead for better clarity.
 
 This method specifies the type of message processing for your tool. It returns a `ProcessMessageType` enum value. The available types are:
 
@@ -339,6 +367,18 @@ This method specifies the type of message processing for your tool. It returns a
 - `ProcessMessageType::SSE`: For tools specifically designed to work with Server-Sent Events.
 
 For most tools, especially those designed for the primary `streamable_http` provider, you'll return `ProcessMessageType::HTTP`.
+
+**`isStreaming(): bool` (New in v1.3.0)**
+
+This is the new, more intuitive method for controlling communication patterns:
+
+- `return false`: Use standard HTTP request/response (recommended for most tools)
+- `return true`: Use Server-Sent Events for real-time streaming
+
+Most tools should return `false` unless you specifically need real-time streaming capabilities like:
+- Real-time progress updates for long-running operations
+- Live data feeds or monitoring tools
+- Interactive tools requiring bidirectional communication
 
 **`name(): string`**
 
@@ -751,6 +791,44 @@ You can also translate specific languages:
 ```bash
 python scripts/translate_readme.py es ko
 ```
+
+## Deprecated Features for v2.0.0
+
+The following features are deprecated and will be removed in v2.0.0. Please update your code accordingly:
+
+### ToolInterface Changes
+
+**Deprecated since v1.3.0:**
+- `messageType(): ProcessMessageType` method
+- **Replacement:** Use `isStreaming(): bool` instead
+- **Migration Guide:** Return `false` for HTTP tools, `true` for streaming tools
+- **Automatic Migration:** Run `php artisan mcp:migrate-tools` to update your tools
+
+**Example Migration:**
+
+```php
+// Old approach (deprecated)
+public function messageType(): ProcessMessageType
+{
+    return ProcessMessageType::HTTP;
+}
+
+// New approach (v1.3.0+)
+public function isStreaming(): bool
+{
+    return false; // Use false for HTTP, true for streaming
+}
+```
+
+### Removed Features
+
+**Removed in v1.3.0:**
+- `ProcessMessageType::PROTOCOL` enum case (consolidated into `ProcessMessageType::HTTP`)
+
+**Planning for v2.0.0:**
+- Complete removal of `messageType()` method from `ToolInterface`
+- All tools will be required to implement `isStreaming()` method only
+- Simplified tool configuration and reduced complexity
 
 ## License
 

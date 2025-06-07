@@ -11,8 +11,12 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 /**
  * {{ className }} - MCP Tool Implementation
  *
- * This tool follows the ToolInterface specification introduced in v1.1.0.
+ * This tool follows the ToolInterface specification (v1.3.0).
  * All methods are required for proper MCP tool functionality.
+ *
+ * v1.3.0 CHANGES:
+ * - Added isStreaming() method for better communication control
+ * - messageType() is now deprecated (will be removed in v2.0.0)
  *
  * QUICK START GUIDE:
  * ==================
@@ -38,17 +42,29 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 class {{ className }} implements ToolInterface
 {
     /**
-     * Determines how the tool's messages are processed by the transport layer.
+     * Determines if this tool requires streaming (SSE) instead of standard HTTP.
      *
-     * ProcessMessageType::HTTP - For tools interacting via standard HTTP (recommended)
-     * ProcessMessageType::SSE - For tools specifically designed for Server-Sent Events
-     * ProcessMessageType::PROTOCOL - Legacy type for older SSE implementations
+     * Most tools should return false for better performance and compatibility.
+     * Only return true if you specifically need real-time streaming capabilities.
      *
-     * @return ProcessMessageType The message processing type for this tool
+     * WHEN TO USE STREAMING (return true):
+     * - Real-time progress updates for long-running operations
+     * - Live data feeds or monitoring tools
+     * - Interactive tools requiring bidirectional communication
+     * - Tools that need to push multiple updates during execution
+     *
+     * WHEN TO USE HTTP (return false - RECOMMENDED):
+     * - Standard CRUD operations
+     * - API calls and data retrieval
+     * - File operations and calculations
+     * - Most business logic tools
+     *
+     * @since v1.3.0
+     * @return bool True if the tool requires streaming, false for standard HTTP
      */
-    public function messageType(): ProcessMessageType
+    public function isStreaming(): bool
     {
-        return ProcessMessageType::HTTP;
+        return false;
     }
 
     /**

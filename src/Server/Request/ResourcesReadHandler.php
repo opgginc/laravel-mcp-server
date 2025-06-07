@@ -10,7 +10,7 @@ use OPGG\LaravelMcpServer\Services\ResourceService\ResourceRepository;
 
 class ResourcesReadHandler extends RequestHandler
 {
-    protected const MESSAGE_TYPE = ProcessMessageType::PROTOCOL;
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
 
     protected const HANDLE_METHOD = 'resources/read';
 

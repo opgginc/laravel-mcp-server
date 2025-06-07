@@ -3,8 +3,8 @@
 namespace OPGG\LaravelMcpServer\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\File; // Will be needed later for file operations
-use Symfony\Component\Finder\Finder; // Will be needed later for finding files
+use Illuminate\Support\Facades\File;
+use Symfony\Component\Finder\Finder;
 
 class MigrateToolsCommand extends Command
 {
@@ -20,7 +20,7 @@ class MigrateToolsCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Migrates older MCP tools to the v1.1.0 ToolInterface structure.';
+    protected $description = 'Migrates older MCP tools to the current ToolInterface structure (supports v1.0.x → v1.3.0 and v1.1.x/v1.2.x → v1.3.0).';
 
     /**
      * Execute the console command.
@@ -34,10 +34,11 @@ class MigrateToolsCommand extends Command
         if (! File::isDirectory($toolsPath)) {
             $this->error("The specified path `{$toolsPath}` is not a directory or does not exist.");
 
-            return Command::FAILURE;
+            return self::FAILURE;
         }
 
         $this->info("Starting migration scan for tools in: {$toolsPath}");
+        $this->info('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0');
 
         $finder = new Finder;
         $finder->files()->in($toolsPath)->name('*.php');
@@ -45,7 +46,7 @@ class MigrateToolsCommand extends Command
         if (! $finder->hasResults()) {
             $this->info('No PHP files found in the specified path.');
 
-            return Command::SUCCESS;
+            return self::SUCCESS;
         }
 
         $potentialCandidates = 0;
@@ -53,26 +54,13 @@ class MigrateToolsCommand extends Command
         foreach ($finder as $file) {
             $content = $file->getContents();
 
-            // Basic check for old ToolInterface and old method names
-            // This is a heuristic and might need refinement.
-            $isOldToolInterface = str_contains($content, 'implements ToolInterface') || str_contains($content, 'use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;');
-
-            $hasOldMethods = str_contains($content, 'public function getName(): string') ||
-                             str_contains($content, 'public function getDescription(): string') ||
-                             str_contains($content, 'public function getInputSchema(): array') ||
-                             str_contains($content, 'public function getAnnotations(): array');
-
+            // Check for tools that need migration
             $filePath = $file->getRealPath();
+            $toolVersion = $this->detectToolVersion($content);
+            $needsMigration = $toolVersion !== null && $toolVersion !== '1.3.0';
 
-            $isOldToolInterface = str_contains($content, 'implements ToolInterface') || str_contains($content, 'use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;');
-
-            $hasOldMethods = str_contains($content, 'public function getName(): string') ||
-                             str_contains($content, 'public function getDescription(): string') ||
-                             str_contains($content, 'public function getInputSchema(): array') ||
-                             str_contains($content, 'public function getAnnotations(): array');
-
-            if ($isOldToolInterface && $hasOldMethods) {
-                $this->line('Found potential candidate for migration: '.$filePath);
+            if ($needsMigration) {
+                $this->line("Found {$toolVersion} tool requiring migration to 1.3.0: {$filePath}");
                 $potentialCandidates++;
 
                 $backupFilePath = $filePath.'.backup';
@@ -89,64 +77,10 @@ class MigrateToolsCommand extends Command
 
                         // Proceed with migration
                         $originalContent = File::get($filePath);
-                        $modifiedContent = $originalContent;
 
-                        // 1. Add 'use ProcessMessageType' if not present
-                        $useStatement = 'use OPGG\LaravelMcpServer\Enums\ProcessMessageType;';
-                        if (! str_contains($modifiedContent, $useStatement) && ! str_contains($modifiedContent, 'use ProcessMessageType;')) { // Avoid duplicate if aliased
-                            // Find the last use statement and add after it
-                            if (preg_match_all('/^use\s+[^;]+;$/m', $modifiedContent, $matches, PREG_OFFSET_CAPTURE)) {
-                                // Get the last use statement
-                                $lastUseMatch = end($matches[0]);
-                                $lastUseEndPos = $lastUseMatch[1] + strlen($lastUseMatch[0]);
-
-                                // Insert the new use statement after the last one
-                                $modifiedContent = substr_replace(
-                                    $modifiedContent,
-                                    PHP_EOL.$useStatement,
-                                    $lastUseEndPos,
-                                    0
-                                );
-                            } else {
-                                // Fallback: Add after namespace or <?php if no existing use statements
-                                $modifiedContent = preg_replace(
-                                    '/(namespace\s+[^;]+;)/',
-                                    '$1'.PHP_EOL.PHP_EOL.$useStatement,
-                                    $modifiedContent,
-                                    1 // Only replace once
-                                );
-                            }
-                        }
-
-                        // 2. Add messageType() method
-                        $messageTypeMethod = PHP_EOL.
-                            '    public function messageType(): ProcessMessageType'.PHP_EOL.
-                            '    {'.PHP_EOL.
-                            '        return ProcessMessageType::SSE;'.PHP_EOL. // Defaulting to SSE as per original thought, can be changed
-                            '    }'.PHP_EOL;
-
-                        // Add it after the class opening brace and ToolInterface implementation
-                        // Ensure it's not added if already present (simple check)
-                        if (! str_contains($modifiedContent, 'public function messageType(): ProcessMessageType')) {
-                            $modifiedContent = preg_replace(
-                                '/(implements\s+ToolInterface\s*\{)/',
-                                '$1'.$messageTypeMethod,
-                                $modifiedContent,
-                                1 // Only replace once
-                            );
-                        }
-
-                        // 3. Rename methods
-                        $replacements = [
-                            'public function getName(): string' => 'public function name(): string',
-                            'public function getDescription(): string' => 'public function description(): string',
-                            'public function getInputSchema(): array' => 'public function inputSchema(): array',
-                            'public function getAnnotations(): array' => 'public function annotations(): array',
-                        ];
-
-                        foreach ($replacements as $old => $new) {
-                            $modifiedContent = str_replace($old, $new, $modifiedContent);
-                        }
+                        // Apply migration strategy based on detected version
+                        $this->info("Performing migration from {$toolVersion} to 1.3.0...");
+                        $modifiedContent = $this->applyMigrationStrategy($toolVersion, $originalContent);
 
                         if ($modifiedContent !== $originalContent) {
                             if (File::put($filePath, $modifiedContent)) {
@@ -159,8 +93,6 @@ class MigrateToolsCommand extends Command
                         }
 
                     } else {
-                        // This case might be rare if File::copy throws an exception on failure,
-                        // but good to have a fallback.
                         $this->error("Failed to create backup for '{$filePath}'. Skipping migration for this file.");
 
                         continue;
@@ -180,6 +112,130 @@ class MigrateToolsCommand extends Command
             $this->info('Scan complete. No files seem to require migration based on initial checks.');
         }
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
+    }
+
+    /**
+     * Detect the version of a tool based on its content
+     */
+    private function detectToolVersion(string $content): ?string
+    {
+        $isToolInterface = str_contains($content, 'implements ToolInterface') ||
+                          str_contains($content, 'use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;');
+
+        if (! $isToolInterface) {
+            return null; // Not a tool
+        }
+
+        // Check for v1.0.x style methods (old method names)
+        $hasV1Methods = str_contains($content, 'public function getName(): string') ||
+                       str_contains($content, 'public function getDescription(): string') ||
+                       str_contains($content, 'public function getInputSchema(): array') ||
+                       str_contains($content, 'public function getAnnotations(): array');
+
+        if ($hasV1Methods) {
+            return '1.0.x';
+        }
+
+        // Check for isStreaming() method (v1.3.0 style)
+        $hasIsStreaming = str_contains($content, 'public function isStreaming(): bool');
+
+        if ($hasIsStreaming) {
+            return '1.3.0'; // Already migrated
+        }
+
+        // Check for messageType() method without isStreaming() (v1.1.x/v1.2.x tools)
+        $hasMessageType = str_contains($content, 'public function messageType(): ProcessMessageType');
+
+        if ($hasMessageType) {
+            return '1.1.x'; // Could be 1.1.x or 1.2.x, needs isStreaming() method
+        }
+
+        return null; // Unknown or not a proper tool
+    }
+
+    /**
+     * Apply the appropriate migration strategy
+     */
+    private function applyMigrationStrategy(string $fromVersion, string $content): string
+    {
+        return match ($fromVersion) {
+            '1.0.x' => $this->migrateFromV1_0($content),
+            '1.1.x' => $this->migrateFromV1_1($content),
+            default => $content,
+        };
+    }
+
+    /**
+     * Migrate v1.0.x tools to v1.3.0 (full migration)
+     */
+    private function migrateFromV1_0(string $content): string
+    {
+        $modifiedContent = $content;
+
+        // 1. Add isStreaming() method
+        $isStreamingMethod = PHP_EOL.
+            '    public function isStreaming(): bool'.PHP_EOL.
+            '    {'.PHP_EOL.
+            '        return false;'.PHP_EOL.
+            '    }'.PHP_EOL;
+
+        // Add it after the class opening brace and ToolInterface implementation
+        if (! str_contains($modifiedContent, 'public function isStreaming(): bool')) {
+            $modifiedContent = preg_replace(
+                '/(implements\s+ToolInterface\s*\{)/',
+                '$1'.$isStreamingMethod,
+                $modifiedContent,
+                1
+            );
+        }
+
+        // 2. Rename methods
+        $replacements = [
+            'public function getName(): string' => 'public function name(): string',
+            'public function getDescription(): string' => 'public function description(): string',
+            'public function getInputSchema(): array' => 'public function inputSchema(): array',
+            'public function getAnnotations(): array' => 'public function annotations(): array',
+        ];
+
+        foreach ($replacements as $old => $new) {
+            $modifiedContent = str_replace($old, $new, $modifiedContent);
+        }
+
+        return $modifiedContent;
+    }
+
+    /**
+     * Migrate v1.1.x/v1.2.x tools to v1.3.0 (add isStreaming method)
+     */
+    private function migrateFromV1_1(string $content): string
+    {
+        $modifiedContent = $content;
+
+        // Add isStreaming() method after messageType() method
+        $isStreamingMethod = PHP_EOL.PHP_EOL.
+            '    public function isStreaming(): bool'.PHP_EOL.
+            '    {'.PHP_EOL.
+            '        return false;'.PHP_EOL.
+            '    }';
+
+        // Find messageType method and add isStreaming after it
+        if (preg_match('/(public function messageType\(\): ProcessMessageType\s*\{[^}]*\})/s', $content, $matches)) {
+            $messageTypeMethod = $matches[1];
+            $replacement = $messageTypeMethod.$isStreamingMethod;
+            $modifiedContent = str_replace($messageTypeMethod, $replacement, $modifiedContent);
+        } else {
+            // If messageType method not found, add isStreaming after class opening
+            if (! str_contains($modifiedContent, 'public function isStreaming(): bool')) {
+                $modifiedContent = preg_replace(
+                    '/(implements\s+ToolInterface\s*\{)/',
+                    '$1'.PHP_EOL.'    public function isStreaming(): bool'.PHP_EOL.'    {'.PHP_EOL.'        return false;'.PHP_EOL.'    }'.PHP_EOL,
+                    $modifiedContent,
+                    1
+                );
+            }
+        }
+
+        return $modifiedContent;
     }
 }
