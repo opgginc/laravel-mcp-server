@@ -65,12 +65,12 @@ class MigrateToolsCommand extends Command
                 $potentialCandidates++;
 
                 // Ask about backup creation only once
-                if ($createBackups === null && !$this->option('no-backup')) {
+                if ($createBackups === null && ! $this->option('no-backup')) {
                     $createBackups = $this->confirm(
                         'Do you want to create backup files before migration? (Recommended)',
                         true // Default to yes
                     );
-                    
+
                     if ($createBackups) {
                         $this->info('Backup files will be created with .backup extension.');
                     } else {
@@ -85,6 +85,7 @@ class MigrateToolsCommand extends Command
                 // Check if backup already exists when backups are enabled
                 if ($createBackups && File::exists($backupFilePath)) {
                     $this->warn("Backup for '{$filePath}' already exists at '{$backupFilePath}'. Skipping migration for this file.");
+
                     continue; // Skip to the next file
                 }
 
@@ -95,6 +96,7 @@ class MigrateToolsCommand extends Command
                             $this->info("Backed up '{$filePath}' to '{$backupFilePath}'.");
                         } else {
                             $this->error("Failed to create backup for '{$filePath}'. Skipping migration for this file.");
+
                             continue;
                         }
                     }
@@ -110,7 +112,7 @@ class MigrateToolsCommand extends Command
                         if (File::put($filePath, $modifiedContent)) {
                             $this->info("Successfully migrated '{$filePath}'.");
                         } else {
-                            $this->error("Failed to write changes to '{$filePath}'." . ($createBackups ? " You can restore from backup if needed." : ""));
+                            $this->error("Failed to write changes to '{$filePath}'.".($createBackups ? ' You can restore from backup if needed.' : ''));
                         }
                     } else {
                         $this->info("No changes were necessary for '{$filePath}' during migration content generation (this might indicate an issue or already migrated parts).");
@@ -118,6 +120,7 @@ class MigrateToolsCommand extends Command
 
                 } catch (\Exception $e) {
                     $this->error("Error migrating '{$filePath}': ".$e->getMessage().'. Skipping migration for this file.');
+
                     continue;
                 }
 
