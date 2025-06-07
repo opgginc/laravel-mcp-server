@@ -216,10 +216,10 @@ class MigrateToolsCommand extends Command
         // Find messageType method and determine if it's SSE or HTTP
         if (preg_match('/(public function messageType\(\): ProcessMessageType\s*\{[^}]*\})/s', $content, $matches)) {
             $messageTypeMethod = $matches[1];
-            
+
             // Check if the messageType returns SSE
             $isSSE = str_contains($messageTypeMethod, 'ProcessMessageType::SSE');
-            
+
             if ($isSSE) {
                 // For SSE tools: Replace messageType with isStreaming() returning true
                 $isStreamingMethod = '    public function isStreaming(): bool'.PHP_EOL.
@@ -230,13 +230,13 @@ class MigrateToolsCommand extends Command
             } else {
                 // For HTTP tools: Just remove the messageType method completely
                 $modifiedContent = str_replace($messageTypeMethod, '', $modifiedContent);
-                
+
                 // Clean up any extra newlines left behind
                 $modifiedContent = preg_replace('/\n\s*\n\s*\n/', "\n\n", $modifiedContent);
             }
-            
+
             // Remove the ProcessMessageType import if it's no longer needed
-            if (!$isSSE && !str_contains($modifiedContent, 'ProcessMessageType::')) {
+            if (! $isSSE && ! str_contains($modifiedContent, 'ProcessMessageType::')) {
                 $modifiedContent = preg_replace('/use OPGG\\\\LaravelMcpServer\\\\Enums\\\\ProcessMessageType;\s*\n/', '', $modifiedContent);
             }
         }
