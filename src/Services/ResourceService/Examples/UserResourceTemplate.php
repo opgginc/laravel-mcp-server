@@ -36,7 +36,7 @@ class UserResourceTemplate extends ResourceTemplate
     {
         // In a real implementation, you would query your database:
         // $users = User::select(['id', 'name'])->get();
-        // 
+        //
         // For this example, we'll return mock data:
         $users = [
             ['id' => 1, 'name' => 'Alice'],

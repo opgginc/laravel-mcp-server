@@ -82,7 +82,7 @@ class ResourceRepository
     public function getResourceSchemas(): array
     {
         $staticResources = array_values(array_map(fn (Resource $r) => $r->toArray(), $this->resources));
-        
+
         $templateResources = [];
         foreach ($this->templates as $template) {
             $listedResources = $template->list();
@@ -92,7 +92,7 @@ class ResourceRepository
                 }
             }
         }
-        
+
         return array_merge($staticResources, $templateResources);
     }
 
