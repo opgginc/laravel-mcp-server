@@ -75,11 +75,25 @@ class ResourceRepository
     }
 
     /**
+     * Get all available resources including static resources and template-generated resources.
+     *
      * @return array<int, array<string, mixed>>
      */
     public function getResourceSchemas(): array
     {
-        return array_values(array_map(fn (Resource $r) => $r->toArray(), $this->resources));
+        $staticResources = array_values(array_map(fn (Resource $r) => $r->toArray(), $this->resources));
+        
+        $templateResources = [];
+        foreach ($this->templates as $template) {
+            $listedResources = $template->list();
+            if ($listedResources !== null) {
+                foreach ($listedResources as $resource) {
+                    $templateResources[] = $resource;
+                }
+            }
+        }
+        
+        return array_merge($staticResources, $templateResources);
     }
 
     /**
@@ -90,10 +104,32 @@ class ResourceRepository
         return array_values(array_map(fn (ResourceTemplate $t) => $t->toArray(), $this->templates));
     }
 
-    public function read(string $uri): ?array
+    /**
+     * Read resource content by URI.
+     *
+     * This method first attempts to find a static resource with an exact URI match.
+     * If no static resource is found, it tries to match the URI against registered
+     * resource templates and returns the dynamically generated content.
+     *
+     * @param  string  $uri  The resource URI to read (e.g., "database://users/123")
+     * @return array|null Resource content array with 'uri', 'mimeType', and 'text'/'blob', or null if not found
+     */
+    public function readResource(string $uri): ?array
     {
+        // First, try to find a static resource with exact URI match
         $resource = $this->resources[$uri] ?? null;
+        if ($resource !== null) {
+            return $resource->read();
+        }
 
-        return $resource?->read();
+        // If no static resource found, try to match against templates
+        foreach ($this->templates as $template) {
+            $params = $template->matchUri($uri);
+            if ($params !== null) {
+                return $template->read($uri, $params);
+            }
+        }
+
+        return null;
     }
 }

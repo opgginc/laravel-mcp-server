@@ -57,7 +57,7 @@ class {{ className }} extends ResourceTemplate
     /**
      * URI template pattern.
      * Variables in {braces} will be replaced by clients.
-     * 
+     *
      * Common patterns:
      * - Single variable: "/path/{id}"
      * - Multiple variables: "/data/{category}/{item}"
@@ -75,7 +75,7 @@ class {{ className }} extends ResourceTemplate
     /**
      * Comprehensive description including variable documentation.
      * This is crucial for helping LLMs understand how to use your template.
-     * 
+     *
      * Best practices:
      * - Document each variable's purpose
      * - Specify format requirements (e.g., date formats, ID patterns)
@@ -108,47 +108,100 @@ DESC;
     public ?string $mimeType = 'application/json';
 
     /**
+     * Optional: List all resources that match this template pattern.
+     *
+     * This method is called when clients request the resources/list endpoint.
+     * If implemented, it should return an array of concrete resource definitions
+     * that can be generated from this template.
+     *
+     * Implementation options:
+     * - Return null if you don't want to list specific resources
+     * - Return an array of available resources for discovery
+     * - Query your data source to provide real-time resource lists
+     *
+     * @return array|null Array of resource definitions, or null if listing is not supported
+     */
+    public function list(): ?array
+    {
+        // Option 1: No listing support (default)
+        // return null;
+
+        // Option 2: Static list of available resources
+        // return [
+        //     [
+        //         'uri' => 'file:///example/users/user123.json',
+        //         'name' => 'User 123',
+        //         'description' => 'User data for user123',
+        //         'mimeType' => $this->mimeType,
+        //     ],
+        //     [
+        //         'uri' => 'file:///example/products/prod-456.json',
+        //         'name' => 'Product 456',
+        //         'description' => 'Product data for prod-456',
+        //         'mimeType' => $this->mimeType,
+        //     ],
+        // ];
+
+        // Option 3: Dynamic list from database
+        // $items = YourModel::select(['id', 'name'])->get();
+        // return $items->map(function ($item) {
+        //     return [
+        //         'uri' => "file:///example/items/{$item->id}.json",
+        //         'name' => "Item: {$item->name}",
+        //         'description' => "Data for {$item->name}",
+        //         'mimeType' => $this->mimeType,
+        //     ];
+        // })->toArray();
+
+        return null; // Default: no listing support
+    }
+
+    /**
+     * Read the content of a resource that matches this template.
+     *
+     * This method is called when a client requests to read a resource
+     * whose URI matches this template pattern. Extract the parameters
+     * from the URI and generate the appropriate content.
+     *
+     * @param string $uri The full URI being requested
+     * @param array $params Parameters extracted from the URI template
+     * @return array Resource content array with 'uri', 'mimeType', and either 'text' or 'blob'
+     */
+    public function read(string $uri, array $params): array
+    {
+        // Extract parameters from the template variables
+        $category = $params['category'] ?? 'unknown';
+        $id = $params['id'] ?? 'unknown';
+
+        // TODO: Implement your resource reading logic here
+        // This is where you would:
+        // 1. Validate the parameters
+        // 2. Fetch data from your database/API/filesystem
+        // 3. Format the response appropriately
+
+        // Example implementation:
+        $data = [
+            'category' => $category,
+            'id' => $id,
+            'timestamp' => now()->toISOString(),
+            'message' => "This is example data for {$category}/{$id}",
+            // TODO: Replace with real data
+        ];
+
+        return [
+            'uri' => $uri,
+            'mimeType' => $this->mimeType,
+            'text' => json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+        ];
+    }
+
+    /**
      * Optional: Additional template examples for complex patterns
      */
     // More template examples:
-    // 
+    //
     // Date-based: 'file:///logs/{year}/{month}/{day}.log'
     // With query: 'api://search/products{?name,category,minPrice,maxPrice}'
     // Optional path: 'file:///data{/type}{/subtype}/latest.json'
     // Multiple formats: 'api://export/{dataset}.{format}' where format = json|csv|xml
 }
-
-/*
- * TESTING YOUR RESOURCE TEMPLATE:
- * ===============================
- * 
- * 1. Register the template in config/mcp-server.php
- * 2. Test discovery:
- *    curl -X POST http://localhost:8000/mcp \
- *      -H "Content-Type: application/json" \
- *      -d '{"jsonrpc":"2.0","id":1,"method":"resources/templates/list"}'
- * 
- * 3. Test with specific URI:
- *    curl -X POST http://localhost:8000/mcp \
- *      -H "Content-Type: application/json" \
- *      -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"file:///{{ className|lower }}/123.json"}}'
- * 
- * 4. Use MCP Inspector for interactive testing:
- *    npx @modelcontextprotocol/inspector
- * 
- * TROUBLESHOOTING:
- * ===============
- * - Verify your ResourceRepository can handle the generated URIs
- * - Check that variable substitution works correctly
- * - Ensure MIME types match your actual content
- * - Test edge cases (missing variables, invalid formats)
- * - Validate that LLMs can understand your variable documentation
- * 
- * PERFORMANCE CONSIDERATIONS:
- * ==========================
- * - Cache expensive resource operations
- * - Implement rate limiting for complex queries
- * - Consider pagination for large datasets
- * - Optimize database queries used by your resources
- * - Monitor template usage patterns
- */

@@ -21,7 +21,6 @@ class ResourcesListHandler extends RequestHandler
     {
         return [
             'resources' => $this->repository->getResourceSchemas(),
-            'resourceTemplates' => $this->repository->getTemplateSchemas(),
         ];
     }
 }
