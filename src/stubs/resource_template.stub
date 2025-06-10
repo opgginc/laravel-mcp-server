@@ -114,6 +114,10 @@ DESC;
      * If implemented, it should return an array of concrete resource definitions
      * that can be generated from this template.
      *
+     * WARNING: This method is called EVERY TIME the resources/list endpoint is accessed.
+     * For performance reasons, you should implement caching if this method performs
+     * expensive operations like database queries or file system scans.
+     *
      * Implementation options:
      * - Return null if you don't want to list specific resources
      * - Return an array of available resources for discovery
@@ -142,16 +146,18 @@ DESC;
         //     ],
         // ];
 
-        // Option 3: Dynamic list from database
-        // $items = YourModel::select(['id', 'name'])->get();
-        // return $items->map(function ($item) {
-        //     return [
-        //         'uri' => "file:///example/items/{$item->id}.json",
-        //         'name' => "Item: {$item->name}",
-        //         'description' => "Data for {$item->name}",
-        //         'mimeType' => $this->mimeType,
-        //     ];
-        // })->toArray();
+        // Option 3: Dynamic list from database with caching (RECOMMENDED)
+        // return Cache::remember('mcp.resources.example.list', 300, function () {
+        //     $items = YourModel::select(['id', 'name'])->get();
+        //     return $items->map(function ($item) {
+        //         return [
+        //             'uri' => "file:///example/items/{$item->id}.json",
+        //             'name' => "Item: {$item->name}",
+        //             'description' => "Data for {$item->name}",
+        //             'mimeType' => $this->mimeType,
+        //         ];
+        //     })->toArray();
+        // });
 
         return null; // Default: no listing support
     }
