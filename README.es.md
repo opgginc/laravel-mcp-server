@@ -1,7 +1,7 @@
 <h1 align="center">Laravel MCP Server por OP.GG</h1>
 
 <p align="center">
-  Un potente paquete de Laravel para construir un Servidor de Protocolo de Contexto de Modelo de forma fluida
+  Un potente paquete de Laravel para construir un servidor del Protocolo de Contexto de Modelo de forma fluida
 </p>
 
 <p align="center">
@@ -26,9 +26,24 @@
   <a href="README.es.md">Español</a>
 </p>
 
-## ⚠️ Cambios Incompatibles en v1.1.0
+## ⚠️ Información de Versión y Cambios Disruptivos
 
-La versión 1.1.0 introdujo un cambio significativo e incompatible en la `ToolInterface`. Si estás actualizando desde v1.0.x, **debes** actualizar tus implementaciones de herramientas para cumplir con la nueva interfaz.
+### Cambios en v1.3.0 (Actual)
+
+La versión 1.3.0 introduce mejoras en la `ToolInterface` para un mejor control de la comunicación:
+
+**Nuevas Características:**
+- Añadido el método `isStreaming(): bool` para una selección más clara del patrón de comunicación
+- Herramientas de migración mejoradas que soportan actualizaciones desde v1.1.x, v1.2.x a v1.3.0
+- Archivos stub mejorados con documentación completa de v1.3.0
+
+**Características Obsoletas:**
+- El método `messageType(): ProcessMessageType` está ahora obsoleto (será eliminado en v2.0.0)
+- Usa `isStreaming(): bool` en su lugar para mayor claridad y simplicidad
+
+### Cambios Disruptivos en v1.1.0
+
+La versión 1.1.0 introdujo un cambio significativo y disruptivo en la `ToolInterface`. Si estás actualizando desde v1.0.x, **debes** actualizar tus implementaciones de herramientas para cumplir con la nueva interfaz.
 
 **Cambios Clave en `ToolInterface`:**
 
@@ -45,7 +60,7 @@ La `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` ha sido actualizad
     - `getInputSchema()` ahora es `inputSchema()`
     - `getAnnotations()` ahora es `annotations()`
 
-**Cómo Actualizar Tus Herramientas:**
+**Cómo Actualizar tus Herramientas:**
 
 ### Migración Automatizada de Herramientas para v1.1.0
 
@@ -59,8 +74,8 @@ php artisan mcp:migrate-tools {path?}
 
 Este comando escaneará archivos PHP en el directorio especificado (por defecto `app/MCP/Tools/`) e intentará:
 
-1.  **Identificar herramientas antiguas:** Busca clases que implementen la `ToolInterface` con las firmas de métodos antiguas.
-2.  **Crear Copias de Seguridad:** Antes de hacer cualquier cambio, creará una copia de seguridad de tu archivo de herramienta original con una extensión `.backup` (ej. `YourTool.php.backup`). Si ya existe un archivo de copia de seguridad, el archivo original será omitido para prevenir pérdida accidental de datos.
+1.  **Identificar herramientas antiguas:** Busca clases que implementen la `ToolInterface` con las firmas de método antiguas.
+2.  **Crear Copias de Seguridad:** Antes de hacer cualquier cambio, creará una copia de seguridad de tu archivo de herramienta original con una extensión `.backup` (ej., `YourTool.php.backup`). Si ya existe un archivo de copia de seguridad, el archivo original será omitido para prevenir pérdida accidental de datos.
 3.  **Refactorizar la Herramienta:**
     - Renombrar métodos:
       - `getName()` a `name()`
@@ -154,24 +169,30 @@ use OPGG\LaravelMcpServer\Enums\ProcessMessageType; // Importar el enum
 
 class MyNewTool implements ToolInterface
 {
-    // Añadir el nuevo método messageType()
+    /**
+     * @deprecated desde v1.3.0, usa isStreaming() en su lugar. Será eliminado en v2.0.0
+     */
     public function messageType(): ProcessMessageType
     {
-        // Devolver el tipo de mensaje apropiado, ej., para una herramienta estándar
-        return ProcessMessageType::SSE;
+        return ProcessMessageType::HTTP;
     }
 
-    public function name(): string { return 'MyNewTool'; } // Renombrado
-    public function description(): string { return 'This is my new tool.'; } // Renombrado
-    public function inputSchema(): array { return []; } // Renombrado
-    public function annotations(): array { return []; } // Renombrado
+    public function isStreaming(): bool
+    {
+        return false; // La mayoría de herramientas deberían devolver false
+    }
+
+    public function name(): string { return 'MyNewTool'; }
+    public function description(): string { return 'This is my new tool.'; }
+    public function inputSchema(): array { return []; }
+    public function annotations(): array { return []; }
     public function execute(array $arguments): mixed { /* ... */ }
 }
 ```
 
 ## Visión General de Laravel MCP Server
 
-Laravel MCP Server es un paquete potente diseñado para agilizar la implementación de servidores de Protocolo de Contexto de Modelo (MCP) en aplicaciones Laravel. **A diferencia de la mayoría de paquetes Laravel MCP que usan transporte de Entrada/Salida Estándar (stdio)**, este paquete se centra en el transporte **HTTP Streamable** y aún incluye un **proveedor SSE legacy** para compatibilidad hacia atrás, proporcionando un método de integración seguro y controlado.
+Laravel MCP Server es un paquete potente diseñado para agilizar la implementación de servidores del Protocolo de Contexto de Modelo (MCP) en aplicaciones Laravel. **A diferencia de la mayoría de paquetes Laravel MCP que usan transporte de Entrada/Salida Estándar (stdio)**, este paquete se centra en el transporte **HTTP Streamable** y aún incluye un **proveedor SSE legacy** para compatibilidad hacia atrás, proporcionando un método de integración seguro y controlado.
 
 ### ¿Por qué HTTP Streamable en lugar de STDIO?
 
@@ -197,7 +218,7 @@ Beneficios clave:
 
 - Soporte de comunicación en tiempo real a través de HTTP Streamable con integración SSE
 - Implementación de herramientas y recursos compatibles con las especificaciones del Protocolo de Contexto de Modelo
-- Arquitectura de diseño basada en adaptadores con patrón de mensajería Pub/Sub (comenzando con Redis, más adaptadores planificados)
+- Arquitectura de diseño basada en adaptadores con patrón de mensajería Pub/Sub (comenzando con Redis, más adaptadores planeados)
 - Configuración simple de enrutamiento y middleware
 
 ### Proveedores de Transporte
@@ -268,7 +289,7 @@ Puedes restringir las rutas del servidor MCP a dominio(s) específico(s) para me
 'domain' => ['api.op.gg', 'api.kargn.as'],
 ```
 
-> **Nota:** Cuando usas múltiples dominios, el paquete registra automáticamente rutas separadas para cada dominio para asegurar el enrutamiento adecuado a través de todos los dominios especificados.
+> **Nota:** Cuando uses múltiples dominios, el paquete registra automáticamente rutas separadas para cada dominio para asegurar el enrutamiento adecuado a través de todos los dominios especificados.
 
 ### Creando y Añadiendo Herramientas Personalizadas
 
@@ -282,7 +303,7 @@ Este comando:
 
 - Maneja varios formatos de entrada (espacios, guiones, mayúsculas mixtas)
 - Convierte automáticamente el nombre al formato de caso apropiado
-- Crea una clase de herramienta correctamente estructurada en `app/MCP/Tools`
+- Crea una clase de herramienta estructurada apropiadamente en `app/MCP/Tools`
 - Ofrece registrar automáticamente la herramienta en tu configuración
 
 También puedes crear y registrar herramientas manualmente en `config/mcp-server.php`:
@@ -309,8 +330,13 @@ use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 
 interface ToolInterface
 {
-    // Determina cómo se procesan los mensajes de la herramienta, a menudo relacionado con el transporte.
+    /**
+     * @deprecated desde v1.3.0, usa isStreaming() en su lugar. Será eliminado en v2.0.0
+     */
     public function messageType(): ProcessMessageType;
+
+    // NUEVO en v1.3.0: Determina si esta herramienta requiere streaming (SSE) en lugar de HTTP estándar.
+    public function isStreaming(): bool;
 
     // El nombre único y llamable de tu herramienta (ej., 'get-user-details').
     public function name(): string;
@@ -321,7 +347,7 @@ interface ToolInterface
     // Define los parámetros de entrada esperados para tu herramienta usando una estructura similar a JSON Schema.
     public function inputSchema(): array;
 
-    // Proporciona una forma de añadir metadatos o anotaciones arbitrarias a tu herramienta.
+    // Proporciona una forma de añadir metadatos arbitrarios o anotaciones a tu herramienta.
     public function annotations(): array;
 
     // La lógica central de tu herramienta. Recibe argumentos validados y devuelve el resultado.
@@ -331,26 +357,40 @@ interface ToolInterface
 
 Profundicemos en algunos de estos métodos:
 
-**`messageType(): ProcessMessageType`**
+**`messageType(): ProcessMessageType` (Obsoleto en v1.3.0)**
 
-Este método especifica el tipo de procesamiento de mensajes para tu herramienta. Devuelve un valor del enum `ProcessMessageType`. Los tipos disponibles son:
+⚠️ **Este método está obsoleto desde v1.3.0.** Usa `isStreaming(): bool` en su lugar para mayor claridad.
+
+Este método especifica el tipo de procesamiento de mensaje para tu herramienta. Devuelve un valor enum `ProcessMessageType`. Los tipos disponibles son:
 
 - `ProcessMessageType::HTTP`: Para herramientas que interactúan vía petición/respuesta HTTP estándar. Más común para herramientas nuevas.
 - `ProcessMessageType::SSE`: Para herramientas específicamente diseñadas para trabajar con Server-Sent Events.
 
-Para la mayoría de herramientas, especialmente aquellas diseñadas para el proveedor principal `streamable_http`, devolverás `ProcessMessageType::HTTP`.
+Para la mayoría de herramientas, especialmente aquellas diseñadas para el proveedor primario `streamable_http`, devolverás `ProcessMessageType::HTTP`.
+
+**`isStreaming(): bool` (Nuevo en v1.3.0)**
+
+Este es el nuevo método más intuitivo para controlar patrones de comunicación:
+
+- `return false`: Usar petición/respuesta HTTP estándar (recomendado para la mayoría de herramientas)
+- `return true`: Usar Server-Sent Events para streaming en tiempo real
+
+La mayoría de herramientas deberían devolver `false` a menos que específicamente necesites capacidades de streaming en tiempo real como:
+- Actualizaciones de progreso en tiempo real para operaciones de larga duración
+- Feeds de datos en vivo o herramientas de monitoreo
+- Herramientas interactivas que requieren comunicación bidireccional
 
 **`name(): string`**
 
-Este es el identificador para tu herramienta. Debe ser único. Los clientes usarán este nombre para solicitar tu herramienta. Por ejemplo: `get-weather`, `calculate-sum`.
+Este es el identificador para tu herramienta. Debería ser único. Los clientes usarán este nombre para solicitar tu herramienta. Por ejemplo: `get-weather`, `calculate-sum`.
 
 **`description(): string`**
 
-Una descripción clara y concisa de la funcionalidad de tu herramienta. Esto se usa en documentación, y las interfaces de usuario de clientes MCP (como el MCP Inspector) pueden mostrársela a los usuarios.
+Una descripción clara y concisa de la funcionalidad de tu herramienta. Esto se usa en documentación, y las UIs de cliente MCP (como el MCP Inspector) pueden mostrarlo a los usuarios.
 
 **`inputSchema(): array`**
 
-Este método es crucial para definir los parámetros de entrada esperados de tu herramienta. Debe devolver un array que siga una estructura similar a JSON Schema. Este esquema se usa:
+Este método es crucial para definir los parámetros de entrada esperados de tu herramienta. Debería devolver un array que siga una estructura similar a JSON Schema. Este esquema se usa:
 
 - Por clientes para entender qué datos enviar.
 - Potencialmente por el servidor o cliente para validación de entrada.
@@ -366,12 +406,12 @@ public function inputSchema(): array
         'properties' => [
             'userId' => [
                 'type' => 'integer',
-                'description' => 'El identificador único para el usuario.',
+                'description' => 'The unique identifier for the user.',
             ],
             'includeDetails' => [
                 'type' => 'boolean',
-                'description' => 'Si incluir detalles extendidos en la respuesta.',
-                'default' => false, // Puedes especificar valores por defecto
+                'description' => 'Whether to include extended details in the response.',
+                'default' => false, // Puedes especificar valores predeterminados
             ],
         ],
         'required' => ['userId'], // Especifica qué propiedades son obligatorias
@@ -399,19 +439,19 @@ if ($validator->fails()) {
 
 **`annotations(): array`**
 
-Este método proporciona metadatos sobre el comportamiento y características de tu herramienta, siguiendo la [especificación oficial de Anotaciones de Herramientas MCP](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations). Las anotaciones ayudan a los clientes MCP a categorizar herramientas, tomar decisiones informadas sobre aprobación de herramientas, y proporcionar interfaces de usuario apropiadas.
+Este método proporciona metadatos sobre el comportamiento y características de tu herramienta, siguiendo la [especificación oficial de Anotaciones de Herramientas MCP](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations). Las anotaciones ayudan a los clientes MCP a categorizar herramientas, tomar decisiones informadas sobre la aprobación de herramientas, y proporcionar interfaces de usuario apropiadas.
 
 **Anotaciones MCP Estándar:**
 
 El Protocolo de Contexto de Modelo define varias anotaciones estándar que los clientes entienden:
 
-- **`title`** (string): Un título legible para la herramienta, mostrado en interfaces de usuario de clientes
+- **`title`** (string): Un título legible para la herramienta, mostrado en UIs de cliente
 - **`readOnlyHint`** (boolean): Indica si la herramienta solo lee datos sin modificar el entorno (predeterminado: false)
 - **`destructiveHint`** (boolean): Sugiere si la herramienta puede realizar operaciones destructivas como eliminar datos (predeterminado: true)
 - **`idempotentHint`** (boolean): Indica si llamadas repetidas con los mismos argumentos no tienen efecto adicional (predeterminado: false)
 - **`openWorldHint`** (boolean): Señala si la herramienta interactúa con entidades externas más allá del entorno local (predeterminado: true)
 
-**Importante:** Estas son pistas, no garantías. Ayudan a los clientes a proporcionar mejores experiencias de usuario pero no deben usarse para decisiones críticas de seguridad.
+**Importante:** Estas son pistas, no garantías. Ayudan a los clientes a proporcionar mejores experiencias de usuario pero no deberían usarse para decisiones críticas de seguridad.
 
 **Ejemplo con anotaciones MCP estándar:**
 
@@ -419,11 +459,11 @@ El Protocolo de Contexto de Modelo define varias anotaciones estándar que los c
 public function annotations(): array
 {
     return [
-        'title' => 'Obtenedor de Perfil de Usuario',
+        'title' => 'User Profile Fetcher',
         'readOnlyHint' => true,        // La herramienta solo lee datos de usuario
         'destructiveHint' => false,    // La herramienta no elimina o modifica datos
-        'idempotentHint' => true,      // Seguro llamar múltiples veces
-        'openWorldHint' => false,      // La herramienta solo accede a base de datos local
+        'idempotentHint' => true,      // Seguro de llamar múltiples veces
+        'openWorldHint' => false,      // La herramienta solo accede a la base de datos local
     ];
 }
 ```
@@ -435,7 +475,7 @@ public function annotations(): array
 public function annotations(): array
 {
     return [
-        'title' => 'Herramienta de Consulta de Base de Datos',
+        'title' => 'Database Query Tool',
         'readOnlyHint' => true,
         'destructiveHint' => false,
         'idempotentHint' => true,
@@ -447,7 +487,7 @@ public function annotations(): array
 public function annotations(): array
 {
     return [
-        'title' => 'Herramienta de Eliminación de Posts del Blog',
+        'title' => 'Blog Post Deletion Tool',
         'readOnlyHint' => false,
         'destructiveHint' => true,     // Puede eliminar posts
         'idempotentHint' => false,     // Eliminar dos veces tiene efectos diferentes
@@ -459,11 +499,11 @@ public function annotations(): array
 public function annotations(): array
 {
     return [
-        'title' => 'API del Tiempo',
+        'title' => 'Weather API',
         'readOnlyHint' => true,
         'destructiveHint' => false,
         'idempotentHint' => true,
-        'openWorldHint' => true,       // Accede a API externa del tiempo
+        'openWorldHint' => true,       // Accede a API externa de clima
     ];
 }
 ```
@@ -475,17 +515,188 @@ public function annotations(): array
 {
     return [
         // Anotaciones MCP estándar
-        'title' => 'Herramienta Personalizada',
+        'title' => 'Custom Tool',
         'readOnlyHint' => true,
 
         // Anotaciones personalizadas para tu aplicación
         'category' => 'data-analysis',
         'version' => '2.1.0',
-        'author' => 'Equipo de Datos',
+        'author' => 'Data Team',
         'requires_permission' => 'analytics.read',
     ];
 }
 ```
+
+### Trabajando con Recursos
+
+Los recursos exponen datos de tu servidor que pueden ser leídos por clientes MCP. Son
+**controlados por la aplicación**, lo que significa que el cliente decide cuándo y cómo usarlos.
+Crea recursos concretos o plantillas URI en `app/MCP/Resources` y
+`app/MCP/ResourceTemplates` usando los helpers de Artisan:
+
+```bash
+php artisan make:mcp-resource SystemLogResource
+php artisan make:mcp-resource-template UserLogTemplate
+```
+
+Registra las clases generadas en `config/mcp-server.php` bajo los arrays `resources`
+y `resource_templates`. Cada clase de recurso extiende la clase base
+`Resource` e implementa un método `read()` que devuelve contenido `text` o
+`blob`. Las plantillas extienden `ResourceTemplate` y describen patrones URI
+dinámicos que los clientes pueden usar. Un recurso se identifica por una URI como
+`file:///logs/app.log` y opcionalmente puede definir metadatos como `mimeType` o
+`size`.
+
+**Plantillas de Recursos con Listado Dinámico**: Las plantillas pueden opcionalmente implementar un método `list()` para proporcionar instancias de recursos concretos que coincidan con el patrón de la plantilla. Esto permite a los clientes descubrir recursos disponibles dinámicamente. El método `list()` permite a las instancias de ResourceTemplate generar una lista de recursos específicos que pueden ser leídos a través del método `read()` de la plantilla.
+
+Lista recursos disponibles usando el endpoint `resources/list` y lee su
+contenido con `resources/read`. El endpoint `resources/list` devuelve un array
+de recursos concretos, incluyendo tanto recursos estáticos como recursos generados
+dinámicamente desde plantillas que implementan el método `list()`:
+
+```json
+{
+  "resources": [
+    {
+      "uri": "file:///logs/app.log",
+      "name": "Application Log",
+      "mimeType": "text/plain"
+    },
+    {
+      "uri": "database://users/123",
+      "name": "User: John Doe",
+      "description": "Profile data for John Doe",
+      "mimeType": "application/json"
+    }
+  ]
+}
+```
+
+**Lectura Dinámica de Recursos**: Las plantillas de recursos soportan patrones de plantilla URI (RFC 6570) que permiten a los clientes construir identificadores de recursos dinámicos. Cuando un cliente solicita una URI de recurso que coincide con un patrón de plantilla, el método `read()` de la plantilla es llamado con parámetros extraídos para generar el contenido del recurso.
+
+Flujo de trabajo de ejemplo:
+1. La plantilla define el patrón: `"database://users/{userId}/profile"`
+2. El cliente solicita: `"database://users/123/profile"`
+3. La plantilla extrae `{userId: "123"}` y llama al método `read()`
+4. La plantilla devuelve datos de perfil de usuario para el ID de usuario 123
+
+También puedes listar plantillas por separado usando el endpoint `resources/templates/list`:
+
+```bash
+# Listar solo plantillas de recursos
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"resources/templates/list"}'
+```
+
+Cuando ejecutes tu servidor Laravel MCP remotamente, el transporte HTTP funciona con
+peticiones JSON-RPC estándar. Aquí tienes un ejemplo simple usando `curl` para listar y
+leer recursos:
+
+```bash
+# Listar recursos
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"resources/list"}'
+
+# Leer un recurso específico
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"file:///logs/app.log"}}'
+```
+
+El servidor responde con mensajes JSON transmitidos sobre la conexión HTTP, así que
+`curl --no-buffer` puede usarse si quieres ver salida incremental.
+
+### Trabajando con Prompts
+
+Los prompts proporcionan fragmentos de texto reutilizables con soporte de argumentos que tus herramientas o usuarios pueden solicitar.
+Crea clases de prompt en `app/MCP/Prompts` usando:
+
+```bash
+php artisan make:mcp-prompt WelcomePrompt
+```
+
+Regístralos en `config/mcp-server.php` bajo `prompts`. Cada clase de prompt
+extiende la clase base `Prompt` y define:
+- `name`: Identificador único (ej., "welcome-user")
+- `description`: Descripción opcional legible
+- `arguments`: Array de definiciones de argumentos con campos name, description y required
+- `text`: La plantilla de prompt con marcadores de posición como `{username}`
+
+Lista prompts vía el endpoint `prompts/list` y obténlos usando
+`prompts/get` con argumentos:
+
+```bash
+# Obtener un prompt de bienvenida con argumentos
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"welcome-user","arguments":{"username":"Alice","role":"admin"}}}'
+```
+
+### Prompts MCP
+
+Al crear prompts que referencien tus herramientas o recursos, consulta las [directrices oficiales de prompts](https://modelcontextprotocol.io/docs/concepts/prompts). Los prompts son plantillas reutilizables que pueden aceptar argumentos, incluir contexto de recursos e incluso describir flujos de trabajo de múltiples pasos.
+
+**Estructura de prompt**
+
+```json
+{
+  "name": "string",
+  "description": "string",
+  "arguments": [
+    {
+      "name": "string",
+      "description": "string",
+      "required": true
+    }
+  ]
+}
+```
+
+Los clientes descubren prompts vía `prompts/list` y solicitan específicos con `prompts/get`:
+
+```json
+{
+  "method": "prompts/get",
+  "params": {
+    "name": "analyze-code",
+    "arguments": {
+      "language": "php"
+    }
+  }
+}
+```
+
+**Ejemplo de Clase Prompt**
+
+```php
+use OPGG\LaravelMcpServer\Services\PromptService\Prompt;
+
+class WelcomePrompt extends Prompt
+{
+    public string $name = 'welcome-user';
+    
+    public ?string $description = 'A customizable welcome message for users';
+    
+    public array $arguments = [
+        [
+            'name' => 'username',
+            'description' => 'The name of the user to welcome',
+            'required' => true,
+        ],
+        [
+            'name' => 'role',
+            'description' => 'The role of the user (optional)',
+            'required' => false,
+        ],
+    ];
+    
+    public string $text = 'Welcome, {username}! You are logged in as {role}.';
+}
+```
+
+Los prompts pueden embeber recursos y devolver secuencias de mensajes para guiar un LLM. Ve la documentación oficial para ejemplos avanzados y mejores prácticas.
 
 ### Probando Herramientas MCP
 
@@ -511,10 +722,10 @@ Esto te ayuda a desarrollar y depurar herramientas rápidamente:
 
 ### Visualizando Herramientas MCP con Inspector
 
-También puedes usar el Inspector de Protocolo de Contexto de Modelo para visualizar y probar tus herramientas MCP:
+También puedes usar el Inspector del Protocolo de Contexto de Modelo para visualizar y probar tus herramientas MCP:
 
 ```bash
-# Ejecutar el MCP Inspector sin instalación
+# Ejecutar el Inspector MCP sin instalación
 npx @modelcontextprotocol/inspector node build/index.js
 ```
 
@@ -535,7 +746,7 @@ Esto típicamente abrirá una interfaz web en `localhost:6274`. Para probar tu s
 
      > **Importante**: Al instalar Laravel Octane, asegúrate de usar FrankenPHP como servidor. El paquete puede no funcionar correctamente con RoadRunner debido a problemas de compatibilidad con conexiones SSE. Si puedes ayudar a arreglar este problema de compatibilidad con RoadRunner, por favor envía un Pull Request - ¡tu contribución sería muy apreciada!
 
-     Para detalles, consulta la [documentación de Laravel Octane](https://laravel.com/docs/12.x/octane)
+     Para detalles, ve la [documentación de Laravel Octane](https://laravel.com/docs/12.x/octane)
 
    - **Opciones de grado de producción**:
      - Nginx + PHP-FPM
@@ -547,7 +758,7 @@ Esto típicamente abrirá una interfaz web en `localhost:6274`. Para probar tu s
 2. En la interfaz del Inspector, introduce la URL del endpoint MCP de tu servidor Laravel (ej., `http://localhost:8000/mcp`). Si estás usando el proveedor SSE legacy, usa la URL SSE en su lugar (`http://localhost:8000/mcp/sse`).
 3. Conéctate y explora las herramientas disponibles visualmente
 
-El endpoint MCP sigue el patrón: `http://[tu-servidor-laravel]/[default_path]` donde `default_path` está definido en tu archivo `config/mcp-server.php`.
+El endpoint MCP sigue el patrón: `http://[tu-servidor-laravel]/[ruta_predeterminada]` donde `ruta_predeterminada` está definida en tu archivo `config/mcp-server.php`.
 
 ## Características Avanzadas
 
@@ -565,8 +776,8 @@ Esta arquitectura permite:
 
 - Comunicación escalable en tiempo real
 - Entrega confiable de mensajes incluso durante desconexiones temporales
-- Manejo eficiente de múltiples conexiones de clientes concurrentes
-- Potencial para despliegues de servidores distribuidos
+- Manejo eficiente de múltiples conexiones de cliente concurrentes
+- Potencial para despliegues de servidor distribuidos
 
 ### Configuración del Adaptador Redis
 
@@ -578,7 +789,7 @@ El adaptador Redis predeterminado puede configurarse de la siguiente manera:
     'redis' => [
         'prefix' => 'mcp_sse_',    // Prefijo para claves Redis
         'connection' => 'default', // Conexión Redis desde database.php
-        'ttl' => 100,              // TTL de mensajes en segundos
+        'ttl' => 100,              // TTL de mensaje en segundos
     ],
 ],
 ```
@@ -598,6 +809,44 @@ También puedes traducir idiomas específicos:
 ```bash
 python scripts/translate_readme.py es ko
 ```
+
+## Características Obsoletas para v2.0.0
+
+Las siguientes características están obsoletas y serán eliminadas en v2.0.0. Por favor actualiza tu código en consecuencia:
+
+### Cambios en ToolInterface
+
+**Obsoleto desde v1.3.0:**
+- Método `messageType(): ProcessMessageType`
+- **Reemplazo:** Usa `isStreaming(): bool` en su lugar
+- **Guía de Migración:** Devuelve `false` para herramientas HTTP, `true` para herramientas de streaming
+- **Migración Automática:** Ejecuta `php artisan mcp:migrate-tools` para actualizar tus herramientas
+
+**Ejemplo de Migración:**
+
+```php
+// Enfoque antiguo (obsoleto)
+public function messageType(): ProcessMessageType
+{
+    return ProcessMessageType::HTTP;
+}
+
+// Nuevo enfoque (v1.3.0+)
+public function isStreaming(): bool
+{
+    return false; // Usa false para HTTP, true para streaming
+}
+```
+
+### Características Eliminadas
+
+**Eliminado en v1.3.0:**
+- Caso enum `ProcessMessageType::PROTOCOL` (consolidado en `ProcessMessageType::HTTP`)
+
+**Planeado para v2.0.0:**
+- Eliminación completa del método `messageType()` de `ToolInterface`
+- Todas las herramientas serán requeridas a implementar solo el método `isStreaming()`
+- Configuración de herramientas simplificada y complejidad reducida
 
 ## Licencia
 
