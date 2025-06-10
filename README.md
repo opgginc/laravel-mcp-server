@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/watch.gif" alt="Laravel MCP Server Demo" width="600">
+  <img src="docs/watch.gif" alt="Laravel MCP Server Demo" height="200">
 </p>
 
 ## ⚠️ Version Information & Breaking Changes
