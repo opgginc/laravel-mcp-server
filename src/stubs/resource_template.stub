@@ -117,6 +117,11 @@ DESC;
      * WARNING: This method is called EVERY TIME the resources/list endpoint is accessed.
      * For performance reasons, you should implement caching if this method performs
      * expensive operations like database queries or file system scans.
+     * 
+     * NOTE: Consider NOT implementing this method if you have many resources or
+     * expensive operations, as it can impact the performance of the resources/list endpoint.
+     * If you don't implement this method (return null), only static resources (Resource class)
+     * will be returned by the resources/list endpoint.
      *
      * Implementation options:
      * - Return null if you don't want to list specific resources
