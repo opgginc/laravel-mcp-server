@@ -52,6 +52,9 @@ php artisan octane:start
 - **InitializeHandler**: Handles client-server handshake and capability negotiation
 - **ToolsListHandler**: Returns available MCP tools to clients
 - **ToolsCallHandler**: Executes specific tool calls with parameters
+- **ResourcesListHandler**: Returns available resources (static + template-generated)
+- **ResourcesTemplatesListHandler**: Returns resource template definitions
+- **ResourcesReadHandler**: Reads resource content by URI
 - **PingHandler**: Health check endpoint
 
 ### Tool System
@@ -59,6 +62,16 @@ Tools implement `ToolInterface` and are registered in `config/mcp-server.php`. E
 - Input schema for parameter validation
 - Execution logic
 - Output formatting
+
+### Resource System
+Resources expose data to LLMs and are registered in `config/mcp-server.php`. Two types:
+- **Static Resources**: Concrete resources with fixed URIs
+- **Resource Templates**: Dynamic resources using URI templates (RFC 6570)
+
+Resource Templates support:
+- URI pattern matching with variables (e.g., `database://users/{id}`)
+- Optional `list()` method for dynamic resource discovery
+- Parameter extraction for `read()` method implementation
 
 ### Configuration
 Primary config: `config/mcp-server.php`
@@ -80,6 +93,14 @@ Primary config: `config/mcp-server.php`
 - Tool repository: `src/Services/ToolService/ToolRepository.php`
 - Example tools: `src/Services/ToolService/Examples/`
 - Tool stub template: `src/stubs/tool.stub`
+
+### Key Files for Resource Development
+- Resource base class: `src/Services/ResourceService/Resource.php`
+- ResourceTemplate base class: `src/Services/ResourceService/ResourceTemplate.php`
+- Resource repository: `src/Services/ResourceService/ResourceRepository.php`
+- URI template utility: `src/Utils/UriTemplateUtil.php`
+- Example resources: `src/Services/ResourceService/Examples/`
+- Resource stub templates: `src/stubs/resource.stub`, `src/stubs/resource_template.stub`
 
 ## Package Development Notes
 

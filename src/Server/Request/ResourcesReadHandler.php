@@ -26,7 +26,7 @@ class ResourcesReadHandler extends RequestHandler
             throw new JsonRpcErrorException(message: 'uri is required', code: JsonRpcErrorCode::INVALID_REQUEST);
         }
 
-        $content = $this->repository->read($uri);
+        $content = $this->repository->readResource($uri);
         if ($content === null) {
             throw new JsonRpcErrorException(message: 'Resource not found', code: JsonRpcErrorCode::INVALID_PARAMS);
         }

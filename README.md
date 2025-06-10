@@ -547,20 +547,40 @@ patterns clients can use. A resource is identified by a URI such as
 `file:///logs/app.log` and may optionally define metadata like `mimeType` or
 `size`.
 
+**Resource Templates with Dynamic Listing**: Templates can optionally implement a `list()` method to provide concrete resource instances that match the template pattern. This allows clients to discover available resources dynamically. The `list()` method enables ResourceTemplate instances to generate a list of specific resources that can be read through the template's `read()` method.
+
 List available resources using the `resources/list` endpoint and read their
-contents with `resources/read`. The `resources/list` endpoint returns both
-concrete resources and resource templates in a single response:
+contents with `resources/read`. The `resources/list` endpoint returns an array
+of concrete resources, including both static resources and dynamically generated 
+resources from templates that implement the `list()` method:
 
 ```json
 {
-  "resources": [...],          // Array of concrete resources
-  "resourceTemplates": [...]   // Array of URI templates
+  "resources": [
+    {
+      "uri": "file:///logs/app.log",
+      "name": "Application Log",
+      "mimeType": "text/plain"
+    },
+    {
+      "uri": "database://users/123",
+      "name": "User: John Doe",
+      "description": "Profile data for John Doe",
+      "mimeType": "application/json"
+    }
+  ]
 }
 ```
 
-Resource templates allow clients to construct dynamic resource identifiers
-using URI templates (RFC 6570). You can also list templates separately using
-the `resources/templates/list` endpoint:
+**Dynamic Resource Reading**: Resource templates support URI template patterns (RFC 6570) that allow clients to construct dynamic resource identifiers. When a client requests a resource URI that matches a template pattern, the template's `read()` method is called with extracted parameters to generate the resource content.
+
+Example workflow:
+1. Template defines pattern: `"database://users/{userId}/profile"`
+2. Client requests: `"database://users/123/profile"`
+3. Template extracts `{userId: "123"}` and calls `read()` method
+4. Template returns user profile data for user ID 123
+
+You can also list templates separately using the `resources/templates/list` endpoint:
 
 ```bash
 # List only resource templates

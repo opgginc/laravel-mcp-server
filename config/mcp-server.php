@@ -317,6 +317,7 @@ return [
     'resources' => [
         // Example resource - Remove in production
         \OPGG\LaravelMcpServer\Services\ResourceService\Examples\LogFileResource::class,
+        \OPGG\LaravelMcpServer\Services\ResourceService\Examples\UserListResource::class,
 
         // ===== REGISTER YOUR STATIC RESOURCES BELOW =====
         // Examples:
@@ -330,6 +331,7 @@ return [
     'resource_templates' => [
         // Example template - Remove in production
         \OPGG\LaravelMcpServer\Services\ResourceService\Examples\LogFileTemplate::class,
+        \OPGG\LaravelMcpServer\Services\ResourceService\Examples\UserResourceTemplate::class,
 
         // ===== REGISTER YOUR RESOURCE TEMPLATES BELOW =====
         // Examples:

@@ -71,7 +71,7 @@ test('repository can read resource by uri', function () {
     $repository = new ResourceRepository;
     $repository->registerResource(new TestResource);
 
-    $content = $repository->read('file:///test.txt');
+    $content = $repository->readResource('file:///test.txt');
 
     expect($content)->toMatchArray([
         'uri' => 'file:///test.txt',
@@ -83,7 +83,7 @@ test('repository can read resource by uri', function () {
 test('repository returns null for unknown resource uri', function () {
     $repository = new ResourceRepository;
 
-    $content = $repository->read('file:///unknown.txt');
+    $content = $repository->readResource('file:///unknown.txt');
 
     expect($content)->toBeNull();
 });
