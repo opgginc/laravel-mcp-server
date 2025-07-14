@@ -196,14 +196,13 @@ final class MCPProtocol
      */
     private function processNotification(string $clientId, NotificationData $notificationData): ProcessMessageData
     {
-        // todo:: processNotification currently not implemented
         $method = $notificationData->method;
-        $handler = $this->requestHandlers[$method] ?? null;
+        $handler = $this->notificationHandlers[$method] ?? null;
         if ($handler) {
-            $result = $handler->execute(method: $notificationData->method, params: $notificationData->params);
+            $result = $handler->execute(params: $notificationData->params);
             $messageType = $handler->getMessageType($notificationData->params);
 
-            $resultResource = new JsonRpcResultResource(id: Str::uuid()->toString(), result: $result);
+            $resultResource = new JsonRpcResultResource(id: null, result: $result);
             $processMessageData = new ProcessMessageData(messageType: $messageType, resource: $resultResource);
 
             if ($processMessageData->isSSEMessage()) {
