@@ -10,6 +10,7 @@ use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
 use OPGG\LaravelMcpServer\Protocol\Handlers\RequestHandler;
 use OPGG\LaravelMcpServer\Protocol\MCPProtocol;
+use OPGG\LaravelMcpServer\Server\Notification\InitializedHandler;
 use OPGG\LaravelMcpServer\Server\Request\InitializeHandler;
 use OPGG\LaravelMcpServer\Server\Request\PingHandler;
 use OPGG\LaravelMcpServer\Server\Request\PromptsGetHandler;
@@ -85,6 +86,9 @@ final class MCPServer
 
         // Initialize Default Handlers
         $this->registerRequestHandler(new PingHandler);
+
+        // Register notification handlers
+        $this->registerNotificationHandler(new InitializedHandler);
     }
 
     /**
