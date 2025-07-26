@@ -692,6 +692,280 @@ class WelcomePrompt extends Prompt
 
 프롬프트는 리소스를 포함하고 LLM을 안내하는 메시지 시퀀스를 반환할 수 있습니다. 고급 예시와 모범 사례는 공식 문서를 참조하세요.
 
+### 알림 작업
+
+알림은 MCP 클라이언트로부터의 fire-and-forget 메시지로, 항상 응답 본문 없이 HTTP 202 Accepted를 반환합니다. 클라이언트를 차단하지 않고 로깅, 진행 상황 추적, 이벤트 처리, 백그라운드 프로세스 트리거에 완벽합니다.
+
+#### 알림 핸들러 생성
+
+**기본 명령어 사용법:**
+
+```bash
+php artisan make:mcp-notification ProgressHandler --method=notifications/progress
+```
+
+**고급 명령어 기능:**
+
+```bash
+# 대화형 모드 - 메서드가 지정되지 않으면 메서드를 묻습니다
+php artisan make:mcp-notification MyHandler
+
+# 자동 메서드 접두사 처리
+php artisan make:mcp-notification StatusHandler --method=status  # notifications/status가 됩니다
+
+# 클래스 이름 정규화 
+php artisan make:mcp-notification "user activity"  # UserActivityHandler가 됩니다
+```
+
+이 명령어는 다음을 제공합니다:
+- `--method`가 지정되지 않았을 때 **대화형 메서드 프롬프트**
+- 복사-붙여넣기가 가능한 코드가 포함된 **자동 등록 가이드**
+- curl 명령어가 포함된 **내장 테스트 예시** 
+- **포괄적인 사용 지침**과 일반적인 사용 사례
+
+#### 알림 핸들러 아키텍처
+
+각 알림 핸들러는 `NotificationHandler` 추상 클래스를 구현해야 합니다:
+
+```php
+abstract class NotificationHandler
+{
+    // 필수: 메시지 유형 (일반적으로 ProcessMessageType::HTTP)
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    
+    // 필수: 처리할 알림 메서드  
+    protected const HANDLE_METHOD = 'notifications/your_method';
+    
+    // 필수: 알림 로직 실행
+    abstract public function execute(?array $params = null): void;
+}
+```
+
+**주요 아키텍처 구성 요소:**
+
+- **`MESSAGE_TYPE`**: 표준 알림의 경우 일반적으로 `ProcessMessageType::HTTP`
+- **`HANDLE_METHOD`**: 이 핸들러가 처리하는 JSON-RPC 메서드 (`notifications/`로 시작해야 함)
+- **`execute()`**: 알림 로직 포함 - void 반환 (응답 전송 안 함)
+- **생성자 검증**: 필수 상수가 정의되었는지 자동으로 검증
+
+#### 내장 알림 핸들러
+
+패키지에는 일반적인 MCP 시나리오를 위한 4개의 사전 구축된 핸들러가 포함되어 있습니다:
+
+**1. InitializedHandler (`notifications/initialized`)**
+- **목적**: 성공적인 핸드셰이크 후 클라이언트 초기화 확인 처리
+- **매개변수**: 클라이언트 정보 및 기능
+- **사용법**: 세션 추적, 클라이언트 로깅, 초기화 이벤트
+
+**2. ProgressHandler (`notifications/progress`)**
+- **목적**: 장시간 실행되는 작업의 진행 상황 업데이트 처리
+- **매개변수**: 
+  - `progressToken` (string): 작업의 고유 식별자
+  - `progress` (number): 현재 진행 값
+  - `total` (number, 선택): 백분율 계산을 위한 총 진행 값
+- **사용법**: 실시간 진행 상황 추적, 업로드 모니터링, 작업 완료
+
+**3. CancelledHandler (`notifications/cancelled`)**
+- **목적**: 요청 취소 알림 처리
+- **매개변수**:
+  - `requestId` (string): 취소할 요청의 ID
+  - `reason` (string, 선택): 취소 이유
+- **사용법**: 백그라운드 작업 종료, 리소스 정리, 작업 중단
+
+**4. MessageHandler (`notifications/message`)**
+- **목적**: 일반 로깅 및 통신 메시지 처리
+- **매개변수**:
+  - `level` (string): 로그 레벨 (info, warning, error, debug)
+  - `message` (string): 메시지 내용
+  - `logger` (string, 선택): 로거 이름
+- **사용법**: 클라이언트 측 로깅, 디버깅, 일반 통신
+
+#### 일반적인 시나리오를 위한 핸들러 예시
+
+```php
+// 파일 업로드 진행 상황 추적
+class UploadProgressHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/upload_progress';
+
+    public function execute(?array $params = null): void
+    {
+        $token = $params['progressToken'] ?? null;
+        $progress = $params['progress'] ?? 0;
+        $total = $params['total'] ?? 100;
+        
+        if ($token) {
+            Cache::put("upload_progress_{$token}", [
+                'progress' => $progress,
+                'total' => $total,
+                'percentage' => $total ? round(($progress / $total) * 100, 2) : 0,
+                'updated_at' => now()
+            ], 3600);
+            
+            // 실시간 업데이트 브로드캐스트
+            broadcast(new UploadProgressUpdated($token, $progress, $total));
+        }
+    }
+}
+
+// 사용자 활동 및 감사 로깅
+class UserActivityHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/user_activity';
+
+    public function execute(?array $params = null): void
+    {
+        UserActivity::create([
+            'user_id' => $params['userId'] ?? null,
+            'action' => $params['action'] ?? 'unknown',
+            'resource' => $params['resource'] ?? null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => $params['metadata'] ?? [],
+            'created_at' => now()
+        ]);
+        
+        // 민감한 작업에 대한 보안 알림 트리거
+        if (in_array($params['action'] ?? '', ['delete', 'export', 'admin_access'])) {
+            SecurityAlert::dispatch($params);
+        }
+    }
+}
+
+// 백그라운드 작업 트리거
+class TaskTriggerHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/trigger_task';
+
+    public function execute(?array $params = null): void
+    {
+        $taskType = $params['taskType'] ?? null;
+        $taskData = $params['data'] ?? [];
+        
+        match ($taskType) {
+            'send_email' => SendEmailJob::dispatch($taskData),
+            'generate_report' => GenerateReportJob::dispatch($taskData),
+            'sync_data' => DataSyncJob::dispatch($taskData),
+            'cleanup' => CleanupJob::dispatch($taskData),
+            default => Log::warning("Unknown task type: {$taskType}")
+        };
+    }
+}
+```
+
+#### 알림 핸들러 등록
+
+**서비스 제공자에서:**
+
+```php
+// AppServiceProvider 또는 전용 MCP 서비스 제공자에서
+public function boot()
+{
+    $server = app(MCPServer::class);
+    
+    // 내장 핸들러 등록 (선택사항 - 기본적으로 등록됨)
+    $server->registerNotificationHandler(new InitializedHandler());
+    $server->registerNotificationHandler(new ProgressHandler());
+    $server->registerNotificationHandler(new CancelledHandler());
+    $server->registerNotificationHandler(new MessageHandler());
+    
+    // 사용자 정의 핸들러 등록
+    $server->registerNotificationHandler(new UploadProgressHandler());
+    $server->registerNotificationHandler(new UserActivityHandler());
+    $server->registerNotificationHandler(new TaskTriggerHandler());
+}
+```
+
+#### 알림 테스트
+
+**curl을 사용한 알림 핸들러 테스트:**
+
+```bash
+# 진행 상황 알림 테스트
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/progress",
+    "params": {
+      "progressToken": "upload_123",
+      "progress": 75,
+      "total": 100
+    }
+  }'
+# 예상: 빈 본문으로 HTTP 202
+
+# 사용자 활동 알림 테스트  
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "notifications/user_activity",
+    "params": {
+      "userId": 123,
+      "action": "file_download",
+      "resource": "document.pdf"
+    }
+  }'
+# 예상: 빈 본문으로 HTTP 202
+
+# 취소 알림 테스트
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/cancelled", 
+    "params": {
+      "requestId": "req_abc123",
+      "reason": "User requested cancellation"
+    }
+  }'
+# 예상: 빈 본문으로 HTTP 202
+```
+
+**주요 테스트 참고사항:**
+- 알림은 **HTTP 202**를 반환 (200은 절대 안 함)
+- 응답 본문은 **항상 비어 있음**
+- JSON-RPC 응답 메시지가 전송되지 않음
+- 알림 처리 확인을 위해 서버 로그 확인
+
+#### 오류 처리 및 검증
+
+**일반적인 검증 패턴:**
+
+```php
+public function execute(?array $params = null): void
+{
+    // 필수 매개변수 검증
+    if (!isset($params['userId'])) {
+        Log::error('UserActivityHandler: Missing required userId parameter', $params);
+        return; // 예외를 던지지 마세요 - 알림은 내결함성이 있어야 합니다
+    }
+    
+    // 매개변수 유형 검증
+    if (!is_numeric($params['userId'])) {
+        Log::warning('UserActivityHandler: userId must be numeric', $params);
+        return;
+    }
+    
+    // 기본값으로 안전한 매개변수 추출
+    $userId = (int) $params['userId'];
+    $action = $params['action'] ?? 'unknown';
+    $metadata = $params['metadata'] ?? [];
+    
+    // 알림 처리...
+}
+```
+
+**오류 처리 모범 사례:**
+- 예외를 던지는 대신 **오류 로깅**
+- null 체크와 기본값으로 **방어적 프로그래밍** 사용
+- **우아하게 실패** - 클라이언트 워크플로를 깨뜨리지 마세요
+- **입력 검증**하되 가능하면 처리 계속
+- 로깅과 메트릭을 통한 **알림 모니터링**
 
 ### MCP 도구 테스트
 

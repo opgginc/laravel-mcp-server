@@ -702,6 +702,280 @@ class WelcomePrompt extends Prompt
 
 Prompts podem incorporar resources e retornar sequências de mensagens para guiar um LLM. Veja a documentação oficial para exemplos avançados e melhores práticas.
 
+### Trabalhando com Notificações
+
+Notificações são mensagens fire-and-forget de clientes MCP que sempre retornam HTTP 202 Accepted sem corpo de resposta. São perfeitas para logging, rastreamento de progresso, tratamento de eventos e acionamento de processos em segundo plano sem bloquear o cliente.
+
+#### Criando Manipuladores de Notificação
+
+**Uso básico do comando:**
+
+```bash
+php artisan make:mcp-notification ProgressHandler --method=notifications/progress
+```
+
+**Recursos avançados do comando:**
+
+```bash
+# Modo interativo - solicita método se não especificado
+php artisan make:mcp-notification MyHandler
+
+# Tratamento automático de prefixo de método
+php artisan make:mcp-notification StatusHandler --method=status  # torna-se notifications/status
+
+# Normalização de nome de classe 
+php artisan make:mcp-notification "user activity"  # torna-se UserActivityHandler
+```
+
+O comando fornece:
+- **Solicitação interativa de método** quando `--method` não é especificado
+- **Guia de registro automático** com código pronto para copiar e colar
+- **Exemplos de teste integrados** com comandos curl 
+- **Instruções de uso abrangentes** e casos de uso comuns
+
+#### Arquitetura do Manipulador de Notificação
+
+Cada manipulador de notificação deve implementar a classe abstrata `NotificationHandler`:
+
+```php
+abstract class NotificationHandler
+{
+    // Obrigatório: Tipo de mensagem (geralmente ProcessMessageType::HTTP)
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    
+    // Obrigatório: O método de notificação a ser tratado  
+    protected const HANDLE_METHOD = 'notifications/your_method';
+    
+    // Obrigatório: Executar a lógica de notificação
+    abstract public function execute(?array $params = null): void;
+}
+```
+
+**Componentes arquiteturais principais:**
+
+- **`MESSAGE_TYPE`**: Geralmente `ProcessMessageType::HTTP` para notificações padrão
+- **`HANDLE_METHOD`**: O método JSON-RPC que este manipulador processa (deve começar com `notifications/`)
+- **`execute()`**: Contém sua lógica de notificação - retorna void (nenhuma resposta enviada)
+- **Validação do construtor**: Valida automaticamente que as constantes obrigatórias estão definidas
+
+#### Manipuladores de Notificação Integrados
+
+O pacote inclui quatro manipuladores pré-construídos para cenários MCP comuns:
+
+**1. InitializedHandler (`notifications/initialized`)**
+- **Propósito**: Processa confirmações de inicialização do cliente após handshake bem-sucedido
+- **Parâmetros**: Informações e capacidades do cliente
+- **Uso**: Rastreamento de sessão, logging de cliente, eventos de inicialização
+
+**2. ProgressHandler (`notifications/progress`)**
+- **Propósito**: Trata atualizações de progresso para operações de longa duração
+- **Parâmetros**: 
+  - `progressToken` (string): Identificador único para a operação
+  - `progress` (number): Valor de progresso atual
+  - `total` (number, opcional): Valor total de progresso para cálculo de porcentagem
+- **Uso**: Rastreamento de progresso em tempo real, monitoramento de uploads, conclusão de tarefas
+
+**3. CancelledHandler (`notifications/cancelled`)**
+- **Propósito**: Processa notificações de cancelamento de solicitação
+- **Parâmetros**:
+  - `requestId` (string): ID da solicitação a ser cancelada
+  - `reason` (string, opcional): Motivo do cancelamento
+- **Uso**: Terminação de jobs em segundo plano, limpeza de recursos, aborto de operações
+
+**4. MessageHandler (`notifications/message`)**
+- **Propósito**: Trata mensagens gerais de logging e comunicação
+- **Parâmetros**:
+  - `level` (string): Nível de log (info, warning, error, debug)
+  - `message` (string): O conteúdo da mensagem
+  - `logger` (string, opcional): Nome do logger
+- **Uso**: Logging do lado do cliente, depuração, comunicação geral
+
+#### Exemplos de Manipuladores para Cenários Comuns
+
+```php
+// Rastreamento de progresso de upload de arquivo
+class UploadProgressHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/upload_progress';
+
+    public function execute(?array $params = null): void
+    {
+        $token = $params['progressToken'] ?? null;
+        $progress = $params['progress'] ?? 0;
+        $total = $params['total'] ?? 100;
+        
+        if ($token) {
+            Cache::put("upload_progress_{$token}", [
+                'progress' => $progress,
+                'total' => $total,
+                'percentage' => $total ? round(($progress / $total) * 100, 2) : 0,
+                'updated_at' => now()
+            ], 3600);
+            
+            // Transmitir atualização em tempo real
+            broadcast(new UploadProgressUpdated($token, $progress, $total));
+        }
+    }
+}
+
+// Atividade do usuário e logging de auditoria
+class UserActivityHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/user_activity';
+
+    public function execute(?array $params = null): void
+    {
+        UserActivity::create([
+            'user_id' => $params['userId'] ?? null,
+            'action' => $params['action'] ?? 'unknown',
+            'resource' => $params['resource'] ?? null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => $params['metadata'] ?? [],
+            'created_at' => now()
+        ]);
+        
+        // Acionar alertas de segurança para ações sensíveis
+        if (in_array($params['action'] ?? '', ['delete', 'export', 'admin_access'])) {
+            SecurityAlert::dispatch($params);
+        }
+    }
+}
+
+// Acionamento de tarefas em segundo plano
+class TaskTriggerHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/trigger_task';
+
+    public function execute(?array $params = null): void
+    {
+        $taskType = $params['taskType'] ?? null;
+        $taskData = $params['data'] ?? [];
+        
+        match ($taskType) {
+            'send_email' => SendEmailJob::dispatch($taskData),
+            'generate_report' => GenerateReportJob::dispatch($taskData),
+            'sync_data' => DataSyncJob::dispatch($taskData),
+            'cleanup' => CleanupJob::dispatch($taskData),
+            default => Log::warning("Unknown task type: {$taskType}")
+        };
+    }
+}
+```
+
+#### Registrando Manipuladores de Notificação
+
+**Em seu provedor de serviços:**
+
+```php
+// No AppServiceProvider ou provedor de serviços MCP dedicado
+public function boot()
+{
+    $server = app(MCPServer::class);
+    
+    // Registrar manipuladores integrados (opcional - são registrados por padrão)
+    $server->registerNotificationHandler(new InitializedHandler());
+    $server->registerNotificationHandler(new ProgressHandler());
+    $server->registerNotificationHandler(new CancelledHandler());
+    $server->registerNotificationHandler(new MessageHandler());
+    
+    // Registrar manipuladores personalizados
+    $server->registerNotificationHandler(new UploadProgressHandler());
+    $server->registerNotificationHandler(new UserActivityHandler());
+    $server->registerNotificationHandler(new TaskTriggerHandler());
+}
+```
+
+#### Testando Notificações
+
+**Usando curl para testar manipuladores de notificação:**
+
+```bash
+# Testar notificação de progresso
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/progress",
+    "params": {
+      "progressToken": "upload_123",
+      "progress": 75,
+      "total": 100
+    }
+  }'
+# Esperado: HTTP 202 com corpo vazio
+
+# Testar notificação de atividade do usuário  
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "notifications/user_activity",
+    "params": {
+      "userId": 123,
+      "action": "file_download",
+      "resource": "document.pdf"
+    }
+  }'
+# Esperado: HTTP 202 com corpo vazio
+
+# Testar notificação de cancelamento
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/cancelled", 
+    "params": {
+      "requestId": "req_abc123",
+      "reason": "User requested cancellation"
+    }
+  }'
+# Esperado: HTTP 202 com corpo vazio
+```
+
+**Notas importantes sobre testes:**
+- Notificações retornam **HTTP 202** (nunca 200)
+- Corpo da resposta está **sempre vazio**
+- Nenhuma mensagem de resposta JSON-RPC é enviada
+- Verificar logs do servidor para confirmar processamento de notificações
+
+#### Tratamento de Erros e Validação
+
+**Padrões de validação comuns:**
+
+```php
+public function execute(?array $params = null): void
+{
+    // Validar parâmetros obrigatórios
+    if (!isset($params['userId'])) {
+        Log::error('UserActivityHandler: Missing required userId parameter', $params);
+        return; // Não lance exceção - notificações devem ser tolerantes a falhas
+    }
+    
+    // Validar tipos de parâmetros
+    if (!is_numeric($params['userId'])) {
+        Log::warning('UserActivityHandler: userId must be numeric', $params);
+        return;
+    }
+    
+    // Extração segura de parâmetros com valores padrão
+    $userId = (int) $params['userId'];
+    $action = $params['action'] ?? 'unknown';
+    $metadata = $params['metadata'] ?? [];
+    
+    // Processar notificação...
+}
+```
+
+**Melhores práticas de tratamento de erros:**
+- **Registrar erros** em vez de lançar exceções
+- **Usar programação defensiva** com verificações null e valores padrão
+- **Falha elegante** - não quebrar o fluxo de trabalho do cliente
+- **Validar entradas** mas continuar processamento quando possível
+- **Monitorar notificações** através de logging e métricas
 
 ### Testando MCP Tools
 

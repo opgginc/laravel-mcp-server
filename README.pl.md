@@ -684,6 +684,281 @@ class WelcomePrompt extends Prompt
 
 Prompty mogą osadzać zasoby i zwracać sekwencje wiadomości do prowadzenia LLM. Zobacz oficjalną dokumentację dla zaawansowanych przykładów i najlepszych praktyk.
 
+### Praca z powiadomieniami
+
+Powiadomienia to wiadomości typu fire-and-forget od klientów MCP, które zawsze zwracają HTTP 202 Accepted bez treści odpowiedzi. Są idealne do logowania, śledzenia postępu, obsługi zdarzeń i wyzwalania procesów w tle bez blokowania klienta.
+
+#### Tworzenie obsługi powiadomień
+
+**Podstawowe użycie komendy:**
+
+```bash
+php artisan make:mcp-notification ProgressHandler --method=notifications/progress
+```
+
+**Zaawansowane funkcje komendy:**
+
+```bash
+# Tryb interaktywny - pyta o metodę jeśli nie została określona
+php artisan make:mcp-notification MyHandler
+
+# Automatyczne obsługiwanie prefiksu metody
+php artisan make:mcp-notification StatusHandler --method=status  # staje się notifications/status
+
+# Normalizacja nazwy klasy 
+php artisan make:mcp-notification "user activity"  # staje się UserActivityHandler
+```
+
+Komenda zapewnia:
+- **Interaktywne pytanie o metodę** gdy `--method` nie jest określony
+- **Automatyczny przewodnik rejestracji** z gotowym do skopiowania kodem
+- **Wbudowane przykłady testów** z komendami curl 
+- **Kompleksowe instrukcje użycia** i powszechne przypadki użycia
+
+#### Architektura obsługi powiadomień
+
+Każda obsługa powiadomień musi implementować abstrakcyjną klasę `NotificationHandler`:
+
+```php
+abstract class NotificationHandler
+{
+    // Wymagane: Typ wiadomości (zwykle ProcessMessageType::HTTP)
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    
+    // Wymagane: Metoda powiadomienia do obsługi  
+    protected const HANDLE_METHOD = 'notifications/your_method';
+    
+    // Wymagane: Wykonanie logiki powiadomienia
+    abstract public function execute(?array $params = null): void;
+}
+```
+
+**Kluczowe komponenty architektoniczne:**
+
+- **`MESSAGE_TYPE`**: Zwykle `ProcessMessageType::HTTP` dla standardowych powiadomień
+- **`HANDLE_METHOD`**: Metoda JSON-RPC, którą przetwarza ta obsługa (musi zaczynać się od `notifications/`)
+- **`execute()`**: Zawiera twoją logikę powiadomień - zwraca void (nie wysyła odpowiedzi)
+- **Walidacja konstruktora**: Automatycznie waliduje, czy wymagane stałe są zdefiniowane
+
+#### Wbudowane obsługi powiadomień
+
+Pakiet zawiera cztery prebudowane obsługi dla powszechnych scenariuszy MCP:
+
+**1. InitializedHandler (`notifications/initialized`)**
+- **Cel**: Przetwarza potwierdzenia inicjalizacji klienta po udanym handshake
+- **Parametry**: Informacje o kliencie i możliwości
+- **Użycie**: Śledzenie sesji, logowanie klienta, zdarzenia inicjalizacji
+
+**2. ProgressHandler (`notifications/progress`)**
+- **Cel**: Obsługuje aktualizacje postępu dla długotrwałych operacji
+- **Parametry**: 
+  - `progressToken` (string): Unikalny identyfikator operacji
+  - `progress` (number): Bieżąca wartość postępu
+  - `total` (number, opcjonalnie): Całkowita wartość postępu do obliczenia procentu
+- **Użycie**: Śledzenie postępu w czasie rzeczywistym, monitorowanie uploadów, ukończenie zadań
+
+**3. CancelledHandler (`notifications/cancelled`)**
+- **Cel**: Przetwarza powiadomienia o anulowaniu żądań
+- **Parametry**:
+  - `requestId` (string): ID żądania do anulowania
+  - `reason` (string, opcjonalnie): Powód anulowania
+- **Użycie**: Zakończenie zadań w tle, czyszczenie zasobów, przerywanie operacji
+
+**4. MessageHandler (`notifications/message`)**
+- **Cel**: Obsługuje ogólne wiadomości logowania i komunikacji
+- **Parametry**:
+  - `level` (string): Poziom loga (info, warning, error, debug)
+  - `message` (string): Treść wiadomości
+  - `logger` (string, opcjonalnie): Nazwa loggera
+- **Użycie**: Logowanie po stronie klienta, debugowanie, ogólna komunikacja
+
+#### Przykłady obsługi dla powszechnych scenariuszy
+
+```php
+// Śledzenie postępu uploadu plików
+class UploadProgressHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/upload_progress';
+
+    public function execute(?array $params = null): void
+    {
+        $token = $params['progressToken'] ?? null;
+        $progress = $params['progress'] ?? 0;
+        $total = $params['total'] ?? 100;
+        
+        if ($token) {
+            Cache::put("upload_progress_{$token}", [
+                'progress' => $progress,
+                'total' => $total,
+                'percentage' => $total ? round(($progress / $total) * 100, 2) : 0,
+                'updated_at' => now()
+            ], 3600);
+            
+            // Transmituj aktualizację w czasie rzeczywistym
+            broadcast(new UploadProgressUpdated($token, $progress, $total));
+        }
+    }
+}
+
+// Aktywność użytkownika i logowanie audytu
+class UserActivityHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/user_activity';
+
+    public function execute(?array $params = null): void
+    {
+        UserActivity::create([
+            'user_id' => $params['userId'] ?? null,
+            'action' => $params['action'] ?? 'unknown',
+            'resource' => $params['resource'] ?? null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => $params['metadata'] ?? [],
+            'created_at' => now()
+        ]);
+        
+        // Wyzwól alerty bezpieczeństwa dla wrażliwych działań
+        if (in_array($params['action'] ?? '', ['delete', 'export', 'admin_access'])) {
+            SecurityAlert::dispatch($params);
+        }
+    }
+}
+
+// Wyzwalanie zadań w tle
+class TaskTriggerHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/trigger_task';
+
+    public function execute(?array $params = null): void
+    {
+        $taskType = $params['taskType'] ?? null;
+        $taskData = $params['data'] ?? [];
+        
+        match ($taskType) {
+            'send_email' => SendEmailJob::dispatch($taskData),
+            'generate_report' => GenerateReportJob::dispatch($taskData),
+            'sync_data' => DataSyncJob::dispatch($taskData),
+            'cleanup' => CleanupJob::dispatch($taskData),
+            default => Log::warning("Unknown task type: {$taskType}")
+        };
+    }
+}
+```
+
+#### Rejestrowanie obsługi powiadomień
+
+**W twoim dostawcy usług:**
+
+```php
+// W AppServiceProvider lub dedykowanym dostawcy usług MCP
+public function boot()
+{
+    $server = app(MCPServer::class);
+    
+    // Zarejestruj wbudowane obsługi (opcjonalnie - są rejestrowane domyślnie)
+    $server->registerNotificationHandler(new InitializedHandler());
+    $server->registerNotificationHandler(new ProgressHandler());
+    $server->registerNotificationHandler(new CancelledHandler());
+    $server->registerNotificationHandler(new MessageHandler());
+    
+    // Zarejestruj niestandardowe obsługi
+    $server->registerNotificationHandler(new UploadProgressHandler());
+    $server->registerNotificationHandler(new UserActivityHandler());
+    $server->registerNotificationHandler(new TaskTriggerHandler());
+}
+```
+
+#### Testowanie powiadomień
+
+**Używając curl do testowania obsługi powiadomień:**
+
+```bash
+# Testuj powiadomienie o postępie
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/progress",
+    "params": {
+      "progressToken": "upload_123",
+      "progress": 75,
+      "total": 100
+    }
+  }'
+# Oczekiwane: HTTP 202 z pustą treścią
+
+# Testuj powiadomienie o aktywności użytkownika  
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "notifications/user_activity",
+    "params": {
+      "userId": 123,
+      "action": "file_download",
+      "resource": "document.pdf"
+    }
+  }'
+# Oczekiwane: HTTP 202 z pustą treścią
+
+# Testuj powiadomienie o anulowaniu
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/cancelled", 
+    "params": {
+      "requestId": "req_abc123",
+      "reason": "User requested cancellation"
+    }
+  }'
+# Oczekiwane: HTTP 202 z pustą treścią
+```
+
+**Kluczowe uwagi dotyczące testowania:**
+- Powiadomienia zwracają **HTTP 202** (nigdy 200)
+- Treść odpowiedzi jest **zawsze pusta**
+- Nie jest wysyłana wiadomość odpowiedzi JSON-RPC
+- Sprawdź logi serwera aby zweryfikować przetwarzanie powiadomień
+
+#### Obsługa błędów i walidacja
+
+**Powszechne wzorce walidacji:**
+
+```php
+public function execute(?array $params = null): void
+{
+    // Waliduj wymagane parametry
+    if (!isset($params['userId'])) {
+        Log::error('UserActivityHandler: Missing required userId parameter', $params);
+        return; // Nie rzucaj wyjątkiem - powiadomienia powinny być odporne na błędy
+    }
+    
+    // Waliduj typy parametrów
+    if (!is_numeric($params['userId'])) {
+        Log::warning('UserActivityHandler: userId must be numeric', $params);
+        return;
+    }
+    
+    // Bezpieczna ekstrakcja parametrów z domyślnymi wartościami
+    $userId = (int) $params['userId'];
+    $action = $params['action'] ?? 'unknown';
+    $metadata = $params['metadata'] ?? [];
+    
+    // Przetwarzaj powiadomienie...
+}
+```
+
+**Najlepsze praktyki obsługi błędów:**
+- **Loguj błędy** zamiast rzucać wyjątkami
+- **Używaj programowania defensywnego** ze sprawdzaniem null i domyślnymi wartościami
+- **Graceful failure** - nie psuj przepływu pracy klienta
+- **Waliduj wejścia** ale kontynuuj przetwarzanie gdy to możliwe
+- **Monitoruj powiadomienia** poprzez logowanie i metryki
+
 ### Testowanie narzędzi MCP
 
 Pakiet zawiera specjalną komendę do testowania twoich narzędzi MCP bez potrzeby prawdziwego klienta MCP:

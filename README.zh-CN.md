@@ -684,6 +684,280 @@ class WelcomePrompt extends Prompt
 
 提示可以嵌入资源并返回消息序列来指导 LLM。有关高级示例和最佳实践，请参阅官方文档。
 
+### 使用通知
+
+通知是来自 MCP 客户端的 fire-and-forget 消息，它们总是返回 HTTP 202 Accepted 而没有响应正文。它们非常适合日志记录、进度跟踪、事件处理和触发后台进程，而不会阻塞客户端。
+
+#### 创建通知处理器
+
+**基本命令用法：**
+
+```bash
+php artisan make:mcp-notification ProgressHandler --method=notifications/progress
+```
+
+**高级命令功能：**
+
+```bash
+# 交互模式 - 如果未指定方法则提示输入
+php artisan make:mcp-notification MyHandler
+
+# 自动方法前缀处理
+php artisan make:mcp-notification StatusHandler --method=status  # 变成 notifications/status
+
+# 类名标准化 
+php artisan make:mcp-notification "user activity"  # 变成 UserActivityHandler
+```
+
+该命令提供：
+- 当未指定 `--method` 时**交互式方法提示**
+- 带有复制粘贴就绪代码的**自动注册指南**
+- 带有 curl 命令的**内置测试示例** 
+- **全面的使用说明**和常见用例
+
+#### 通知处理器架构
+
+每个通知处理器必须实现抽象类 `NotificationHandler`：
+
+```php
+abstract class NotificationHandler
+{
+    // 必需：消息类型（通常是 ProcessMessageType::HTTP）
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    
+    // 必需：要处理的通知方法  
+    protected const HANDLE_METHOD = 'notifications/your_method';
+    
+    // 必需：执行通知逻辑
+    abstract public function execute(?array $params = null): void;
+}
+```
+
+**关键架构组件：**
+
+- **`MESSAGE_TYPE`**：标准通知通常使用 `ProcessMessageType::HTTP`
+- **`HANDLE_METHOD`**：此处理器处理的 JSON-RPC 方法（必须以 `notifications/` 开头）
+- **`execute()`**：包含您的通知逻辑 - 返回 void（不发送响应）
+- **构造函数验证**：自动验证必需常量是否已定义
+
+#### 内置通知处理器
+
+包包含四个为常见 MCP 场景预构建的处理器：
+
+**1. InitializedHandler (`notifications/initialized`)**
+- **目的**：在成功握手后处理客户端初始化确认
+- **参数**：客户端信息和能力
+- **用法**：会话跟踪、客户端日志记录、初始化事件
+
+**2. ProgressHandler (`notifications/progress`)**
+- **目的**：处理长时间运行操作的进度更新
+- **参数**： 
+  - `progressToken` (string)：操作的唯一标识符
+  - `progress` (number)：当前进度值
+  - `total` (number，可选)：用于百分比计算的总进度值
+- **用法**：实时进度跟踪、上传监控、任务完成
+
+**3. CancelledHandler (`notifications/cancelled`)**
+- **目的**：处理请求取消通知
+- **参数**：
+  - `requestId` (string)：要取消的请求 ID
+  - `reason` (string，可选)：取消原因
+- **用法**：后台作业终止、资源清理、操作中止
+
+**4. MessageHandler (`notifications/message`)**
+- **目的**：处理一般日志记录和通信消息
+- **参数**：
+  - `level` (string)：日志级别（info、warning、error、debug）
+  - `message` (string)：消息内容
+  - `logger` (string，可选)：记录器名称
+- **用法**：客户端日志记录、调试、一般通信
+
+#### 常见场景的处理器示例
+
+```php
+// 文件上传进度跟踪
+class UploadProgressHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/upload_progress';
+
+    public function execute(?array $params = null): void
+    {
+        $token = $params['progressToken'] ?? null;
+        $progress = $params['progress'] ?? 0;
+        $total = $params['total'] ?? 100;
+        
+        if ($token) {
+            Cache::put("upload_progress_{$token}", [
+                'progress' => $progress,
+                'total' => $total,
+                'percentage' => $total ? round(($progress / $total) * 100, 2) : 0,
+                'updated_at' => now()
+            ], 3600);
+            
+            // 广播实时更新
+            broadcast(new UploadProgressUpdated($token, $progress, $total));
+        }
+    }
+}
+
+// 用户活动和审计日志记录
+class UserActivityHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/user_activity';
+
+    public function execute(?array $params = null): void
+    {
+        UserActivity::create([
+            'user_id' => $params['userId'] ?? null,
+            'action' => $params['action'] ?? 'unknown',
+            'resource' => $params['resource'] ?? null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => $params['metadata'] ?? [],
+            'created_at' => now()
+        ]);
+        
+        // 为敏感操作触发安全警报
+        if (in_array($params['action'] ?? '', ['delete', 'export', 'admin_access'])) {
+            SecurityAlert::dispatch($params);
+        }
+    }
+}
+
+// 后台任务触发
+class TaskTriggerHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/trigger_task';
+
+    public function execute(?array $params = null): void
+    {
+        $taskType = $params['taskType'] ?? null;
+        $taskData = $params['data'] ?? [];
+        
+        match ($taskType) {
+            'send_email' => SendEmailJob::dispatch($taskData),
+            'generate_report' => GenerateReportJob::dispatch($taskData),
+            'sync_data' => DataSyncJob::dispatch($taskData),
+            'cleanup' => CleanupJob::dispatch($taskData),
+            default => Log::warning("Unknown task type: {$taskType}")
+        };
+    }
+}
+```
+
+#### 注册通知处理器
+
+**在您的服务提供者中：**
+
+```php
+// 在 AppServiceProvider 或专用的 MCP 服务提供者中
+public function boot()
+{
+    $server = app(MCPServer::class);
+    
+    // 注册内置处理器（可选 - 默认注册）
+    $server->registerNotificationHandler(new InitializedHandler());
+    $server->registerNotificationHandler(new ProgressHandler());
+    $server->registerNotificationHandler(new CancelledHandler());
+    $server->registerNotificationHandler(new MessageHandler());
+    
+    // 注册自定义处理器
+    $server->registerNotificationHandler(new UploadProgressHandler());
+    $server->registerNotificationHandler(new UserActivityHandler());
+    $server->registerNotificationHandler(new TaskTriggerHandler());
+}
+```
+
+#### 测试通知
+
+**使用 curl 测试通知处理器：**
+
+```bash
+# 测试进度通知
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/progress",
+    "params": {
+      "progressToken": "upload_123",
+      "progress": 75,
+      "total": 100
+    }
+  }'
+# 预期：HTTP 202 且正文为空
+
+# 测试用户活动通知  
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "notifications/user_activity",
+    "params": {
+      "userId": 123,
+      "action": "file_download",
+      "resource": "document.pdf"
+    }
+  }'
+# 预期：HTTP 202 且正文为空
+
+# 测试取消通知
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/cancelled", 
+    "params": {
+      "requestId": "req_abc123",
+      "reason": "User requested cancellation"
+    }
+  }'
+# 预期：HTTP 202 且正文为空
+```
+
+**重要测试注意事项：**
+- 通知返回 **HTTP 202**（从不返回 200）
+- 响应正文**总是空的**
+- 不发送 JSON-RPC 响应消息
+- 检查服务器日志以验证通知处理
+
+#### 错误处理和验证
+
+**常见验证模式：**
+
+```php
+public function execute(?array $params = null): void
+{
+    // 验证必需参数
+    if (!isset($params['userId'])) {
+        Log::error('UserActivityHandler: Missing required userId parameter', $params);
+        return; // 不要抛出异常 - 通知应该容错
+    }
+    
+    // 验证参数类型
+    if (!is_numeric($params['userId'])) {
+        Log::warning('UserActivityHandler: userId must be numeric', $params);
+        return;
+    }
+    
+    // 使用默认值安全提取参数
+    $userId = (int) $params['userId'];
+    $action = $params['action'] ?? 'unknown';
+    $metadata = $params['metadata'] ?? [];
+    
+    // 处理通知...
+}
+```
+
+**错误处理最佳实践：**
+- **记录错误**而不是抛出异常
+- **使用防御性编程**，进行空值检查和默认值
+- **优雅失败** - 不要破坏客户端的工作流
+- **验证输入**但在可能时继续处理
+- 通过日志记录和指标**监控通知**
 
 ### 测试 MCP 工具
 
