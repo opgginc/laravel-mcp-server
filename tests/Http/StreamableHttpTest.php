@@ -37,3 +37,16 @@ test('tool can be called via streamable http', function () {
     $decoded = json_decode($data['result']['content'][0]['text'], true);
     expect($decoded['name'])->toBe('Tester');
 });
+
+test('notification returns HTTP 202 with no body', function () {
+    $payload = [
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/initialized',
+        'params' => [],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+
+    $response->assertStatus(202);
+    expect($response->getContent())->toBe('');
+});

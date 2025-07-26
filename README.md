@@ -702,6 +702,85 @@ class WelcomePrompt extends Prompt
 
 Prompts can embed resources and return sequences of messages to guide an LLM. See the official documentation for advanced examples and best practices.
 
+### Working with Notifications
+
+Notifications are one-way messages from MCP clients that return HTTP 202 (no response). Use them for logging, progress updates, and event handling.
+
+**Create a notification handler:**
+
+```bash
+php artisan make:mcp-notification ProgressHandler --method=notifications/progress
+```
+
+**Example handlers for common scenarios:**
+
+```php
+// Progress tracking for file uploads
+class ProgressHandler extends NotificationHandler
+{
+    protected const HANDLE_METHOD = 'notifications/progress';
+
+    public function execute(?array $params = null): void
+    {
+        $token = $params['progressToken'] ?? null;
+        $progress = $params['progress'] ?? 0;
+        $total = $params['total'] ?? 100;
+        
+        // Store in cache for real-time updates
+        Cache::put("upload_progress_{$token}", [
+            'progress' => $progress,
+            'total' => $total,
+            'percentage' => round(($progress / $total) * 100, 2)
+        ], 300);
+    }
+}
+
+// User activity logging
+class UserActivityHandler extends NotificationHandler
+{
+    protected const HANDLE_METHOD = 'notifications/user_activity';
+
+    public function execute(?array $params = null): void
+    {
+        UserActivity::create([
+            'user_id' => $params['userId'],
+            'action' => $params['action'],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+    }
+}
+
+// Task cancellation
+class CancelledHandler extends NotificationHandler
+{
+    protected const HANDLE_METHOD = 'notifications/cancelled';
+
+    public function execute(?array $params = null): void
+    {
+        $requestId = $params['requestId'] ?? null;
+        if ($requestId) {
+            // Stop background job
+            Queue::deleteReserved('default', $requestId);
+            \Log::info("Task {$requestId} cancelled by client");
+        }
+    }
+}
+```
+
+**Register handlers in your service provider:**
+
+```php
+// In AppServiceProvider or dedicated MCP service provider
+public function boot()
+{
+    $server = app(MCPServer::class);
+    $server->registerNotificationHandler(new ProgressHandler());
+    $server->registerNotificationHandler(new UserActivityHandler());
+}
+```
+
+**Built-in handlers:** `notifications/initialized`, `notifications/progress`, `notifications/cancelled`, `notifications/message`
 
 ### Testing MCP Tools
 

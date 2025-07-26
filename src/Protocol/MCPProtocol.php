@@ -128,7 +128,7 @@ final class MCPProtocol
             $jsonErrorResource = new JsonRpcErrorResource(exception: $e, id: $messageId);
             $this->sendSSEMessage(clientId: $clientId, message: $jsonErrorResource);
 
-            return new ProcessMessageData(messageType: ProcessMessageType::HTTP, resource: $jsonErrorResource);
+            return new ProcessMessageData(messageType: ProcessMessageType::HTTP, resource: $jsonErrorResource, isNotification: false);
         } catch (Exception $e) {
             $jsonErrorResource = new JsonRpcErrorResource(
                 exception: new JsonRpcErrorException(message: 'INTERNAL_ERROR', code: JsonRpcErrorCode::INTERNAL_ERROR),
@@ -136,7 +136,7 @@ final class MCPProtocol
             );
             $this->sendSSEMessage(clientId: $clientId, message: $jsonErrorResource);
 
-            return new ProcessMessageData(messageType: ProcessMessageType::HTTP, resource: $jsonErrorResource);
+            return new ProcessMessageData(messageType: ProcessMessageType::HTTP, resource: $jsonErrorResource, isNotification: false);
         }
     }
 
@@ -159,7 +159,7 @@ final class MCPProtocol
             $messageType = $handler->getMessageType($requestData->params);
 
             $resultResource = new JsonRpcResultResource(id: $requestData->id, result: $result);
-            $processMessageData = new ProcessMessageData(messageType: $messageType, resource: $resultResource);
+            $processMessageData = new ProcessMessageData(messageType: $messageType, resource: $resultResource, isNotification: false);
 
             if ($processMessageData->isSSEMessage()) {
                 $this->sendSSEMessage(clientId: $clientId, message: $resultResource);
@@ -197,20 +197,49 @@ final class MCPProtocol
     {
         $method = $notificationData->method;
         $handler = $this->notificationHandlers[$method] ?? null;
+
         if ($handler) {
-            $result = $handler->execute(params: $notificationData->params);
-            $messageType = $handler->getMessageType($notificationData->params);
+            try {
+                $handler->execute(params: $notificationData->params);
+                $messageType = $handler->getMessageType($notificationData->params);
 
-            $resultResource = new JsonRpcResultResource(id: null, result: $result);
-            $processMessageData = new ProcessMessageData(messageType: $messageType, resource: $resultResource);
+                // Notifications don't return data to client, create empty result
+                $resultResource = new JsonRpcResultResource(id: null, result: []);
+                $processMessageData = new ProcessMessageData(messageType: $messageType, resource: $resultResource, isNotification: true);
 
-            if ($processMessageData->isSSEMessage()) {
-                $this->sendSSEMessage(clientId: $clientId, message: $resultResource);
+                if ($processMessageData->isSSEMessage()) {
+                    $this->sendSSEMessage(clientId: $clientId, message: $resultResource);
+                }
+
+                return $processMessageData;
+            } catch (Exception $e) {
+                // Log notification execution errors but don't send error response to client
+                // per JSON-RPC specification for notifications
+                \Log::error('MCP Notification Handler Error', [
+                    'method' => $method,
+                    'client_id' => $clientId,
+                    'params' => $notificationData->params,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
+                // Return empty success response for notifications even if handler fails
+                $resultResource = new JsonRpcResultResource(id: null, result: []);
+
+                return new ProcessMessageData(messageType: ProcessMessageType::HTTP, resource: $resultResource, isNotification: true);
             }
-
-            return $processMessageData;
         }
 
-        throw new JsonRpcErrorException("Method not found: {$notificationData->method}", JsonRpcErrorCode::METHOD_NOT_FOUND);
+        // Log unknown notification methods
+        \Log::warning('MCP Unknown Notification Method', [
+            'method' => $method,
+            'client_id' => $clientId,
+            'params' => $notificationData->params,
+        ]);
+
+        // For notifications, we should not throw errors to client, just log and return success
+        $resultResource = new JsonRpcResultResource(id: null, result: []);
+
+        return new ProcessMessageData(messageType: ProcessMessageType::HTTP, resource: $resultResource, isNotification: true);
     }
 }
