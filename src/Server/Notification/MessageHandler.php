@@ -2,6 +2,7 @@
 
 namespace OPGG\LaravelMcpServer\Server\Notification;
 
+use Illuminate\Support\Facades\Log;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
 
@@ -22,10 +23,10 @@ class MessageHandler extends NotificationHandler
 
         // Log the message with appropriate level
         match ($level) {
-            'error' => \Log::error("MCP Client Message [{$logger}]", $data),
-            'warning' => \Log::warning("MCP Client Message [{$logger}]", $data),
-            'debug' => \Log::debug("MCP Client Message [{$logger}]", $data),
-            default => \Log::info("MCP Client Message [{$logger}]", $data),
+            'error' => Log::error("MCP Client Message [{$logger}]", $data),
+            'warning' => Log::warning("MCP Client Message [{$logger}]", $data),
+            'debug' => Log::debug("MCP Client Message [{$logger}]", $data),
+            default => Log::info("MCP Client Message [{$logger}]", $data),
         };
 
         // You can implement custom logic here, such as:

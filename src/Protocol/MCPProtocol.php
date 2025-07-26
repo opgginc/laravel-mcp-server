@@ -3,6 +3,7 @@
 namespace OPGG\LaravelMcpServer\Protocol;
 
 use Exception;
+use Illuminate\Support\Facades\Log;
 use OPGG\LaravelMcpServer\Data\ProcessMessageData;
 use OPGG\LaravelMcpServer\Data\Requests\NotificationData;
 use OPGG\LaravelMcpServer\Data\Requests\RequestData;
@@ -215,7 +216,7 @@ final class MCPProtocol
             } catch (Exception $e) {
                 // Log notification execution errors but don't send error response to client
                 // per JSON-RPC specification for notifications
-                \Log::error('MCP Notification Handler Error', [
+                Log::error('MCP Notification Handler Error', [
                     'method' => $method,
                     'client_id' => $clientId,
                     'params' => $notificationData->params,
@@ -231,7 +232,7 @@ final class MCPProtocol
         }
 
         // Log unknown notification methods
-        \Log::warning('MCP Unknown Notification Method', [
+        Log::warning('MCP Unknown Notification Method', [
             'method' => $method,
             'client_id' => $clientId,
             'params' => $notificationData->params,

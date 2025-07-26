@@ -2,6 +2,7 @@
 
 namespace OPGG\LaravelMcpServer\Server\Notification;
 
+use Illuminate\Support\Facades\Log;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
 
@@ -23,7 +24,7 @@ class ProgressHandler extends NotificationHandler
 
         // Log progress update for debugging/monitoring
         if ($progressToken && $progress !== null) {
-            \Log::info('MCP Progress Update', [
+            Log::info('MCP Progress Update', [
                 'token' => $progressToken,
                 'progress' => $progress,
                 'total' => $total,

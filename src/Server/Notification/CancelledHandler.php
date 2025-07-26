@@ -2,6 +2,7 @@
 
 namespace OPGG\LaravelMcpServer\Server\Notification;
 
+use Illuminate\Support\Facades\Log;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
 
@@ -20,7 +21,7 @@ class CancelledHandler extends NotificationHandler
         $reason = $params['reason'] ?? 'No reason provided';
 
         if ($requestId) {
-            \Log::info('MCP Request Cancelled', [
+            Log::info('MCP Request Cancelled', [
                 'request_id' => $requestId,
                 'reason' => $reason,
                 'timestamp' => now()->toISOString(),

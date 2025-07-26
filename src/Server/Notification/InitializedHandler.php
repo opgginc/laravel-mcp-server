@@ -2,6 +2,7 @@
 
 namespace OPGG\LaravelMcpServer\Server\Notification;
 
+use Illuminate\Support\Facades\Log;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
 
@@ -22,7 +23,7 @@ class InitializedHandler extends NotificationHandler
         // - Triggering initialization events
         // - Recording session start times
 
-        \Log::info('MCP Client Initialized', [
+        Log::info('MCP Client Initialized', [
             'params' => $params,
             'initialized_at' => now()->toISOString(),
         ]);

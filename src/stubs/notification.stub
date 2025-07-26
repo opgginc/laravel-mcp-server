@@ -2,6 +2,7 @@
 
 namespace {{ namespace }};
 
+use Illuminate\Support\Facades\Log;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
 use stdClass;
@@ -73,7 +74,7 @@ class {{ class }} extends NotificationHandler
         // $data = $params['data'] ?? [];
         
         // Example: Log the notification for debugging
-        \Log::info('{{ class }} notification received', [
+        Log::info('{{ class }} notification received', [
             'method' => '{{ method }}',
             'params' => $params,
             'timestamp' => now()->toISOString(),
