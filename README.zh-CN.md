@@ -26,6 +26,10 @@
   <a href="README.es.md">Español</a>
 </p>
 
+<p align="center">
+  <img src="docs/watch.gif" alt="Laravel MCP Server Demo" height="200">
+</p>
+
 ## ⚠️ 版本信息与重大变更
 
 ### v1.3.0 变更（当前版本）
