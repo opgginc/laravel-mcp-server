@@ -26,6 +26,10 @@
   <a href="README.es.md">Español</a>
 </p>
 
+<p align="center">
+  <img src="docs/watch.gif" alt="Laravel MCP Server Demo" height="200">
+</p>
+
 ## ⚠️ Información de Versión y Cambios Disruptivos
 
 ### Cambios en v1.3.0 (Actual)
@@ -697,6 +701,281 @@ class WelcomePrompt extends Prompt
 ```
 
 Los prompts pueden embeber recursos y devolver secuencias de mensajes para guiar un LLM. Ve la documentación oficial para ejemplos avanzados y mejores prácticas.
+
+### Trabajando con Notificaciones
+
+Las notificaciones son mensajes fire-and-forget de clientes MCP que siempre devuelven HTTP 202 Accepted sin cuerpo de respuesta. Son perfectas para logging, seguimiento de progreso, manejo de eventos y activación de procesos en segundo plano sin bloquear al cliente.
+
+#### Creando Manejadores de Notificaciones
+
+**Uso básico del comando:**
+
+```bash
+php artisan make:mcp-notification ProgressHandler --method=notifications/progress
+```
+
+**Características avanzadas del comando:**
+
+```bash
+# Modo interactivo - solicita método si no se especifica
+php artisan make:mcp-notification MyHandler
+
+# Manejo automático de prefijo de método
+php artisan make:mcp-notification StatusHandler --method=status  # se convierte en notifications/status
+
+# Normalización de nombre de clase 
+php artisan make:mcp-notification "user activity"  # se convierte en UserActivityHandler
+```
+
+El comando proporciona:
+- **Solicitud interactiva de método** cuando no se especifica `--method`
+- **Guía de registro automático** con código listo para copiar y pegar
+- **Ejemplos de prueba incorporados** con comandos curl 
+- **Instrucciones de uso completas** y casos de uso comunes
+
+#### Arquitectura de Manejador de Notificaciones
+
+Cada manejador de notificaciones debe implementar la clase abstracta `NotificationHandler`:
+
+```php
+abstract class NotificationHandler
+{
+    // Requerido: Tipo de mensaje (usualmente ProcessMessageType::HTTP)
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    
+    // Requerido: El método de notificación a manejar  
+    protected const HANDLE_METHOD = 'notifications/your_method';
+    
+    // Requerido: Ejecutar la lógica de notificación
+    abstract public function execute(?array $params = null): void;
+}
+```
+
+**Componentes arquitectónicos clave:**
+
+- **`MESSAGE_TYPE`**: Usualmente `ProcessMessageType::HTTP` para notificaciones estándar
+- **`HANDLE_METHOD`**: El método JSON-RPC que procesa este manejador (debe comenzar con `notifications/`)
+- **`execute()`**: Contiene tu lógica de notificación - devuelve void (no se envía respuesta)
+- **Validación del constructor**: Valida automáticamente que las constantes requeridas estén definidas
+
+#### Manejadores de Notificaciones Incorporados
+
+El paquete incluye cuatro manejadores pre-construidos para escenarios MCP comunes:
+
+**1. InitializedHandler (`notifications/initialized`)**
+- **Propósito**: Procesa confirmaciones de inicialización del cliente después de handshake exitoso
+- **Parámetros**: Información y capacidades del cliente
+- **Uso**: Seguimiento de sesiones, logging de cliente, eventos de inicialización
+
+**2. ProgressHandler (`notifications/progress`)**
+- **Propósito**: Maneja actualizaciones de progreso para operaciones de larga duración
+- **Parámetros**: 
+  - `progressToken` (string): Identificador único para la operación
+  - `progress` (number): Valor de progreso actual
+  - `total` (number, opcional): Valor total de progreso para cálculo de porcentaje
+- **Uso**: Seguimiento de progreso en tiempo real, monitoreo de cargas, finalización de tareas
+
+**3. CancelledHandler (`notifications/cancelled`)**
+- **Propósito**: Procesa notificaciones de cancelación de solicitudes
+- **Parámetros**:
+  - `requestId` (string): ID de la solicitud a cancelar
+  - `reason` (string, opcional): Razón de cancelación
+- **Uso**: Terminación de trabajos en segundo plano, limpieza de recursos, aborto de operaciones
+
+**4. MessageHandler (`notifications/message`)**
+- **Propósito**: Maneja mensajes generales de logging y comunicación
+- **Parámetros**:
+  - `level` (string): Nivel de log (info, warning, error, debug)
+  - `message` (string): El contenido del mensaje
+  - `logger` (string, opcional): Nombre del logger
+- **Uso**: Logging del lado del cliente, depuración, comunicación general
+
+#### Ejemplos de Manejadores para Escenarios Comunes
+
+```php
+// Seguimiento de progreso de carga de archivos
+class UploadProgressHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/upload_progress';
+
+    public function execute(?array $params = null): void
+    {
+        $token = $params['progressToken'] ?? null;
+        $progress = $params['progress'] ?? 0;
+        $total = $params['total'] ?? 100;
+        
+        if ($token) {
+            Cache::put("upload_progress_{$token}", [
+                'progress' => $progress,
+                'total' => $total,
+                'percentage' => $total ? round(($progress / $total) * 100, 2) : 0,
+                'updated_at' => now()
+            ], 3600);
+            
+            // Transmitir actualización en tiempo real
+            broadcast(new UploadProgressUpdated($token, $progress, $total));
+        }
+    }
+}
+
+// Actividad de usuario y logging de auditoría
+class UserActivityHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/user_activity';
+
+    public function execute(?array $params = null): void
+    {
+        UserActivity::create([
+            'user_id' => $params['userId'] ?? null,
+            'action' => $params['action'] ?? 'unknown',
+            'resource' => $params['resource'] ?? null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => $params['metadata'] ?? [],
+            'created_at' => now()
+        ]);
+        
+        // Activar alertas de seguridad para acciones sensibles
+        if (in_array($params['action'] ?? '', ['delete', 'export', 'admin_access'])) {
+            SecurityAlert::dispatch($params);
+        }
+    }
+}
+
+// Activación de tareas en segundo plano
+class TaskTriggerHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/trigger_task';
+
+    public function execute(?array $params = null): void
+    {
+        $taskType = $params['taskType'] ?? null;
+        $taskData = $params['data'] ?? [];
+        
+        match ($taskType) {
+            'send_email' => SendEmailJob::dispatch($taskData),
+            'generate_report' => GenerateReportJob::dispatch($taskData),
+            'sync_data' => DataSyncJob::dispatch($taskData),
+            'cleanup' => CleanupJob::dispatch($taskData),
+            default => Log::warning("Unknown task type: {$taskType}")
+        };
+    }
+}
+```
+
+#### Registrando Manejadores de Notificaciones
+
+**En tu proveedor de servicios:**
+
+```php
+// En AppServiceProvider o proveedor de servicios MCP dedicado
+public function boot()
+{
+    $server = app(MCPServer::class);
+    
+    // Registrar manejadores incorporados (opcional - se registran por defecto)
+    $server->registerNotificationHandler(new InitializedHandler());
+    $server->registerNotificationHandler(new ProgressHandler());
+    $server->registerNotificationHandler(new CancelledHandler());
+    $server->registerNotificationHandler(new MessageHandler());
+    
+    // Registrar manejadores personalizados
+    $server->registerNotificationHandler(new UploadProgressHandler());
+    $server->registerNotificationHandler(new UserActivityHandler());
+    $server->registerNotificationHandler(new TaskTriggerHandler());
+}
+```
+
+#### Probando Notificaciones
+
+**Usando curl para probar manejadores de notificaciones:**
+
+```bash
+# Probar notificación de progreso
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/progress",
+    "params": {
+      "progressToken": "upload_123",
+      "progress": 75,
+      "total": 100
+    }
+  }'
+# Esperado: HTTP 202 con cuerpo vacío
+
+# Probar notificación de actividad de usuario  
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "notifications/user_activity",
+    "params": {
+      "userId": 123,
+      "action": "file_download",
+      "resource": "document.pdf"
+    }
+  }'
+# Esperado: HTTP 202 con cuerpo vacío
+
+# Probar notificación de cancelación
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/cancelled", 
+    "params": {
+      "requestId": "req_abc123",
+      "reason": "User requested cancellation"
+    }
+  }'
+# Esperado: HTTP 202 con cuerpo vacío
+```
+
+**Notas importantes de prueba:**
+- Las notificaciones devuelven **HTTP 202** (nunca 200)
+- El cuerpo de respuesta está **siempre vacío**
+- No se envía mensaje de respuesta JSON-RPC
+- Verificar logs del servidor para confirmar procesamiento de notificaciones
+
+#### Manejo de Errores y Validación
+
+**Patrones de validación comunes:**
+
+```php
+public function execute(?array $params = null): void
+{
+    // Validar parámetros requeridos
+    if (!isset($params['userId'])) {
+        Log::error('UserActivityHandler: Missing required userId parameter', $params);
+        return; // No lances excepción - las notificaciones deben ser tolerantes a fallos
+    }
+    
+    // Validar tipos de parámetros
+    if (!is_numeric($params['userId'])) {
+        Log::warning('UserActivityHandler: userId must be numeric', $params);
+        return;
+    }
+    
+    // Extracción segura de parámetros con valores por defecto
+    $userId = (int) $params['userId'];
+    $action = $params['action'] ?? 'unknown';
+    $metadata = $params['metadata'] ?? [];
+    
+    // Procesar notificación...
+}
+```
+
+**Mejores prácticas de manejo de errores:**
+- **Registrar errores** en lugar de lanzar excepciones
+- **Usar programación defensiva** con verificaciones null y valores por defecto
+- **Fallar elegantemente** - no romper el flujo de trabajo del cliente
+- **Validar entradas** pero continuar procesando cuando sea posible
+- **Monitorear notificaciones** a través de logging y métricas
 
 ### Probando Herramientas MCP
 

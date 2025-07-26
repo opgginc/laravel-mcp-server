@@ -704,21 +704,100 @@ Prompts can embed resources and return sequences of messages to guide an LLM. Se
 
 ### Working with Notifications
 
-Notifications are one-way messages from MCP clients that return HTTP 202 (no response). Use them for logging, progress updates, and event handling.
+Notifications are fire-and-forget messages from MCP clients that always return HTTP 202 Accepted with no response body. They're perfect for logging, progress tracking, event handling, and triggering background processes without blocking the client.
 
-**Create a notification handler:**
+#### Creating Notification Handlers
+
+**Basic command usage:**
 
 ```bash
 php artisan make:mcp-notification ProgressHandler --method=notifications/progress
 ```
 
-**Example handlers for common scenarios:**
+**Advanced command features:**
+
+```bash
+# Interactive mode - prompts for method if not specified
+php artisan make:mcp-notification MyHandler
+
+# Automatic method prefix handling
+php artisan make:mcp-notification StatusHandler --method=status  # becomes notifications/status
+
+# Class name normalization 
+php artisan make:mcp-notification "user activity"  # becomes UserActivityHandler
+```
+
+The command provides:
+- **Interactive method prompting** when `--method` is not specified
+- **Automatic registration guidance** with copy-paste ready code
+- **Built-in testing examples** with curl commands 
+- **Comprehensive usage instructions** and common use cases
+
+#### Notification Handler Architecture
+
+Each notification handler must implement the `NotificationHandler` abstract class:
 
 ```php
-// Progress tracking for file uploads
-class ProgressHandler extends NotificationHandler
+abstract class NotificationHandler
 {
-    protected const HANDLE_METHOD = 'notifications/progress';
+    // Required: Message type (usually ProcessMessageType::HTTP)
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    
+    // Required: The notification method to handle  
+    protected const HANDLE_METHOD = 'notifications/your_method';
+    
+    // Required: Execute the notification logic
+    abstract public function execute(?array $params = null): void;
+}
+```
+
+**Key architectural components:**
+
+- **`MESSAGE_TYPE`**: Usually `ProcessMessageType::HTTP` for standard notifications
+- **`HANDLE_METHOD`**: The JSON-RPC method this handler processes (must start with `notifications/`)
+- **`execute()`**: Contains your notification logic - returns void (no response sent)
+- **Constructor validation**: Automatically validates required constants are defined
+
+#### Built-in Notification Handlers
+
+The package includes four pre-built handlers for common MCP scenarios:
+
+**1. InitializedHandler (`notifications/initialized`)**
+- **Purpose**: Processes client initialization acknowledgments after successful handshake
+- **Parameters**: Client information and capabilities
+- **Usage**: Session tracking, client logging, initialization events
+
+**2. ProgressHandler (`notifications/progress`)**
+- **Purpose**: Handles progress updates for long-running operations
+- **Parameters**: 
+  - `progressToken` (string): Unique identifier for the operation
+  - `progress` (number): Current progress value
+  - `total` (number, optional): Total progress value for percentage calculation
+- **Usage**: Real-time progress tracking, upload monitoring, task completion
+
+**3. CancelledHandler (`notifications/cancelled`)**
+- **Purpose**: Processes request cancellation notifications
+- **Parameters**:
+  - `requestId` (string): ID of the request to cancel
+  - `reason` (string, optional): Cancellation reason
+- **Usage**: Background job termination, resource cleanup, operation abortion
+
+**4. MessageHandler (`notifications/message`)**
+- **Purpose**: Handles general logging and communication messages
+- **Parameters**:
+  - `level` (string): Log level (info, warning, error, debug)
+  - `message` (string): The message content
+  - `logger` (string, optional): Logger name
+- **Usage**: Client-side logging, debugging, general communication
+
+#### Example Handlers for Common Scenarios
+
+```php
+// File upload progress tracking
+class UploadProgressHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/upload_progress';
 
     public function execute(?array $params = null): void
     {
@@ -726,61 +805,177 @@ class ProgressHandler extends NotificationHandler
         $progress = $params['progress'] ?? 0;
         $total = $params['total'] ?? 100;
         
-        // Store in cache for real-time updates
-        Cache::put("upload_progress_{$token}", [
-            'progress' => $progress,
-            'total' => $total,
-            'percentage' => round(($progress / $total) * 100, 2)
-        ], 300);
+        if ($token) {
+            Cache::put("upload_progress_{$token}", [
+                'progress' => $progress,
+                'total' => $total,
+                'percentage' => $total ? round(($progress / $total) * 100, 2) : 0,
+                'updated_at' => now()
+            ], 3600);
+            
+            // Broadcast real-time update
+            broadcast(new UploadProgressUpdated($token, $progress, $total));
+        }
     }
 }
 
-// User activity logging
+// User activity and audit logging
 class UserActivityHandler extends NotificationHandler
 {
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
     protected const HANDLE_METHOD = 'notifications/user_activity';
 
     public function execute(?array $params = null): void
     {
         UserActivity::create([
-            'user_id' => $params['userId'],
-            'action' => $params['action'],
+            'user_id' => $params['userId'] ?? null,
+            'action' => $params['action'] ?? 'unknown',
+            'resource' => $params['resource'] ?? null,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
+            'metadata' => $params['metadata'] ?? [],
+            'created_at' => now()
         ]);
+        
+        // Trigger security alerts for sensitive actions
+        if (in_array($params['action'] ?? '', ['delete', 'export', 'admin_access'])) {
+            SecurityAlert::dispatch($params);
+        }
     }
 }
 
-// Task cancellation
-class CancelledHandler extends NotificationHandler
+// Background task triggering
+class TaskTriggerHandler extends NotificationHandler
 {
-    protected const HANDLE_METHOD = 'notifications/cancelled';
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/trigger_task';
 
     public function execute(?array $params = null): void
     {
-        $requestId = $params['requestId'] ?? null;
-        if ($requestId) {
-            // Stop background job
-            Queue::deleteReserved('default', $requestId);
-            \Log::info("Task {$requestId} cancelled by client");
-        }
+        $taskType = $params['taskType'] ?? null;
+        $taskData = $params['data'] ?? [];
+        
+        match ($taskType) {
+            'send_email' => SendEmailJob::dispatch($taskData),
+            'generate_report' => GenerateReportJob::dispatch($taskData),
+            'sync_data' => DataSyncJob::dispatch($taskData),
+            'cleanup' => CleanupJob::dispatch($taskData),
+            default => Log::warning("Unknown task type: {$taskType}")
+        };
     }
 }
 ```
 
-**Register handlers in your service provider:**
+#### Registering Notification Handlers
+
+**In your service provider:**
 
 ```php
 // In AppServiceProvider or dedicated MCP service provider
 public function boot()
 {
     $server = app(MCPServer::class);
+    
+    // Register built-in handlers (optional - they're registered by default)
+    $server->registerNotificationHandler(new InitializedHandler());
     $server->registerNotificationHandler(new ProgressHandler());
+    $server->registerNotificationHandler(new CancelledHandler());
+    $server->registerNotificationHandler(new MessageHandler());
+    
+    // Register custom handlers
+    $server->registerNotificationHandler(new UploadProgressHandler());
     $server->registerNotificationHandler(new UserActivityHandler());
+    $server->registerNotificationHandler(new TaskTriggerHandler());
 }
 ```
 
-**Built-in handlers:** `notifications/initialized`, `notifications/progress`, `notifications/cancelled`, `notifications/message`
+#### Testing Notifications
+
+**Using curl to test notification handlers:**
+
+```bash
+# Test progress notification
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/progress",
+    "params": {
+      "progressToken": "upload_123",
+      "progress": 75,
+      "total": 100
+    }
+  }'
+# Expected: HTTP 202 with empty body
+
+# Test user activity notification  
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "notifications/user_activity",
+    "params": {
+      "userId": 123,
+      "action": "file_download",
+      "resource": "document.pdf"
+    }
+  }'
+# Expected: HTTP 202 with empty body
+
+# Test cancellation notification
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/cancelled", 
+    "params": {
+      "requestId": "req_abc123",
+      "reason": "User requested cancellation"
+    }
+  }'
+# Expected: HTTP 202 with empty body
+```
+
+**Key testing notes:**
+- Notifications return **HTTP 202** (never 200)
+- Response body is **always empty**
+- No JSON-RPC response message is sent
+- Check server logs to verify notification processing
+
+#### Error Handling and Validation
+
+**Common validation patterns:**
+
+```php
+public function execute(?array $params = null): void
+{
+    // Validate required parameters
+    if (!isset($params['userId'])) {
+        Log::error('UserActivityHandler: Missing required userId parameter', $params);
+        return; // Don't throw - notifications should be fault-tolerant
+    }
+    
+    // Validate parameter types
+    if (!is_numeric($params['userId'])) {
+        Log::warning('UserActivityHandler: userId must be numeric', $params);
+        return;
+    }
+    
+    // Safe parameter extraction with defaults
+    $userId = (int) $params['userId'];
+    $action = $params['action'] ?? 'unknown';
+    $metadata = $params['metadata'] ?? [];
+    
+    // Process notification...
+}
+```
+
+**Error handling best practices:**
+- **Log errors** instead of throwing exceptions
+- **Use defensive programming** with null checks and defaults
+- **Fail gracefully** - don't break the client's workflow
+- **Validate inputs** but continue processing when possible
+- **Monitor notifications** through logging and metrics
 
 ### Testing MCP Tools
 
