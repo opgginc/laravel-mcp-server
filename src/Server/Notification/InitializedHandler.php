@@ -2,9 +2,9 @@
 
 namespace OPGG\LaravelMcpServer\Server\Notification;
 
+use Illuminate\Support\Facades\Log;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
-use stdClass;
 
 class InitializedHandler extends NotificationHandler
 {
@@ -12,11 +12,20 @@ class InitializedHandler extends NotificationHandler
 
     protected const HANDLE_METHOD = 'notifications/initialized';
 
-    public function execute(?array $params = null): array|stdClass
+    public function execute(?array $params = null): void
     {
         // The 'notifications/initialized' is sent by the client after the initialization
         // handshake is complete. This is purely for acknowledgment - no response is needed.
-        // We return an empty array to indicate successful processing.
-        return [];
+
+        // You can implement custom logic here, such as:
+        // - Logging client initialization
+        // - Setting up client-specific resources
+        // - Triggering initialization events
+        // - Recording session start times
+
+        Log::info('MCP Client Initialized', [
+            'params' => $params,
+            'initialized_at' => now()->toISOString(),
+        ]);
     }
 }

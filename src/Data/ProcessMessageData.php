@@ -13,10 +13,13 @@ final class ProcessMessageData
 
     public array|JsonRpcResultResource|JsonRpcErrorResource $resource;
 
-    public function __construct(ProcessMessageType $messageType, array|JsonRpcResultResource|JsonRpcErrorResource $resource)
+    public bool $isNotification;
+
+    public function __construct(ProcessMessageType $messageType, array|JsonRpcResultResource|JsonRpcErrorResource $resource, bool $isNotification = false)
     {
         $this->messageType = $messageType;
         $this->resource = $resource;
+        $this->isNotification = $isNotification;
     }
 
     public function toArray(): array

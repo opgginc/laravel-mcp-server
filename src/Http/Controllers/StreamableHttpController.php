@@ -39,6 +39,11 @@ class StreamableHttpController
         $messageJson = json_decode($request->getContent(), true, flags: JSON_THROW_ON_ERROR);
         $processMessageData = $server->requestMessage(clientId: $mcpSessionId, message: $messageJson);
 
+        // MCP specification: notifications should return HTTP 202 with no body
+        if ($processMessageData->isNotification) {
+            return response('', 202);
+        }
+
         if (in_array($processMessageData->messageType, [ProcessMessageType::HTTP])
             && ($processMessageData->resource instanceof JsonRpcResultResource || $processMessageData->resource instanceof JsonRpcErrorResource)) {
             return response()->json($processMessageData->resource->toResponse());

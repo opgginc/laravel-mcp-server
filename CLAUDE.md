@@ -16,6 +16,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **List all tools**: `php artisan mcp:test-tool --list`
 - **Test tool with JSON input**: `php artisan mcp:test-tool ToolName --input='{"param":"value"}'`
 
+### MCP Notification Development
+- **Create notification handler**: `php artisan make:mcp-notification HandlerName --method=notifications/method`
+- **Test notification**: Returns HTTP 202 with empty body
+
 ### Configuration Publishing
 - **Publish config file**: `php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider"`
 
@@ -56,6 +60,12 @@ php artisan octane:start
 - **ResourcesTemplatesListHandler**: Returns resource template definitions
 - **ResourcesReadHandler**: Reads resource content by URI
 - **PingHandler**: Health check endpoint
+
+### Notification Handlers
+- **InitializedHandler**: Processes client initialization acknowledgments
+- **ProgressHandler**: Handles progress updates for long-running operations
+- **CancelledHandler**: Processes request cancellation notifications
+- **MessageHandler**: Handles general logging and communication messages
 
 ### Tool System
 Tools implement `ToolInterface` and are registered in `config/mcp-server.php`. Each tool defines:
@@ -101,6 +111,12 @@ Primary config: `config/mcp-server.php`
 - URI template utility: `src/Utils/UriTemplateUtil.php`
 - Example resources: `src/Services/ResourceService/Examples/`
 - Resource stub templates: `src/stubs/resource.stub`, `src/stubs/resource_template.stub`
+
+### Key Files for Notification Development
+- Notification handler base class: `src/Protocol/Handlers/NotificationHandler.php`
+- Standard notification handlers: `src/Server/Notification/`
+- Notification stub template: `src/stubs/notification.stub`
+- Make notification command: `src/Console/Commands/MakeMcpNotificationCommand.php`
 
 ## Package Development Notes
 

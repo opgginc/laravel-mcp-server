@@ -1,0 +1,115 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Support\Facades\Log;
+use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
+use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
+use stdClass;
+
+/**
+ * {{ class }}
+ * 
+ * Handles {{ method }} notifications from MCP clients.
+ * 
+ * Notifications are fire-and-forget messages that do not expect a response.
+ * They are used for events like progress updates, cancellations, or logging.
+ * 
+ * According to JSON-RPC specification:
+ * - Notifications do not have an 'id' field
+ * - Server should not send any response back to the client
+ * - Server returns HTTP 202 Accepted with empty body
+ * 
+ * @see https://www.jsonrpc.org/specification#notification
+ * @see https://modelcontextprotocol.io/docs/specification/basic/transports#streamable-http
+ */
+class {{ class }} extends NotificationHandler
+{
+    /**
+     * The message type for this notification handler.
+     * Usually HTTP for most notifications.
+     */
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+
+    /**
+     * The notification method this handler will process.
+     * This should match the 'method' field in the JSON-RPC notification.
+     */
+    protected const HANDLE_METHOD = '{{ method }}';
+
+    /**
+     * Execute the notification handler.
+     * 
+     * This method processes the notification parameters and performs
+     * any necessary actions. Since this is a notification, no response
+     * is expected or sent back to the client.
+     * 
+     * Common use cases:
+     * - Log important events
+     * - Update application state
+     * - Trigger background jobs
+     * - Send alerts or notifications
+     * - Update progress tracking
+     * 
+     * @param array|null $params The notification parameters from the client
+     * @return void Notifications don't return data to clients
+     * 
+     * @example
+     * // Client sends this JSON-RPC notification:
+     * // {
+     * //   "jsonrpc": "2.0",
+     * //   "method": "{{ method }}",
+     * //   "params": {
+     * //     "key": "value",
+     * //     "data": { ... }
+     * //   }
+     * // }
+     * // 
+     * // Server returns HTTP 202 with empty body
+     */
+    public function execute(?array $params = null): void
+    {
+        // Extract parameters from the notification
+        // $someParam = $params['someParam'] ?? null;
+        // $data = $params['data'] ?? [];
+        
+        // Example: Log the notification for debugging
+        Log::info('{{ class }} notification received', [
+            'method' => '{{ method }}',
+            'params' => $params,
+            'timestamp' => now()->toISOString(),
+        ]);
+        
+        // TODO: Implement your notification handling logic here
+        // 
+        // Examples:
+        // 
+        // 1. Progress updates:
+        // if (isset($params['progress'], $params['total'])) {
+        //     $percentage = ($params['progress'] / $params['total']) * 100;
+        //     Cache::put("progress_{$params['token']}", $percentage, 3600);
+        // }
+        // 
+        // 2. User activity logging:
+        // if (isset($params['userId'], $params['action'])) {
+        //     UserActivity::create([
+        //         'user_id' => $params['userId'],
+        //         'action' => $params['action'],
+        //         'data' => $params['data'] ?? [],
+        //     ]);
+        // }
+        // 
+        // 3. Real-time notifications:
+        // if (isset($params['message'])) {
+        //     broadcast(new NotificationReceived($params['message']));
+        // }
+        // 
+        // 4. Background job dispatch:
+        // if (isset($params['jobData'])) {
+        //     ProcessNotificationJob::dispatch($params['jobData']);
+        // }
+        
+        // No return value needed - notifications are fire-and-forget
+        // The server will automatically return HTTP 202 with empty body
+    }
+}

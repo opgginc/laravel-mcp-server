@@ -4,7 +4,6 @@ namespace OPGG\LaravelMcpServer\Protocol\Handlers;
 
 use Exception;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
-use stdClass;
 
 abstract class NotificationHandler
 {
@@ -22,7 +21,7 @@ abstract class NotificationHandler
         }
     }
 
-    abstract public function execute(?array $params = null): array|stdClass;
+    abstract public function execute(?array $params = null): void;
 
     public function getMessageType(?array $params = null): ProcessMessageType
     {
