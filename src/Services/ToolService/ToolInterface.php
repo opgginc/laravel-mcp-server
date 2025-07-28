@@ -26,4 +26,19 @@ interface ToolInterface
      * @return bool
      */
     // public function isStreaming(): bool;
+
+    /**
+     * OPTIONAL: Defines the JSON schema for the tool's output structure.
+     * This enables structured content responses and validation according to MCP specification.
+     * 
+     * When implemented, tool outputs will be validated against this schema and can include
+     * structured content with proper type information for better MCP client compatibility.
+     *
+     * If not implemented, tool outputs default to plain text content.
+     *
+     * @since v1.4.0
+     *
+     * @return array|null JSON schema array or null if not supported
+     */
+    // public function outputSchema(): ?array;
 }
