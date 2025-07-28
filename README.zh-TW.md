@@ -26,6 +26,10 @@
   <a href="README.es.md">Español</a>
 </p>
 
+<p align="center">
+  <img src="docs/watch.gif" alt="Laravel MCP Server Demo" height="200">
+</p>
+
 ## ⚠️ 版本資訊與重大變更
 
 ### v1.3.0 變更 (目前版本)
@@ -679,6 +683,281 @@ class WelcomePrompt extends Prompt
 ```
 
 提示可以嵌入資源並回傳訊息序列來引導 LLM。請參閱官方文件以獲得進階範例和最佳實務。
+
+### 使用通知
+
+通知是來自 MCP 客戶端的 fire-and-forget 訊息，它們總是回傳 HTTP 202 Accepted 而沒有回應主體。它們非常適合記錄、進度追蹤、事件處理和觸發背景程序，而不會阻塞客戶端。
+
+#### 建立通知處理器
+
+**基本指令用法：**
+
+```bash
+php artisan make:mcp-notification ProgressHandler --method=notifications/progress
+```
+
+**進階指令功能：**
+
+```bash
+# 互動模式 - 如果未指定方法則提示輸入
+php artisan make:mcp-notification MyHandler
+
+# 自動方法前綴處理
+php artisan make:mcp-notification StatusHandler --method=status  # 變成 notifications/status
+
+# 類別名稱標準化 
+php artisan make:mcp-notification "user activity"  # 變成 UserActivityHandler
+```
+
+該指令提供：
+- 當未指定 `--method` 時**互動式方法提示**
+- 帶有複製貼上就緒程式碼的**自動註冊指南**
+- 帶有 curl 指令的**內建測試範例** 
+- **全面的使用說明**和常見用例
+
+#### 通知處理器架構
+
+每個通知處理器必須實作抽象類別 `NotificationHandler`：
+
+```php
+abstract class NotificationHandler
+{
+    // 必需：訊息類型（通常是 ProcessMessageType::HTTP）
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    
+    // 必需：要處理的通知方法  
+    protected const HANDLE_METHOD = 'notifications/your_method';
+    
+    // 必需：執行通知邏輯
+    abstract public function execute(?array $params = null): void;
+}
+```
+
+**關鍵架構組件：**
+
+- **`MESSAGE_TYPE`**：標準通知通常使用 `ProcessMessageType::HTTP`
+- **`HANDLE_METHOD`**：此處理器處理的 JSON-RPC 方法（必須以 `notifications/` 開頭）
+- **`execute()`**：包含您的通知邏輯 - 回傳 void（不發送回應）
+- **建構函式驗證**：自動驗證必需常數是否已定義
+
+#### 內建通知處理器
+
+套件包含四個為常見 MCP 場景預建的處理器：
+
+**1. InitializedHandler (`notifications/initialized`)**
+- **目的**：在成功握手後處理客戶端初始化確認
+- **參數**：客戶端資訊和能力
+- **用法**：會話追蹤、客戶端記錄、初始化事件
+
+**2. ProgressHandler (`notifications/progress`)**
+- **目的**：處理長時間執行操作的進度更新
+- **參數**： 
+  - `progressToken` (string)：操作的唯一識別符
+  - `progress` (number)：目前進度值
+  - `total` (number，可選)：用於百分比計算的總進度值
+- **用法**：即時進度追蹤、上傳監控、任務完成
+
+**3. CancelledHandler (`notifications/cancelled`)**
+- **目的**：處理請求取消通知
+- **參數**：
+  - `requestId` (string)：要取消的請求 ID
+  - `reason` (string，可選)：取消原因
+- **用法**：背景作業終止、資源清理、操作中止
+
+**4. MessageHandler (`notifications/message`)**
+- **目的**：處理一般記錄和通訊訊息
+- **參數**：
+  - `level` (string)：記錄層級（info、warning、error、debug）
+  - `message` (string)：訊息內容
+  - `logger` (string，可選)：記錄器名稱
+- **用法**：客戶端記錄、除錯、一般通訊
+
+#### 常見場景的處理器範例
+
+```php
+// 檔案上傳進度追蹤
+class UploadProgressHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/upload_progress';
+
+    public function execute(?array $params = null): void
+    {
+        $token = $params['progressToken'] ?? null;
+        $progress = $params['progress'] ?? 0;
+        $total = $params['total'] ?? 100;
+        
+        if ($token) {
+            Cache::put("upload_progress_{$token}", [
+                'progress' => $progress,
+                'total' => $total,
+                'percentage' => $total ? round(($progress / $total) * 100, 2) : 0,
+                'updated_at' => now()
+            ], 3600);
+            
+            // 廣播即時更新
+            broadcast(new UploadProgressUpdated($token, $progress, $total));
+        }
+    }
+}
+
+// 使用者活動和稽核記錄
+class UserActivityHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/user_activity';
+
+    public function execute(?array $params = null): void
+    {
+        UserActivity::create([
+            'user_id' => $params['userId'] ?? null,
+            'action' => $params['action'] ?? 'unknown',
+            'resource' => $params['resource'] ?? null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => $params['metadata'] ?? [],
+            'created_at' => now()
+        ]);
+        
+        // 為敏感操作觸發安全警報
+        if (in_array($params['action'] ?? '', ['delete', 'export', 'admin_access'])) {
+            SecurityAlert::dispatch($params);
+        }
+    }
+}
+
+// 背景任務觸發
+class TaskTriggerHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/trigger_task';
+
+    public function execute(?array $params = null): void
+    {
+        $taskType = $params['taskType'] ?? null;
+        $taskData = $params['data'] ?? [];
+        
+        match ($taskType) {
+            'send_email' => SendEmailJob::dispatch($taskData),
+            'generate_report' => GenerateReportJob::dispatch($taskData),
+            'sync_data' => DataSyncJob::dispatch($taskData),
+            'cleanup' => CleanupJob::dispatch($taskData),
+            default => Log::warning("Unknown task type: {$taskType}")
+        };
+    }
+}
+```
+
+#### 註冊通知處理器
+
+**在您的服務提供者中：**
+
+```php
+// 在 AppServiceProvider 或專用的 MCP 服務提供者中
+public function boot()
+{
+    $server = app(MCPServer::class);
+    
+    // 註冊內建處理器（可選 - 預設註冊）
+    $server->registerNotificationHandler(new InitializedHandler());
+    $server->registerNotificationHandler(new ProgressHandler());
+    $server->registerNotificationHandler(new CancelledHandler());
+    $server->registerNotificationHandler(new MessageHandler());
+    
+    // 註冊自訂處理器
+    $server->registerNotificationHandler(new UploadProgressHandler());
+    $server->registerNotificationHandler(new UserActivityHandler());
+    $server->registerNotificationHandler(new TaskTriggerHandler());
+}
+```
+
+#### 測試通知
+
+**使用 curl 測試通知處理器：**
+
+```bash
+# 測試進度通知
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/progress",
+    "params": {
+      "progressToken": "upload_123",
+      "progress": 75,
+      "total": 100
+    }
+  }'
+# 預期：HTTP 202 且主體為空
+
+# 測試使用者活動通知  
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "notifications/user_activity",
+    "params": {
+      "userId": 123,
+      "action": "file_download",
+      "resource": "document.pdf"
+    }
+  }'
+# 預期：HTTP 202 且主體為空
+
+# 測試取消通知
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/cancelled", 
+    "params": {
+      "requestId": "req_abc123",
+      "reason": "User requested cancellation"
+    }
+  }'
+# 預期：HTTP 202 且主體為空
+```
+
+**重要測試注意事項：**
+- 通知回傳 **HTTP 202**（從不回傳 200）
+- 回應主體**總是空的**
+- 不發送 JSON-RPC 回應訊息
+- 檢查伺服器記錄以驗證通知處理
+
+#### 錯誤處理和驗證
+
+**常見驗證模式：**
+
+```php
+public function execute(?array $params = null): void
+{
+    // 驗證必需參數
+    if (!isset($params['userId'])) {
+        Log::error('UserActivityHandler: Missing required userId parameter', $params);
+        return; // 不要拋出例外 - 通知應該容錯
+    }
+    
+    // 驗證參數型別
+    if (!is_numeric($params['userId'])) {
+        Log::warning('UserActivityHandler: userId must be numeric', $params);
+        return;
+    }
+    
+    // 使用預設值安全提取參數
+    $userId = (int) $params['userId'];
+    $action = $params['action'] ?? 'unknown';
+    $metadata = $params['metadata'] ?? [];
+    
+    // 處理通知...
+}
+```
+
+**錯誤處理最佳實務：**
+- **記錄錯誤**而不是拋出例外
+- **使用防禦性程式設計**，進行空值檢查和預設值
+- **優雅失敗** - 不要破壞客戶端的工作流程
+- **驗證輸入**但在可能時繼續處理
+- 透過記錄和指標**監控通知**
 
 ### 測試 MCP 工具
 

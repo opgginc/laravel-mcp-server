@@ -26,6 +26,10 @@
   <a href="README.es.md">Español</a>
 </p>
 
+<p align="center">
+  <img src="docs/watch.gif" alt="Laravel MCP Server Demo" height="200">
+</p>
+
 ## ⚠️ Информация о версиях и критические изменения
 
 ### Изменения в v1.3.0 (Текущая версия)
@@ -679,6 +683,281 @@ class WelcomePrompt extends Prompt
 ```
 
 Промпты могут встраивать ресурсы и возвращать последовательности сообщений для направления LLM. См. официальную документацию для продвинутых примеров и лучших практик.
+
+### Работа с уведомлениями
+
+Уведомления - это fire-and-forget сообщения от MCP клиентов, которые всегда возвращают HTTP 202 Accepted без тела ответа. Они идеально подходят для логирования, отслеживания прогресса, обработки событий и запуска фоновых процессов без блокировки клиента.
+
+#### Создание обработчиков уведомлений
+
+**Базовое использование команды:**
+
+```bash
+php artisan make:mcp-notification ProgressHandler --method=notifications/progress
+```
+
+**Продвинутые возможности команды:**
+
+```bash
+# Интерактивный режим - запрашивает метод, если не указан
+php artisan make:mcp-notification MyHandler
+
+# Автоматическая обработка префикса метода
+php artisan make:mcp-notification StatusHandler --method=status  # становится notifications/status
+
+# Нормализация имени класса 
+php artisan make:mcp-notification "user activity"  # становится UserActivityHandler
+```
+
+Команда предоставляет:
+- **Интерактивный запрос метода** когда `--method` не указан
+- **Автоматическое руководство по регистрации** с готовым для копирования кодом
+- **Встроенные примеры тестов** с curl командами 
+- **Всеобъемлющие инструкции по использованию** и общие случаи использования
+
+#### Архитектура обработчика уведомлений
+
+Каждый обработчик уведомлений должен реализовывать абстрактный класс `NotificationHandler`:
+
+```php
+abstract class NotificationHandler
+{
+    // Обязательно: Тип сообщения (обычно ProcessMessageType::HTTP)
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    
+    // Обязательно: Метод уведомления для обработки  
+    protected const HANDLE_METHOD = 'notifications/your_method';
+    
+    // Обязательно: Выполнение логики уведомления
+    abstract public function execute(?array $params = null): void;
+}
+```
+
+**Ключевые архитектурные компоненты:**
+
+- **`MESSAGE_TYPE`**: Обычно `ProcessMessageType::HTTP` для стандартных уведомлений
+- **`HANDLE_METHOD`**: JSON-RPC метод, который обрабатывает этот обработчик (должен начинаться с `notifications/`)
+- **`execute()`**: Содержит вашу логику уведомлений - возвращает void (ответ не отправляется)
+- **Валидация конструктора**: Автоматически валидирует, что обязательные константы определены
+
+#### Встроенные обработчики уведомлений
+
+Пакет включает четыре предварительно созданных обработчика для общих MCP сценариев:
+
+**1. InitializedHandler (`notifications/initialized`)**
+- **Цель**: Обрабатывает подтверждения инициализации клиента после успешного handshake
+- **Параметры**: Информация о клиенте и возможности
+- **Использование**: Отслеживание сессий, логирование клиента, события инициализации
+
+**2. ProgressHandler (`notifications/progress`)**
+- **Цель**: Обрабатывает обновления прогресса для долгосрочных операций
+- **Параметры**: 
+  - `progressToken` (string): Уникальный идентификатор операции
+  - `progress` (number): Текущее значение прогресса
+  - `total` (number, опционально): Общее значение прогресса для расчета процентов
+- **Использование**: Отслеживание прогресса в реальном времени, мониторинг загрузок, завершение задач
+
+**3. CancelledHandler (`notifications/cancelled`)**
+- **Цель**: Обрабатывает уведомления об отмене запросов
+- **Параметры**:
+  - `requestId` (string): ID запроса для отмены
+  - `reason` (string, опционально): Причина отмены
+- **Использование**: Завершение фоновых задач, очистка ресурсов, прерывание операций
+
+**4. MessageHandler (`notifications/message`)**
+- **Цель**: Обрабатывает общие сообщения логирования и коммуникации
+- **Параметры**:
+  - `level` (string): Уровень лога (info, warning, error, debug)
+  - `message` (string): Содержимое сообщения
+  - `logger` (string, опционально): Имя логгера
+- **Использование**: Логирование на стороне клиента, отладка, общая коммуникация
+
+#### Примеры обработчиков для общих сценариев
+
+```php
+// Отслеживание прогресса загрузки файлов
+class UploadProgressHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/upload_progress';
+
+    public function execute(?array $params = null): void
+    {
+        $token = $params['progressToken'] ?? null;
+        $progress = $params['progress'] ?? 0;
+        $total = $params['total'] ?? 100;
+        
+        if ($token) {
+            Cache::put("upload_progress_{$token}", [
+                'progress' => $progress,
+                'total' => $total,
+                'percentage' => $total ? round(($progress / $total) * 100, 2) : 0,
+                'updated_at' => now()
+            ], 3600);
+            
+            // Трансляция обновления в реальном времени
+            broadcast(new UploadProgressUpdated($token, $progress, $total));
+        }
+    }
+}
+
+// Активность пользователя и логирование аудита
+class UserActivityHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/user_activity';
+
+    public function execute(?array $params = null): void
+    {
+        UserActivity::create([
+            'user_id' => $params['userId'] ?? null,
+            'action' => $params['action'] ?? 'unknown',
+            'resource' => $params['resource'] ?? null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'metadata' => $params['metadata'] ?? [],
+            'created_at' => now()
+        ]);
+        
+        // Запуск уведомлений о безопасности для чувствительных действий
+        if (in_array($params['action'] ?? '', ['delete', 'export', 'admin_access'])) {
+            SecurityAlert::dispatch($params);
+        }
+    }
+}
+
+// Запуск фоновых задач
+class TaskTriggerHandler extends NotificationHandler
+{
+    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
+    protected const HANDLE_METHOD = 'notifications/trigger_task';
+
+    public function execute(?array $params = null): void
+    {
+        $taskType = $params['taskType'] ?? null;
+        $taskData = $params['data'] ?? [];
+        
+        match ($taskType) {
+            'send_email' => SendEmailJob::dispatch($taskData),
+            'generate_report' => GenerateReportJob::dispatch($taskData),
+            'sync_data' => DataSyncJob::dispatch($taskData),
+            'cleanup' => CleanupJob::dispatch($taskData),
+            default => Log::warning("Unknown task type: {$taskType}")
+        };
+    }
+}
+```
+
+#### Регистрация обработчиков уведомлений
+
+**В вашем провайдере сервисов:**
+
+```php
+// В AppServiceProvider или выделенном MCP провайдере сервисов
+public function boot()
+{
+    $server = app(MCPServer::class);
+    
+    // Регистрация встроенных обработчиков (опционально - регистрируются по умолчанию)
+    $server->registerNotificationHandler(new InitializedHandler());
+    $server->registerNotificationHandler(new ProgressHandler());
+    $server->registerNotificationHandler(new CancelledHandler());
+    $server->registerNotificationHandler(new MessageHandler());
+    
+    // Регистрация пользовательских обработчиков
+    $server->registerNotificationHandler(new UploadProgressHandler());
+    $server->registerNotificationHandler(new UserActivityHandler());
+    $server->registerNotificationHandler(new TaskTriggerHandler());
+}
+```
+
+#### Тестирование уведомлений
+
+**Использование curl для тестирования обработчиков уведомлений:**
+
+```bash
+# Тестирование уведомления о прогрессе
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/progress",
+    "params": {
+      "progressToken": "upload_123",
+      "progress": 75,
+      "total": 100
+    }
+  }'
+# Ожидается: HTTP 202 с пустым телом
+
+# Тестирование уведомления об активности пользователя  
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "notifications/user_activity",
+    "params": {
+      "userId": 123,
+      "action": "file_download",
+      "resource": "document.pdf"
+    }
+  }'
+# Ожидается: HTTP 202 с пустым телом
+
+# Тестирование уведомления об отмене
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "notifications/cancelled", 
+    "params": {
+      "requestId": "req_abc123",
+      "reason": "User requested cancellation"
+    }
+  }'
+# Ожидается: HTTP 202 с пустым телом
+```
+
+**Ключевые заметки о тестировании:**
+- Уведомления возвращают **HTTP 202** (никогда 200)
+- Тело ответа **всегда пустое**
+- JSON-RPC ответное сообщение не отправляется
+- Проверьте логи сервера для подтверждения обработки уведомлений
+
+#### Обработка ошибок и валидация
+
+**Общие паттерны валидации:**
+
+```php
+public function execute(?array $params = null): void
+{
+    // Валидация обязательных параметров
+    if (!isset($params['userId'])) {
+        Log::error('UserActivityHandler: Missing required userId parameter', $params);
+        return; // Не бросайте исключение - уведомления должны быть отказоустойчивыми
+    }
+    
+    // Валидация типов параметров
+    if (!is_numeric($params['userId'])) {
+        Log::warning('UserActivityHandler: userId must be numeric', $params);
+        return;
+    }
+    
+    // Безопасная экстракция параметров со значениями по умолчанию
+    $userId = (int) $params['userId'];
+    $action = $params['action'] ?? 'unknown';
+    $metadata = $params['metadata'] ?? [];
+    
+    // Обработка уведомления...
+}
+```
+
+**Лучшие практики обработки ошибок:**
+- **Логировать ошибки** вместо выбрасывания исключений
+- **Использовать защитное программирование** с null проверками и значениями по умолчанию
+- **Изящное падение** - не ломать рабочий процесс клиента
+- **Валидировать входы** но продолжать обработку когда возможно
+- **Мониторить уведомления** через логирование и метрики
 
 ### Тестирование MCP инструментов
 
