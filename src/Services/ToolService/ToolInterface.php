@@ -30,7 +30,7 @@ interface ToolInterface
     /**
      * OPTIONAL: Defines the JSON schema for the tool's output structure.
      * This enables structured content responses and validation according to MCP specification.
-     * 
+     *
      * When implemented, tool outputs will be validated against this schema and can include
      * structured content with proper type information for better MCP client compatibility.
      *

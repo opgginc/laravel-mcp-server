@@ -35,7 +35,6 @@ class JsonSchemaValidator
      *
      * @param  mixed  $data  The data to validate
      * @param  array  $schema  The schema definition
-     * @return void
      *
      * @throws InvalidArgumentException If validation fails
      */
@@ -56,27 +55,27 @@ class JsonSchemaValidator
                 break;
             case 'string':
                 if (! is_string($data)) {
-                    throw new InvalidArgumentException("Expected string, got ".gettype($data));
+                    throw new InvalidArgumentException('Expected string, got '.gettype($data));
                 }
                 break;
             case 'number':
                 if (! is_numeric($data)) {
-                    throw new InvalidArgumentException("Expected number, got ".gettype($data));
+                    throw new InvalidArgumentException('Expected number, got '.gettype($data));
                 }
                 break;
             case 'integer':
                 if (! is_int($data)) {
-                    throw new InvalidArgumentException("Expected integer, got ".gettype($data));
+                    throw new InvalidArgumentException('Expected integer, got '.gettype($data));
                 }
                 break;
             case 'boolean':
                 if (! is_bool($data)) {
-                    throw new InvalidArgumentException("Expected boolean, got ".gettype($data));
+                    throw new InvalidArgumentException('Expected boolean, got '.gettype($data));
                 }
                 break;
             case 'null':
                 if ($data !== null) {
-                    throw new InvalidArgumentException("Expected null, got ".gettype($data));
+                    throw new InvalidArgumentException('Expected null, got '.gettype($data));
                 }
                 break;
             default:
@@ -89,14 +88,13 @@ class JsonSchemaValidator
      *
      * @param  mixed  $data  The data to validate
      * @param  array  $schema  The object schema
-     * @return void
      *
      * @throws InvalidArgumentException If validation fails
      */
     private static function validateObject(mixed $data, array $schema): void
     {
         if (! is_array($data)) {
-            throw new InvalidArgumentException("Expected object/array, got ".gettype($data));
+            throw new InvalidArgumentException('Expected object/array, got '.gettype($data));
         }
 
         $properties = $schema['properties'] ?? [];
@@ -126,14 +124,13 @@ class JsonSchemaValidator
      *
      * @param  mixed  $data  The data to validate
      * @param  array  $schema  The array schema
-     * @return void
      *
      * @throws InvalidArgumentException If validation fails
      */
     private static function validateArray(mixed $data, array $schema): void
     {
         if (! is_array($data)) {
-            throw new InvalidArgumentException("Expected array, got ".gettype($data));
+            throw new InvalidArgumentException('Expected array, got '.gettype($data));
         }
 
         $itemsSchema = $schema['items'] ?? null;

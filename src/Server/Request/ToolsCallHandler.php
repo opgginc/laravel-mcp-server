@@ -70,10 +70,10 @@ class ToolsCallHandler extends RequestHandler
         if ($hasOutputSchema) {
             $outputSchema = $tool->outputSchema();
             $validation = JsonSchemaValidator::validateWithResult($result, $outputSchema);
-            
+
             if (! $validation['valid']) {
                 throw new JsonRpcErrorException(
-                    message: "Tool output validation failed: {$validation['error']}", 
+                    message: "Tool output validation failed: {$validation['error']}",
                     code: JsonRpcErrorCode::INTERNAL_ERROR
                 );
             }
@@ -92,7 +92,7 @@ class ToolsCallHandler extends RequestHandler
 
     /**
      * Formats tool result into appropriate content structure.
-     * 
+     *
      * @param  mixed  $result  The tool execution result
      * @param  bool  $hasOutputSchema  Whether the tool has an output schema
      * @return array Content array for MCP response

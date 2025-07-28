@@ -120,7 +120,7 @@ class ToolRepository
             if (! empty($tool->annotations())) {
                 $injectArray['annotations'] = $tool->annotations();
             }
-            
+
             // Add output schema if the tool supports it
             if (method_exists($tool, 'outputSchema') && $tool->outputSchema() !== null) {
                 $injectArray['outputSchema'] = $tool->outputSchema();
