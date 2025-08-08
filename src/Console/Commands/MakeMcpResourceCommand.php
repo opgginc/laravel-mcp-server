@@ -71,7 +71,13 @@ class MakeMcpResourceCommand extends Command
 
         $this->info("✅ Created: {$path}");
 
-        $fullClassName = "\\App\\MCP\\Resources\\{$className}";
+        // Build full class name with tag directory support
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+        $fullClassName = "\\App\\MCP\\Resources\\";
+        if ($tagDirectory) {
+            $fullClassName .= "{$tagDirectory}\\";
+        }
+        $fullClassName .= $className;
 
         // Ask if they want to automatically register the resource (skip in programmatic mode)
         if (! $this->option('programmatic')) {
@@ -136,6 +142,13 @@ class MakeMcpResourceCommand extends Command
      */
     protected function getPath(string $className)
     {
+        // Check if we have a tag directory from dynamic params
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+        
+        if ($tagDirectory) {
+            return app_path("MCP/Resources/{$tagDirectory}/{$className}.php");
+        }
+        
         // Create the file in the app/MCP/Resources directory
         return app_path("MCP/Resources/{$className}.php");
     }
@@ -188,9 +201,16 @@ class MakeMcpResourceCommand extends Command
         $mimeType = $this->dynamicParams['mimeType'] ?? 'application/json';
         $readLogic = $this->dynamicParams['readLogic'] ?? $this->getDefaultReadLogic();
 
+        // Build namespace with tag directory support
+        $namespace = 'App\\MCP\\Resources';
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+        if ($tagDirectory) {
+            $namespace .= '\\' . $tagDirectory;
+        }
+        
         // Replace placeholders in stub
         $replacements = [
-            '{{ namespace }}' => 'App\\MCP\\Resources',
+            '{{ namespace }}' => $namespace,
             '{{ className }}' => $className,
             '{{ uri }}' => $uri,
             '{{ name }}' => addslashes($name),
@@ -249,9 +269,16 @@ PHP;
      */
     protected function replaceStubPlaceholders(string $stub, string $className)
     {
+        // Build namespace with tag directory support
+        $namespace = 'App\\MCP\\Resources';
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+        if ($tagDirectory) {
+            $namespace .= '\\' . $tagDirectory;
+        }
+        
         return str_replace(
             ['{{ className }}', '{{ namespace }}'],
-            [$className, 'App\\MCP\\Resources'],
+            [$className, $namespace],
             $stub
         );
     }

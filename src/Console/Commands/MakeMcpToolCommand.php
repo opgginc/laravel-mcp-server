@@ -71,7 +71,13 @@ class MakeMcpToolCommand extends Command
 
         $this->info("✅ Created: {$path}");
 
-        $fullClassName = "\\App\\MCP\\Tools\\{$className}";
+        // Build full class name with tag directory support
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+        $fullClassName = "\\App\\MCP\\Tools\\";
+        if ($tagDirectory) {
+            $fullClassName .= "{$tagDirectory}\\";
+        }
+        $fullClassName .= $className;
 
         // Ask if they want to automatically register the tool (skip in programmatic mode)
         if (! $this->option('programmatic')) {
@@ -143,6 +149,13 @@ class MakeMcpToolCommand extends Command
      */
     protected function getPath(string $className)
     {
+        // Check if we have a tag directory from dynamic params
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+        
+        if ($tagDirectory) {
+            return app_path("MCP/Tools/{$tagDirectory}/{$className}.php");
+        }
+        
         // Create the file in the app/MCP/Tools directory
         return app_path("MCP/Tools/{$className}.php");
     }
@@ -225,9 +238,16 @@ class MakeMcpToolCommand extends Command
         // Build annotations
         $annotationsString = $this->arrayToPhpString($annotations, 2);
 
+        // Build namespace with tag directory support
+        $namespace = 'App\\MCP\\Tools';
+        $tagDirectory = $params['tagDirectory'] ?? '';
+        if ($tagDirectory) {
+            $namespace .= '\\' . $tagDirectory;
+        }
+
         // Replace placeholders in stub
         $replacements = [
-            '{{ namespace }}' => 'App\\MCP\\Tools',
+            '{{ namespace }}' => $namespace,
             '{{ className }}' => $className,
             '{{ toolName }}' => $toolName,
             '{{ description }}' => addslashes($description),
@@ -290,9 +310,16 @@ class MakeMcpToolCommand extends Command
      */
     protected function replaceStubPlaceholders(string $stub, string $className, string $toolName)
     {
+        // Build namespace with tag directory support
+        $namespace = 'App\\MCP\\Tools';
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+        if ($tagDirectory) {
+            $namespace .= '\\' . $tagDirectory;
+        }
+        
         return str_replace(
             ['{{ className }}', '{{ namespace }}', '{{ toolName }}'],
-            [$className, 'App\\MCP\\Tools', $toolName],
+            [$className, $namespace, $toolName],
             $stub
         );
     }

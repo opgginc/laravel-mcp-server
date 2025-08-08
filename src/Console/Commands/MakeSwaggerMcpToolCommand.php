@@ -4,6 +4,7 @@ namespace OPGG\LaravelMcpServer\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser;
 use OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter;
 
@@ -572,7 +573,10 @@ class MakeSwaggerMcpToolCommand extends Command
             if ($type === 'tool') {
                 // Generate tool
                 $className = $this->converter->generateClassName($endpoint, $prefix);
-                $path = app_path("MCP/Tools/{$className}.php");
+                
+                // Create tag-based directory structure
+                $tagDirectory = $this->createTagDirectory($endpoint);
+                $path = app_path("MCP/Tools/{$tagDirectory}/{$className}.php");
 
                 if (file_exists($path)) {
                     $this->warn("Skipping {$className} - already exists");
@@ -584,6 +588,9 @@ class MakeSwaggerMcpToolCommand extends Command
 
                 // Get tool parameters
                 $toolParams = $this->converter->convertEndpointToTool($endpoint, $className);
+                
+                // Add tag directory to tool params for namespace handling
+                $toolParams['tagDirectory'] = $tagDirectory;
 
                 // Create the tool using MakeMcpToolCommand
                 $makeTool = new MakeMcpToolCommand(app('files'));
@@ -608,7 +615,10 @@ class MakeSwaggerMcpToolCommand extends Command
             } else {
                 // Generate resource
                 $className = $this->converter->generateResourceClassName($endpoint, $prefix);
-                $path = app_path("MCP/Resources/{$className}.php");
+                
+                // Create tag-based directory structure
+                $tagDirectory = $this->createTagDirectory($endpoint);
+                $path = app_path("MCP/Resources/{$tagDirectory}/{$className}.php");
 
                 if (file_exists($path)) {
                     $this->warn("Skipping {$className} - already exists");
@@ -620,6 +630,9 @@ class MakeSwaggerMcpToolCommand extends Command
 
                 // Get resource parameters
                 $resourceParams = $this->converter->convertEndpointToResource($endpoint, $className);
+                
+                // Add tag directory to resource params for namespace handling
+                $resourceParams['tagDirectory'] = $tagDirectory;
 
                 // Create the resource using MakeMcpResourceCommand
                 $makeResource = new MakeMcpResourceCommand(app('files'));
@@ -688,5 +701,22 @@ class MakeSwaggerMcpToolCommand extends Command
             $stepNumber++;
             $this->line("{$stepNumber}. Update authentication configuration if needed");
         }
+    }
+
+    /**
+     * Create a tag directory name from endpoint tags
+     */
+    protected function createTagDirectory(array $endpoint): string
+    {
+        // Get the first tag, or use a default
+        $tags = $endpoint['tags'] ?? [];
+        if (empty($tags)) {
+            return 'General';
+        }
+        
+        $tag = $tags[0]; // Use the first tag
+        
+        // Convert tag to StudlyCase for directory naming
+        return Str::studly($tag);
     }
 }
