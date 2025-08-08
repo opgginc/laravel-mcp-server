@@ -1,0 +1,80 @@
+<?php
+
+namespace {{ namespace }};
+
+use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
+use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
+use Illuminate\Support\Facades\Validator;
+{{ imports }}
+
+/**
+ * {{ className }} - Auto-generated MCP Tool from Swagger/OpenAPI
+ *
+ * This tool was automatically generated from an API specification.
+ * Review and modify the execute() method to fit your specific requirements.
+ */
+class {{ className }} implements ToolInterface
+{
+    /**
+     * Determines if this tool requires streaming (SSE) instead of standard HTTP
+     * 
+     * @return bool false for standard HTTP request/response, true for SSE streaming
+     */
+    public function isStreaming(): bool
+    {
+        return false;
+    }
+
+    /**
+     * The unique identifier for this tool
+     *
+     * @return string The tool name used in MCP requests
+     */
+    public function name(): string
+    {
+        return '{{ toolName }}';
+    }
+
+    /**
+     * Human-readable description of what this tool does
+     *
+     * @return string Tool description
+     */
+    public function description(): string
+    {
+        return '{{ description }}';
+    }
+
+    /**
+     * Define the expected input parameters for this tool
+     *
+     * @return array JSON Schema for input validation
+     */
+    public function inputSchema(): array
+    {
+        return {{ inputSchema }};
+    }
+
+    /**
+     * Provide metadata about this tool's behavior
+     * 
+     * @return array Tool annotations following MCP specification
+     */
+    public function annotations(): array
+    {
+        return {{ annotations }};
+    }
+
+    /**
+     * Execute the tool with validated arguments
+     *
+     * @param array $arguments The validated input arguments
+     * @return mixed The tool's response data
+     * @throws JsonRpcErrorException If the execution fails
+     */
+    public function execute(array $arguments): mixed
+    {
+{{ executeLogic }}
+    }
+}

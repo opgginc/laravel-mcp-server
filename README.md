@@ -34,11 +34,12 @@
 
 ### v1.4.0 Changes (Latest) 🚀
 
-Version 1.4.0 introduces powerful automatic tool generation from Swagger/OpenAPI specifications:
+Version 1.4.0 introduces powerful automatic tool and resource generation from Swagger/OpenAPI specifications:
 
 **New Features:**
-- **Swagger/OpenAPI Tool Generator**: Automatically generate MCP tools from any Swagger/OpenAPI specification
+- **Swagger/OpenAPI Tool & Resource Generator**: Automatically generate MCP tools or resources from any Swagger/OpenAPI specification
   - Supports both OpenAPI 3.x and Swagger 2.0 formats
+  - **Choose generation type**: Generate as Tools (for actions) or Resources (for read-only data)
   - Interactive endpoint selection with grouping options
   - Automatic authentication logic generation (API Key, Bearer Token, OAuth2)
   - Smart naming for readable class names (handles hash-based operationIds)
@@ -357,7 +358,7 @@ php artisan make:swagger-mcp-tool https://api.example.com/swagger.json \
 ```bash
 ➜ php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
 
-🚀 Swagger/OpenAPI to MCP Tool Generator
+🚀 Swagger/OpenAPI to MCP Generator
 =========================================
 📄 Loading spec from: https://api.op.gg/lol/swagger.json
 ✅ Spec loaded successfully!
@@ -372,40 +373,57 @@ php artisan make:swagger-mcp-tool https://api.example.com/swagger.json \
 | Security        |                         |
 +-----------------+-------------------------+
 
+🎯 What would you like to generate from this API?
+
+Tools: For operations that perform actions (create, update, delete, compute)
+Resources: For read-only data endpoints that provide information
+
+Generate as:
+  [0] Tools (for actions)
+  > 1
+  [1] Resources (for read-only data)
+  > 1
+
+✓ Will generate as MCP Resources
+
 Would you like to modify the base URL? Current: https://api.op.gg (yes/no) [no]:
 > no
 
-📋 Select endpoints to generate tools for:
+📋 Select endpoints to generate resources for:
+Note: Only GET endpoints can be converted to resources
 Include tag: Riot (6 endpoints)? (yes/no) [yes]:
 > yes
 
 Selected 6 endpoints.
-🛠️ Generating MCP tools...
+🛠️ Generating MCP resources...
 Note: operationId '5784a7dfd226e1621b0e6ee8c4f39407' looks like a hash, will use path-based naming
-Generating: GetLolRegionRankingsGameTypeTool
-  ✅ Generated: GetLolRegionRankingsGameTypeTool
-Generating: GetLolRegionServerStatsTool
-  ✅ Generated: GetLolRegionServerStatsTool
+Generating: LolRegionRankingsGameTypeResource
+  ✅ Generated: LolRegionRankingsGameTypeResource
+Generating: LolRegionServerStatsResource
+  ✅ Generated: LolRegionServerStatsResource
 ...
 
-📦 Generated 6 MCP tools:
-  - GetLolRegionRankingsGameTypeTool
-  - GetLolRegionServerStatsTool
-  - GetLolMetaChampionsTool
+📦 Generated 6 MCP resources:
+  - LolRegionRankingsGameTypeResource
+  - LolRegionServerStatsResource
+  - LolMetaChampionsResource
   ...
 
-✅ MCP tools generated successfully!
+✅ MCP resources generated successfully!
 ```
 
 **Key Features:**
 - **Automatic API parsing**: Supports OpenAPI 3.x and Swagger 2.0 specifications
-- **Smart naming**: Converts paths like `/lol/{region}/server-stats` to `GetLolRegionServerStatsTool`
+- **Dual generation modes**: 
+  - **Tools**: For operations that perform actions (POST, PUT, DELETE, etc.)
+  - **Resources**: For read-only GET endpoints that provide data
+- **Smart naming**: Converts paths like `/lol/{region}/server-stats` to `LolRegionServerStatsTool` or `LolRegionServerStatsResource`
 - **Hash detection**: Automatically detects MD5-like operationIds and uses path-based naming instead
-- **Interactive mode**: Select which endpoints to convert into tools
-- **API testing**: Test API connectivity before generating tools
+- **Interactive mode**: Select which endpoints to convert
+- **API testing**: Test API connectivity before generating
 - **Authentication support**: Automatically generates authentication logic for API Key, Bearer Token, and OAuth2
 - **Smart grouping**: Group endpoints by tags or path prefixes
-- **Code generation**: Creates ready-to-use tool classes with Laravel HTTP client integration
+- **Code generation**: Creates ready-to-use classes with Laravel HTTP client integration
 
 The generated tools include:
 - Proper input validation based on API parameters

@@ -200,6 +200,9 @@ class MakeMcpToolCommand extends Command
      */
     protected function buildDynamicClass(string $className): string
     {
+        // Load the programmatic stub
+        $stub = $this->files->get(__DIR__.'/../../stubs/tool.programmatic.stub');
+        
         $params = $this->dynamicParams;
 
         // Extract parameters
@@ -207,7 +210,7 @@ class MakeMcpToolCommand extends Command
         $description = $params['description'] ?? 'Auto-generated MCP tool';
         $inputSchema = $params['inputSchema'] ?? [];
         $annotations = $params['annotations'] ?? [];
-        $executeLogic = $params['executeLogic'] ?? '';
+        $executeLogic = $params['executeLogic'] ?? '        return ["result" => "success"];';
         $imports = $params['imports'] ?? [];
 
         // Build imports
@@ -222,57 +225,23 @@ class MakeMcpToolCommand extends Command
         // Build annotations
         $annotationsString = $this->arrayToPhpString($annotations, 2);
 
-        // Generate the class code
-        $code = <<<PHP
-<?php
+        // Replace placeholders in stub
+        $replacements = [
+            '{{ namespace }}' => 'App\\MCP\\Tools',
+            '{{ className }}' => $className,
+            '{{ toolName }}' => $toolName,
+            '{{ description }}' => addslashes($description),
+            '{{ inputSchema }}' => $inputSchemaString,
+            '{{ annotations }}' => $annotationsString,
+            '{{ executeLogic }}' => $executeLogic,
+            '{{ imports }}' => $importsString,
+        ];
 
-namespace App\\MCP\\Tools;
+        foreach ($replacements as $search => $replace) {
+            $stub = str_replace($search, $replace, $stub);
+        }
 
-use Illuminate\\Support\\Facades\\Validator;
-use OPGG\\LaravelMcpServer\\Enums\\ProcessMessageType;
-use OPGG\\LaravelMcpServer\\Exceptions\\Enums\\JsonRpcErrorCode;
-use OPGG\\LaravelMcpServer\\Exceptions\\JsonRpcErrorException;
-use OPGG\\LaravelMcpServer\\Services\\ToolService\\ToolInterface;
-{$importsString}
-
-/**
- * {$className} - Auto-generated from Swagger/OpenAPI spec
- */
-class {$className} implements ToolInterface
-{
-    public function isStreaming(): bool
-    {
-        return false;
-    }
-
-    public function name(): string
-    {
-        return '{$toolName}';
-    }
-
-    public function description(): string
-    {
-        return '{$description}';
-    }
-
-    public function inputSchema(): array
-    {
-        return {$inputSchemaString};
-    }
-
-    public function annotations(): array
-    {
-        return {$annotationsString};
-    }
-
-    public function execute(array \$arguments): mixed
-    {
-{$executeLogic}
-    }
-}
-PHP;
-
-        return $code;
+        return $stub;
     }
 
     /**

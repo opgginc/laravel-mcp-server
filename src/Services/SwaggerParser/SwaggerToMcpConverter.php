@@ -489,4 +489,236 @@ PHP;
         // Join all segments
         return implode('', $processed);
     }
+
+    /**
+     * Generate resource class name from endpoint
+     */
+    public function generateResourceClassName(array $endpoint, ?string $prefix = null): string
+    {
+        // Check if operationId is a hash (32 char hex string)
+        $useOperationId = ! empty($endpoint['operationId']) 
+            && ! preg_match('/^[a-f0-9]{32}$/i', $endpoint['operationId']);
+        
+        if ($useOperationId) {
+            $name = Str::studly($endpoint['operationId']);
+        } else {
+            // Generate from path only (no method prefix for resources)
+            $pathName = $this->convertPathToStudly($endpoint['path']);
+            $name = $pathName;
+        }
+
+        if ($prefix) {
+            $name = "{$prefix}{$name}";
+        }
+
+        // Ensure it ends with Resource
+        if (! Str::endsWith($name, 'Resource')) {
+            $name .= 'Resource';
+        }
+
+        return $name;
+    }
+
+    /**
+     * Convert endpoint to MCP resource parameters
+     */
+    public function convertEndpointToResource(array $endpoint, string $className): array
+    {
+        $uri = $this->generateResourceUri($endpoint);
+        $name = $this->generateResourceName($endpoint);
+        $description = $this->generateResourceDescription($endpoint);
+        $readLogic = $this->generateResourceReadLogic($endpoint);
+
+        return [
+            'className' => $className,
+            'uri' => $uri,
+            'name' => $name,
+            'description' => $description,
+            'mimeType' => 'application/json',
+            'readLogic' => $readLogic,
+        ];
+    }
+
+    /**
+     * Generate resource URI from endpoint
+     */
+    protected function generateResourceUri(array $endpoint): string
+    {
+        // Convert API path to a resource URI
+        // Example: /api/users/{id} -> api://users/{id}
+        $path = trim($endpoint['path'], '/');
+        
+        // Remove common API prefixes
+        $path = preg_replace('/^api\//', '', $path);
+        
+        return "api://{$path}";
+    }
+
+    /**
+     * Generate resource name from endpoint
+     */
+    protected function generateResourceName(array $endpoint): string
+    {
+        if (!empty($endpoint['summary'])) {
+            return $endpoint['summary'];
+        }
+        
+        // Generate from path
+        $path = trim($endpoint['path'], '/');
+        $path = str_replace(['{', '}'], '', $path);
+        $parts = explode('/', $path);
+        
+        return ucfirst(end($parts)) . ' Data';
+    }
+
+    /**
+     * Generate resource description from endpoint
+     */
+    protected function generateResourceDescription(array $endpoint): string
+    {
+        $description = $endpoint['description'] ?: $endpoint['summary'];
+        
+        if (!$description) {
+            $description = "Resource for {$endpoint['path']} endpoint";
+        }
+        
+        $description .= " [API: GET {$endpoint['path']}]";
+        
+        // Add parameter info
+        if (!empty($endpoint['parameters'])) {
+            $params = array_map(fn($p) => $p['name'], $endpoint['parameters']);
+            $description .= " Parameters: " . implode(', ', $params);
+        }
+        
+        return addslashes($description);
+    }
+
+    /**
+     * Generate resource read logic
+     */
+    protected function generateResourceReadLogic(array $endpoint): string
+    {
+        $baseUrl = $this->parser->getBaseUrl() ?: 'https://api.example.com';
+        $path = $endpoint['path'];
+
+        $logic = <<<'PHP'
+        try {
+            // Build URL
+            $url = '{{ baseUrl }}{{ path }}';
+            
+            // Replace path parameters if provided
+            // Note: In a real resource, you'd get these from the URI or context
+{{ pathParams }}
+            
+            // Prepare headers
+            $headers = [];
+{{ authHeaders }}
+            
+            // Make HTTP request
+            $response = Http::withHeaders($headers)
+                ->timeout(30)
+                ->retry(3, 100)
+{{ queryParams }}
+                ->get($url);
+            
+            if (!$response->successful()) {
+                throw new \Exception("API request failed: Status {$response->status()}");
+            }
+            
+            return [
+                'uri' => $this->uri,
+                'mimeType' => 'application/json',
+                'text' => $response->body(),
+            ];
+        } catch (\Exception $e) {
+            throw new \RuntimeException(
+                "Failed to read resource {$this->uri}: " . $e->getMessage()
+            );
+        }
+PHP;
+
+        // Replace placeholders
+        $logic = str_replace('{{ baseUrl }}', $baseUrl, $logic);
+        $logic = str_replace('{{ path }}', $path, $logic);
+        
+        // Add path parameter replacements
+        $pathParams = $this->generateResourcePathParams($endpoint['parameters'] ?? []);
+        $logic = str_replace('{{ pathParams }}', $pathParams, $logic);
+        
+        // Add authentication headers
+        $authHeaders = $this->generateResourceAuthHeaders($endpoint);
+        $logic = str_replace('{{ authHeaders }}', $authHeaders, $logic);
+        
+        // Add query parameters
+        $queryParams = $this->generateResourceQueryParams($endpoint['parameters'] ?? []);
+        $logic = str_replace('{{ queryParams }}', $queryParams, $logic);
+        
+        return $logic;
+    }
+
+    /**
+     * Generate path parameter replacements for resource
+     */
+    protected function generateResourcePathParams(array $parameters): string
+    {
+        $pathParams = array_filter($parameters, fn($p) => $p['in'] === 'path');
+        
+        if (empty($pathParams)) {
+            return '';
+        }
+        
+        $code = '';
+        foreach ($pathParams as $param) {
+            $name = $param['name'];
+            $code .= "            // TODO: Implement logic to get '{$name}' value\n";
+            $code .= "            // \$url = str_replace('{{$name}}', \$valueFor" . Str::studly($name) . ", \$url);\n";
+        }
+        
+        return rtrim($code);
+    }
+
+    /**
+     * Generate authentication headers for resource
+     */
+    protected function generateResourceAuthHeaders(array $endpoint): string
+    {
+        if (empty($endpoint['security']) && empty($this->authConfig)) {
+            return '';
+        }
+        
+        $code = '';
+        
+        if (!empty($this->authConfig['bearer_token'])) {
+            $code .= "            \$headers['Authorization'] = 'Bearer ' . config('services.api.token');\n";
+        }
+        
+        if (!empty($this->authConfig['api_key'])) {
+            $name = $this->authConfig['api_key']['name'] ?? 'X-API-Key';
+            $code .= "            \$headers['{$name}'] = config('services.api.key');\n";
+        }
+        
+        return rtrim($code);
+    }
+
+    /**
+     * Generate query parameters for resource
+     */
+    protected function generateResourceQueryParams(array $parameters): string
+    {
+        $queryParams = array_filter($parameters, fn($p) => $p['in'] === 'query');
+        
+        if (empty($queryParams)) {
+            return '';
+        }
+        
+        $code = "                ->withQueryParameters([\n";
+        foreach ($queryParams as $param) {
+            $name = $param['name'];
+            $required = $param['required'] ? 'required' : 'optional';
+            $code .= "                    // '{$name}' => \$valueFor" . Str::studly($name) . ", // {$required}\n";
+        }
+        $code .= "                ])\n";
+        
+        return $code;
+    }
 }
