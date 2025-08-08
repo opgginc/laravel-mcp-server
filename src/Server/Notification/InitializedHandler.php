@@ -23,7 +23,7 @@ class InitializedHandler extends NotificationHandler
         // - Triggering initialization events
         // - Recording session start times
 
-        Log::info('MCP Client Initialized', [
+        Log::debug('MCP Client Initialized', [
             'params' => $params,
             'initialized_at' => now()->toISOString(),
         ]);
