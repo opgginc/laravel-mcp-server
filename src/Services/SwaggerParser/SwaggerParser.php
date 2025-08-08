@@ -13,6 +13,10 @@ class SwaggerParser
 
     protected ?string $baseUrl = null;
 
+    protected ?string $sourceUrl = null;
+
+    protected ?string $originalServerUrl = null;
+
     protected array $securitySchemes = [];
 
     protected array $endpoints = [];
@@ -65,6 +69,9 @@ class SwaggerParser
      */
     protected function loadFromUrl(string $url): void
     {
+        // Store the source URL for later use
+        $this->sourceUrl = $url;
+
         $response = Http::get($url);
 
         if (! $response->successful()) {
@@ -145,7 +152,43 @@ class SwaggerParser
         if (Str::startsWith($this->version, 'openapi-')) {
             // OpenAPI 3.x
             if (isset($this->spec['servers'][0]['url'])) {
-                $this->baseUrl = $this->spec['servers'][0]['url'];
+                $serverUrl = $this->spec['servers'][0]['url'];
+
+                // Store original server URL for debugging
+                $this->originalServerUrl = $serverUrl;
+
+                // Check if the server URL is relative (doesn't start with http:// or https://)
+                if (! preg_match('/^https?:\/\//', $serverUrl)) {
+                    // If we have a source URL, extract its domain
+                    if ($this->sourceUrl) {
+                        $parsedUrl = parse_url($this->sourceUrl);
+                        $scheme = $parsedUrl['scheme'] ?? 'https';
+                        $host = $parsedUrl['host'] ?? '';
+                        $port = isset($parsedUrl['port']) ? ":{$parsedUrl['port']}" : '';
+
+                        if ($host) {
+                            // Build the base URL using the source domain
+                            $baseHost = "{$scheme}://{$host}{$port}";
+
+                            // If server URL starts with /, it's absolute from root
+                            if (str_starts_with($serverUrl, '/')) {
+                                $this->baseUrl = $baseHost.$serverUrl;
+                            } else {
+                                // Otherwise, it's relative to the spec file location
+                                $this->baseUrl = $baseHost.'/'.ltrim($serverUrl, '/');
+                            }
+                        } else {
+                            // Fallback to the server URL as-is
+                            $this->baseUrl = $serverUrl;
+                        }
+                    } else {
+                        // No source URL available, use as-is
+                        $this->baseUrl = $serverUrl;
+                    }
+                } else {
+                    // Server URL is already absolute
+                    $this->baseUrl = $serverUrl;
+                }
             }
         } else {
             // Swagger 2.0
@@ -155,6 +198,16 @@ class SwaggerParser
 
             if ($host) {
                 $this->baseUrl = "{$scheme}://{$host}{$basePath}";
+            } elseif ($this->sourceUrl) {
+                // No host specified in spec, try to use source URL's host
+                $parsedUrl = parse_url($this->sourceUrl);
+                $sourceScheme = $parsedUrl['scheme'] ?? $scheme;
+                $sourceHost = $parsedUrl['host'] ?? '';
+                $port = isset($parsedUrl['port']) ? ":{$parsedUrl['port']}" : '';
+
+                if ($sourceHost) {
+                    $this->baseUrl = "{$sourceScheme}://{$sourceHost}{$port}{$basePath}";
+                }
             }
         }
     }
@@ -357,6 +410,7 @@ class SwaggerParser
             'title' => $this->spec['info']['title'] ?? 'Unknown',
             'description' => $this->spec['info']['description'] ?? '',
             'baseUrl' => $this->baseUrl,
+            'originalServerUrl' => $this->originalServerUrl,
             'securitySchemes' => array_keys($this->securitySchemes),
             'totalEndpoints' => count($this->endpoints),
             'tags' => $this->getTags(),

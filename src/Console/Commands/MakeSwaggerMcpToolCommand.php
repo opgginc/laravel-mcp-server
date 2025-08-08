@@ -144,12 +144,19 @@ class MakeSwaggerMcpToolCommand extends Command
         $info = $this->parser->getInfo();
 
         $this->info('✅ Spec loaded successfully!');
+
+        // Add notice if base URL was inferred from source
+        $baseUrlDisplay = $info['baseUrl'] ?? 'Not specified';
+        if ($info['baseUrl'] && str_contains($source, '://') && ! str_contains($info['originalServerUrl'] ?? '', '://')) {
+            $baseUrlDisplay .= ' (inferred from source URL)';
+        }
+
         $this->table(
             ['Property', 'Value'],
             [
                 ['Title', $info['title']],
                 ['Version', $info['version']],
-                ['Base URL', $info['baseUrl'] ?? 'Not specified'],
+                ['Base URL', $baseUrlDisplay],
                 ['Total Endpoints', $info['totalEndpoints']],
                 ['Tags', implode(', ', $info['tags'])],
                 ['Security', implode(', ', $info['securitySchemes'])],
