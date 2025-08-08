@@ -43,6 +43,24 @@ class HelloWorldTool implements ToolInterface
         return [];
     }
 
+    public function outputSchema(): ?array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'name' => [
+                    'type' => 'string',
+                    'description' => 'The developer name that was provided',
+                ],
+                'message' => [
+                    'type' => 'string',
+                    'description' => 'The personalized hello world message',
+                ],
+            ],
+            'required' => ['name', 'message'],
+        ];
+    }
+
     public function execute(array $arguments): array
     {
         $validator = Validator::make($arguments, [
