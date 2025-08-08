@@ -73,7 +73,7 @@ class MakeMcpToolCommand extends Command
 
         // Build full class name with tag directory support
         $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
-        $fullClassName = "\\App\\MCP\\Tools\\";
+        $fullClassName = '\\App\\MCP\\Tools\\';
         if ($tagDirectory) {
             $fullClassName .= "{$tagDirectory}\\";
         }
@@ -151,11 +151,11 @@ class MakeMcpToolCommand extends Command
     {
         // Check if we have a tag directory from dynamic params
         $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
-        
+
         if ($tagDirectory) {
             return app_path("MCP/Tools/{$tagDirectory}/{$className}.php");
         }
-        
+
         // Create the file in the app/MCP/Tools directory
         return app_path("MCP/Tools/{$className}.php");
     }
@@ -242,7 +242,7 @@ class MakeMcpToolCommand extends Command
         $namespace = 'App\\MCP\\Tools';
         $tagDirectory = $params['tagDirectory'] ?? '';
         if ($tagDirectory) {
-            $namespace .= '\\' . $tagDirectory;
+            $namespace .= '\\'.$tagDirectory;
         }
 
         // Replace placeholders in stub
@@ -314,9 +314,9 @@ class MakeMcpToolCommand extends Command
         $namespace = 'App\\MCP\\Tools';
         $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
         if ($tagDirectory) {
-            $namespace .= '\\' . $tagDirectory;
+            $namespace .= '\\'.$tagDirectory;
         }
-        
+
         return str_replace(
             ['{{ className }}', '{{ namespace }}', '{{ toolName }}'],
             [$className, $namespace, $toolName],

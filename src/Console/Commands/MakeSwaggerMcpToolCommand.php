@@ -573,7 +573,7 @@ class MakeSwaggerMcpToolCommand extends Command
             if ($type === 'tool') {
                 // Generate tool
                 $className = $this->converter->generateClassName($endpoint, $prefix);
-                
+
                 // Create tag-based directory structure
                 $tagDirectory = $this->createTagDirectory($endpoint);
                 $path = app_path("MCP/Tools/{$tagDirectory}/{$className}.php");
@@ -588,7 +588,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                 // Get tool parameters
                 $toolParams = $this->converter->convertEndpointToTool($endpoint, $className);
-                
+
                 // Add tag directory to tool params for namespace handling
                 $toolParams['tagDirectory'] = $tagDirectory;
 
@@ -615,7 +615,7 @@ class MakeSwaggerMcpToolCommand extends Command
             } else {
                 // Generate resource
                 $className = $this->converter->generateResourceClassName($endpoint, $prefix);
-                
+
                 // Create tag-based directory structure
                 $tagDirectory = $this->createTagDirectory($endpoint);
                 $path = app_path("MCP/Resources/{$tagDirectory}/{$className}.php");
@@ -630,7 +630,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                 // Get resource parameters
                 $resourceParams = $this->converter->convertEndpointToResource($endpoint, $className);
-                
+
                 // Add tag directory to resource params for namespace handling
                 $resourceParams['tagDirectory'] = $tagDirectory;
 
@@ -713,9 +713,9 @@ class MakeSwaggerMcpToolCommand extends Command
         if (empty($tags)) {
             return 'General';
         }
-        
+
         $tag = $tags[0]; // Use the first tag
-        
+
         // Convert tag to StudlyCase for directory naming
         return Str::studly($tag);
     }

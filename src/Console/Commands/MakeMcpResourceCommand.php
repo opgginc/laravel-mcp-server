@@ -73,7 +73,7 @@ class MakeMcpResourceCommand extends Command
 
         // Build full class name with tag directory support
         $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
-        $fullClassName = "\\App\\MCP\\Resources\\";
+        $fullClassName = '\\App\\MCP\\Resources\\';
         if ($tagDirectory) {
             $fullClassName .= "{$tagDirectory}\\";
         }
@@ -144,11 +144,11 @@ class MakeMcpResourceCommand extends Command
     {
         // Check if we have a tag directory from dynamic params
         $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
-        
+
         if ($tagDirectory) {
             return app_path("MCP/Resources/{$tagDirectory}/{$className}.php");
         }
-        
+
         // Create the file in the app/MCP/Resources directory
         return app_path("MCP/Resources/{$className}.php");
     }
@@ -205,9 +205,9 @@ class MakeMcpResourceCommand extends Command
         $namespace = 'App\\MCP\\Resources';
         $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
         if ($tagDirectory) {
-            $namespace .= '\\' . $tagDirectory;
+            $namespace .= '\\'.$tagDirectory;
         }
-        
+
         // Replace placeholders in stub
         $replacements = [
             '{{ namespace }}' => $namespace,
@@ -273,9 +273,9 @@ PHP;
         $namespace = 'App\\MCP\\Resources';
         $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
         if ($tagDirectory) {
-            $namespace .= '\\' . $tagDirectory;
+            $namespace .= '\\'.$tagDirectory;
         }
-        
+
         return str_replace(
             ['{{ className }}', '{{ namespace }}'],
             [$className, $namespace],
