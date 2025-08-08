@@ -4,6 +4,7 @@ namespace OPGG\LaravelMcpServer;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use OPGG\LaravelMcpServer\Console\Commands\GenerateFromSwaggerCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpNotificationCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpPromptCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand;
@@ -33,6 +34,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
             ->name('laravel-mcp-server')
             ->hasConfigFile('mcp-server')
             ->hasCommands([
+                GenerateFromSwaggerCommand::class,
                 MakeMcpToolCommand::class,
                 MakeMcpResourceCommand::class,
                 MakeMcpResourceTemplateCommand::class,
