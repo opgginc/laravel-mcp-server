@@ -14,7 +14,7 @@ class SwaggerParser
     protected ?string $baseUrl = null;
 
     protected ?string $sourceUrl = null;
-    
+
     protected ?string $originalServerUrl = null;
 
     protected array $securitySchemes = [];
@@ -153,10 +153,10 @@ class SwaggerParser
             // OpenAPI 3.x
             if (isset($this->spec['servers'][0]['url'])) {
                 $serverUrl = $this->spec['servers'][0]['url'];
-                
+
                 // Store original server URL for debugging
                 $this->originalServerUrl = $serverUrl;
-                
+
                 // Check if the server URL is relative (doesn't start with http:// or https://)
                 if (! preg_match('/^https?:\/\//', $serverUrl)) {
                     // If we have a source URL, extract its domain
@@ -165,17 +165,17 @@ class SwaggerParser
                         $scheme = $parsedUrl['scheme'] ?? 'https';
                         $host = $parsedUrl['host'] ?? '';
                         $port = isset($parsedUrl['port']) ? ":{$parsedUrl['port']}" : '';
-                        
+
                         if ($host) {
                             // Build the base URL using the source domain
                             $baseHost = "{$scheme}://{$host}{$port}";
-                            
+
                             // If server URL starts with /, it's absolute from root
                             if (str_starts_with($serverUrl, '/')) {
-                                $this->baseUrl = $baseHost . $serverUrl;
+                                $this->baseUrl = $baseHost.$serverUrl;
                             } else {
                                 // Otherwise, it's relative to the spec file location
-                                $this->baseUrl = $baseHost . '/' . ltrim($serverUrl, '/');
+                                $this->baseUrl = $baseHost.'/'.ltrim($serverUrl, '/');
                             }
                         } else {
                             // Fallback to the server URL as-is
@@ -198,13 +198,13 @@ class SwaggerParser
 
             if ($host) {
                 $this->baseUrl = "{$scheme}://{$host}{$basePath}";
-            } else if ($this->sourceUrl) {
+            } elseif ($this->sourceUrl) {
                 // No host specified in spec, try to use source URL's host
                 $parsedUrl = parse_url($this->sourceUrl);
                 $sourceScheme = $parsedUrl['scheme'] ?? $scheme;
                 $sourceHost = $parsedUrl['host'] ?? '';
                 $port = isset($parsedUrl['port']) ? ":{$parsedUrl['port']}" : '';
-                
+
                 if ($sourceHost) {
                     $this->baseUrl = "{$sourceScheme}://{$sourceHost}{$port}{$basePath}";
                 }
