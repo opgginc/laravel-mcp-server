@@ -310,47 +310,6 @@ This command:
 - Creates a properly structured tool class in `app/MCP/Tools`
 - Offers to automatically register the tool in your configuration
 
-### Generate Tools from Swagger/OpenAPI
-
-You can automatically generate MCP tools from Swagger/OpenAPI specifications:
-
-```bash
-# From local file
-php artisan mcp:generate-from-swagger path/to/swagger.json
-
-# From URL
-php artisan mcp:generate-from-swagger https://api.example.com/swagger.json
-```
-
-This command:
-
-- Accepts both local file paths and URLs
-- Supports both Swagger 2.0 and OpenAPI 3.0 formats
-- Generates one MCP tool per endpoint (path + method combination)
-- Includes HTTP client implementation using Laravel's Http facade
-- Handles authentication (Bearer tokens, API keys)
-- Auto-registers tools in configuration
-
-Options:
-- `--output-dir`: Custom output directory (default: `app/MCP/Tools/Swagger`)
-- `--base-url-env`: Environment variable name for API base URL (default: `SWAGGER_API_BASE_URL`)
-- `--no-register`: Skip auto-registration in config
-- `--force`: Overwrite existing files without confirmation
-
-Examples:
-```bash
-# Generate from local file
-php artisan mcp:generate-from-swagger api-spec.json \
-  --output-dir=app/MCP/Tools/API \
-  --base-url-env=API_BASE_URL \
-  --force
-
-# Generate from URL (e.g., OP.GG API)
-php artisan mcp:generate-from-swagger https://data.op.gg/lol/swagger.json \
-  --output-dir=app/MCP/Tools/OPGG \
-  --base-url-env=OPGG_API_BASE_URL
-```
-
 You can also manually create and register tools in `config/mcp-server.php`:
 
 ```php
