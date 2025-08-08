@@ -1,0 +1,46 @@
+<?php
+
+namespace {{ namespace }};
+
+use OPGG\LaravelMcpServer\Services\ResourceService\Resource;
+use Illuminate\Support\Facades\Http;
+
+/**
+ * {{ className }} - Auto-generated MCP Resource from Swagger/OpenAPI
+ *
+ * This resource was automatically generated from an API specification.
+ * Review and modify the read() method to fit your specific requirements.
+ */
+class {{ className }} extends Resource
+{
+    /**
+     * Unique URI identifier for this resource
+     */
+    public string $uri = '{{ uri }}';
+
+    /**
+     * Display name for this resource
+     */
+    public string $name = '{{ name }}';
+
+    /**
+     * Description of what this resource contains
+     */
+    public ?string $description = '{{ description }}';
+
+    /**
+     * MIME type of the resource content
+     */
+    public ?string $mimeType = '{{ mimeType }}';
+
+    /**
+     * Read and return the resource content
+     *
+     * @return array{uri: string, mimeType?: string, text?: string, blob?: string}
+     * @throws \Exception If the resource cannot be read
+     */
+    public function read(): array
+    {
+{{ readLogic }}
+    }
+}
