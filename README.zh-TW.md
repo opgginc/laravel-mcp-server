@@ -32,7 +32,32 @@
 
 ## ⚠️ 版本資訊與重大變更
 
-### v1.3.0 變更 (目前版本)
+### v1.4.0 變更 (最新版本) 🚀
+
+版本 1.4.0 引入了從 Swagger/OpenAPI 規範自動產生工具和資源的強大功能：
+
+**新功能：**
+- **Swagger/OpenAPI 工具和資源產生器**：從任何 Swagger/OpenAPI 規範自動產生 MCP 工具或資源
+  - 支援 OpenAPI 3.x 和 Swagger 2.0 格式
+  - **選擇產生類型**：產生為工具（用於動作）或資源（用於唯讀資料）
+  - 具有群組選項的互動式端點選擇
+  - 自動產生認證邏輯（API Key、Bearer Token、OAuth2）
+  - 智慧命名以產生可讀的類別名稱（處理基於雜湊的 operationId）
+  - 產生前內建 API 測試
+  - 完整的 Laravel HTTP 客戶端整合，包括重試邏輯
+
+**使用範例：**
+```bash
+# 從 OP.GG API 產生工具
+php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
+
+# 使用選項
+php artisan make:swagger-mcp-tool ./api-spec.json --test-api --group-by=tag --prefix=MyApi
+```
+
+此功能大幅減少了將外部 API 整合到您的 MCP 伺服器所需的時間！
+
+### v1.3.0 變更
 
 版本 1.3.0 改進了 `ToolInterface`，提供更好的通訊控制：
 

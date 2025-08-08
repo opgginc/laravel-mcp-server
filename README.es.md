@@ -32,7 +32,32 @@
 
 ## ⚠️ Información de Versión y Cambios Disruptivos
 
-### Cambios en v1.3.0 (Actual)
+### Cambios en v1.4.0 (Más Reciente) 🚀
+
+La versión 1.4.0 introduce una poderosa generación automática de herramientas y recursos a partir de especificaciones Swagger/OpenAPI:
+
+**Nuevas Características:**
+- **Generador de Herramientas y Recursos Swagger/OpenAPI**: Genera automáticamente herramientas o recursos MCP desde cualquier especificación Swagger/OpenAPI
+  - Soporta formatos OpenAPI 3.x y Swagger 2.0
+  - **Elige el tipo de generación**: Genera como Herramientas (para acciones) o Recursos (para datos de solo lectura)
+  - Selección interactiva de endpoints con opciones de agrupación
+  - Generación automática de lógica de autenticación (API Key, Bearer Token, OAuth2)
+  - Nomenclatura inteligente para nombres de clases legibles (maneja operationIds basados en hash)
+  - Pruebas de API incorporadas antes de la generación
+  - Integración completa del cliente HTTP Laravel incluyendo lógica de reintentos
+
+**Ejemplo de Uso:**
+```bash
+# Generar herramientas desde la API de OP.GG
+php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
+
+# Con opciones
+php artisan make:swagger-mcp-tool ./api-spec.json --test-api --group-by=tag --prefix=MyApi
+```
+
+¡Esta característica reduce drásticamente el tiempo necesario para integrar APIs externas en tu servidor MCP!
+
+### Cambios en v1.3.0
 
 La versión 1.3.0 introduce mejoras en la `ToolInterface` para un mejor control de la comunicación:
 
