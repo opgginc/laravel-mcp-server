@@ -181,7 +181,7 @@ class MakeMcpResourceCommand extends Command
     {
         // Load the programmatic stub
         $stub = $this->files->get(__DIR__.'/../../stubs/resource.programmatic.stub');
-        
+
         $uri = $this->dynamicParams['uri'] ?? 'api://resource';
         $name = $this->dynamicParams['name'] ?? $className;
         $description = $this->dynamicParams['description'] ?? "Resource for {$className}";
@@ -281,22 +281,25 @@ PHP;
                 $toolsArray = $toolsMatches[1];
                 $resourcesArray = "\n\n    // Resources - Static resources that expose data to LLMs\n    'resources' => [\n        {$resourceClassName}::class,\n    ],";
                 $newContent = str_replace($toolsArray, "{$toolsArray}{$resourcesArray}", $content);
-                
+
                 if (file_put_contents($configPath, $newContent)) {
                     $this->info('✅ Created resources array and registered resource in config/mcp-server.php');
+
                     return true;
                 } else {
                     $this->error('❌ Failed to update config file. Please manually register the resource.');
+
                     return false;
                 }
             }
-            
+
             $this->error('❌ Could not locate resources array in config file.');
+
             return false;
         }
 
         $resourcesArrayContent = $matches[1];
-        
+
         // Check if the resource is already registered
         if (strpos($resourcesArrayContent, $resourceClassName) !== false) {
             $this->info('✅ Resource is already registered in config file.');
@@ -305,7 +308,7 @@ PHP;
         }
 
         // Handle empty array case
-        $fullEntry = trim($resourcesArrayContent) === '' 
+        $fullEntry = trim($resourcesArrayContent) === ''
             ? "\n        {$resourceClassName}::class,\n    "
             : "\n        {$resourceClassName}::class,";
 

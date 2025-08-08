@@ -54,9 +54,9 @@ class SwaggerToMcpConverter
     protected function generateToolName(array $endpoint): string
     {
         // Check if operationId is a hash (32 char hex string)
-        $useOperationId = ! empty($endpoint['operationId']) 
+        $useOperationId = ! empty($endpoint['operationId'])
             && ! preg_match('/^[a-f0-9]{32}$/i', $endpoint['operationId']);
-        
+
         if ($useOperationId) {
             return Str::kebab($endpoint['operationId']);
         }
@@ -67,7 +67,7 @@ class SwaggerToMcpConverter
 
         return "{$method}-{$path}";
     }
-    
+
     /**
      * Convert API path to kebab-case name
      * Example: /lol/{region}/server-stats -> lol-region-server-stats
@@ -76,19 +76,19 @@ class SwaggerToMcpConverter
     {
         // Remove leading/trailing slashes
         $path = trim($path, '/');
-        
+
         // Replace path parameters {param} with just param
         $path = preg_replace('/\{([^}]+)\}/', '$1', $path);
-        
+
         // Replace forward slashes with hyphens
         $path = str_replace('/', '-', $path);
-        
+
         // Convert to kebab case if needed (handles camelCase and PascalCase)
         $path = Str::kebab($path);
-        
+
         // Remove any double hyphens
         $path = preg_replace('/-+/', '-', $path);
-        
+
         return $path;
     }
 
@@ -439,9 +439,9 @@ PHP;
     public function generateClassName(array $endpoint, ?string $prefix = null): string
     {
         // Check if operationId is a hash (32 char hex string)
-        $useOperationId = ! empty($endpoint['operationId']) 
+        $useOperationId = ! empty($endpoint['operationId'])
             && ! preg_match('/^[a-f0-9]{32}$/i', $endpoint['operationId']);
-        
+
         if ($useOperationId) {
             $name = Str::studly($endpoint['operationId']);
         } else {
@@ -462,7 +462,7 @@ PHP;
 
         return $name;
     }
-    
+
     /**
      * Convert API path to StudlyCase name
      * Example: /lol/{region}/server-stats -> LolRegionServerStats
@@ -471,21 +471,21 @@ PHP;
     {
         // Remove leading/trailing slashes
         $path = trim($path, '/');
-        
+
         // Split by forward slashes
         $segments = explode('/', $path);
-        
+
         // Process each segment
         $processed = [];
         foreach ($segments as $segment) {
             // Remove curly braces from parameters
             $segment = str_replace(['{', '}'], '', $segment);
-            
+
             // Convert each segment to StudlyCase
             // This handles kebab-case (server-stats), snake_case, and camelCase
             $processed[] = Str::studly($segment);
         }
-        
+
         // Join all segments
         return implode('', $processed);
     }
@@ -496,9 +496,9 @@ PHP;
     public function generateResourceClassName(array $endpoint, ?string $prefix = null): string
     {
         // Check if operationId is a hash (32 char hex string)
-        $useOperationId = ! empty($endpoint['operationId']) 
+        $useOperationId = ! empty($endpoint['operationId'])
             && ! preg_match('/^[a-f0-9]{32}$/i', $endpoint['operationId']);
-        
+
         if ($useOperationId) {
             $name = Str::studly($endpoint['operationId']);
         } else {
@@ -547,10 +547,10 @@ PHP;
         // Convert API path to a resource URI
         // Example: /api/users/{id} -> api://users/{id}
         $path = trim($endpoint['path'], '/');
-        
+
         // Remove common API prefixes
         $path = preg_replace('/^api\//', '', $path);
-        
+
         return "api://{$path}";
     }
 
@@ -559,16 +559,16 @@ PHP;
      */
     protected function generateResourceName(array $endpoint): string
     {
-        if (!empty($endpoint['summary'])) {
+        if (! empty($endpoint['summary'])) {
             return $endpoint['summary'];
         }
-        
+
         // Generate from path
         $path = trim($endpoint['path'], '/');
         $path = str_replace(['{', '}'], '', $path);
         $parts = explode('/', $path);
-        
-        return ucfirst(end($parts)) . ' Data';
+
+        return ucfirst(end($parts)).' Data';
     }
 
     /**
@@ -577,19 +577,19 @@ PHP;
     protected function generateResourceDescription(array $endpoint): string
     {
         $description = $endpoint['description'] ?: $endpoint['summary'];
-        
-        if (!$description) {
+
+        if (! $description) {
             $description = "Resource for {$endpoint['path']} endpoint";
         }
-        
+
         $description .= " [API: GET {$endpoint['path']}]";
-        
+
         // Add parameter info
-        if (!empty($endpoint['parameters'])) {
-            $params = array_map(fn($p) => $p['name'], $endpoint['parameters']);
-            $description .= " Parameters: " . implode(', ', $params);
+        if (! empty($endpoint['parameters'])) {
+            $params = array_map(fn ($p) => $p['name'], $endpoint['parameters']);
+            $description .= ' Parameters: '.implode(', ', $params);
         }
-        
+
         return addslashes($description);
     }
 
@@ -640,19 +640,19 @@ PHP;
         // Replace placeholders
         $logic = str_replace('{{ baseUrl }}', $baseUrl, $logic);
         $logic = str_replace('{{ path }}', $path, $logic);
-        
+
         // Add path parameter replacements
         $pathParams = $this->generateResourcePathParams($endpoint['parameters'] ?? []);
         $logic = str_replace('{{ pathParams }}', $pathParams, $logic);
-        
+
         // Add authentication headers
         $authHeaders = $this->generateResourceAuthHeaders($endpoint);
         $logic = str_replace('{{ authHeaders }}', $authHeaders, $logic);
-        
+
         // Add query parameters
         $queryParams = $this->generateResourceQueryParams($endpoint['parameters'] ?? []);
         $logic = str_replace('{{ queryParams }}', $queryParams, $logic);
-        
+
         return $logic;
     }
 
@@ -661,19 +661,19 @@ PHP;
      */
     protected function generateResourcePathParams(array $parameters): string
     {
-        $pathParams = array_filter($parameters, fn($p) => $p['in'] === 'path');
-        
+        $pathParams = array_filter($parameters, fn ($p) => $p['in'] === 'path');
+
         if (empty($pathParams)) {
             return '';
         }
-        
+
         $code = '';
         foreach ($pathParams as $param) {
             $name = $param['name'];
             $code .= "            // TODO: Implement logic to get '{$name}' value\n";
-            $code .= "            // \$url = str_replace('{{$name}}', \$valueFor" . Str::studly($name) . ", \$url);\n";
+            $code .= "            // \$url = str_replace('{{$name}}', \$valueFor".Str::studly($name).", \$url);\n";
         }
-        
+
         return rtrim($code);
     }
 
@@ -685,18 +685,18 @@ PHP;
         if (empty($endpoint['security']) && empty($this->authConfig)) {
             return '';
         }
-        
+
         $code = '';
-        
-        if (!empty($this->authConfig['bearer_token'])) {
+
+        if (! empty($this->authConfig['bearer_token'])) {
             $code .= "            \$headers['Authorization'] = 'Bearer ' . config('services.api.token');\n";
         }
-        
-        if (!empty($this->authConfig['api_key'])) {
+
+        if (! empty($this->authConfig['api_key'])) {
             $name = $this->authConfig['api_key']['name'] ?? 'X-API-Key';
             $code .= "            \$headers['{$name}'] = config('services.api.key');\n";
         }
-        
+
         return rtrim($code);
     }
 
@@ -705,20 +705,20 @@ PHP;
      */
     protected function generateResourceQueryParams(array $parameters): string
     {
-        $queryParams = array_filter($parameters, fn($p) => $p['in'] === 'query');
-        
+        $queryParams = array_filter($parameters, fn ($p) => $p['in'] === 'query');
+
         if (empty($queryParams)) {
             return '';
         }
-        
+
         $code = "                ->withQueryParameters([\n";
         foreach ($queryParams as $param) {
             $name = $param['name'];
             $required = $param['required'] ? 'required' : 'optional';
-            $code .= "                    // '{$name}' => \$valueFor" . Str::studly($name) . ", // {$required}\n";
+            $code .= "                    // '{$name}' => \$valueFor".Str::studly($name).", // {$required}\n";
         }
         $code .= "                ])\n";
-        
+
         return $code;
     }
 }

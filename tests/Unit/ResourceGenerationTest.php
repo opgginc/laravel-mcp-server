@@ -14,7 +14,7 @@ test('generates resource class names correctly', function ($path, $operationId, 
         'method' => 'GET',
         'operationId' => $operationId,
     ];
-    
+
     $className = $this->converter->generateResourceClassName($endpoint);
     expect($className)->toBe($expected);
 })->with([
@@ -22,11 +22,11 @@ test('generates resource class names correctly', function ($path, $operationId, 
     ['/lol/{region}/server-stats', null, 'LolRegionServerStatsResource'],
     ['/api/users', null, 'ApiUsersResource'],
     ['/users/{id}', null, 'UsersIdResource'],
-    
+
     // With proper operationId
     ['/users', 'getUsers', 'GetUsersResource'],
     ['/posts/{id}', 'getPostById', 'GetPostByIdResource'],
-    
+
     // With hash operationId (should use path-based naming)
     ['/api/data', '5784a7dfd226e1621b0e6ee8c4f39407', 'ApiDataResource'],
 ]);
@@ -34,7 +34,7 @@ test('generates resource class names correctly', function ($path, $operationId, 
 test('converts endpoint to resource with correct URI', function () {
     $parser = new SwaggerParser;
     $converter = new SwaggerToMcpConverter($parser);
-    
+
     $endpoint = [
         'path' => '/api/users/{id}',
         'method' => 'GET',
@@ -50,9 +50,9 @@ test('converts endpoint to resource with correct URI', function () {
         'responses' => [],
         'security' => [],
     ];
-    
+
     $resourceParams = $converter->convertEndpointToResource($endpoint, 'GetUserByIdResource');
-    
+
     expect($resourceParams)->toHaveKeys(['className', 'uri', 'name', 'description', 'mimeType', 'readLogic']);
     expect($resourceParams['className'])->toBe('GetUserByIdResource');
     expect($resourceParams['uri'])->toBe('api://users/{id}');
@@ -63,7 +63,7 @@ test('converts endpoint to resource with correct URI', function () {
 test('generates resource URI correctly', function ($path, $expectedUri) {
     $parser = new SwaggerParser;
     $converter = new SwaggerToMcpConverter($parser);
-    
+
     $endpoint = [
         'path' => $path,
         'method' => 'GET',
@@ -78,7 +78,7 @@ test('generates resource URI correctly', function ($path, $expectedUri) {
         'security' => [],
     ];
     $resourceParams = $converter->convertEndpointToResource($endpoint, 'TestResource');
-    
+
     expect($resourceParams['uri'])->toBe($expectedUri);
 })->with([
     ['/api/users', 'api://users'],
@@ -90,13 +90,13 @@ test('generates resource URI correctly', function ($path, $expectedUri) {
 test('includes authentication in resource read logic', function () {
     $parser = new SwaggerParser;
     $converter = new SwaggerToMcpConverter($parser);
-    
+
     // Set auth config
     $converter->setAuthConfig([
         'bearer_token' => true,
         'api_key' => ['location' => 'header', 'name' => 'X-API-Key'],
     ]);
-    
+
     $endpoint = [
         'path' => '/api/protected',
         'method' => 'GET',
@@ -110,9 +110,9 @@ test('includes authentication in resource read logic', function () {
         'responses' => [],
         'security' => [['bearerAuth' => []]],
     ];
-    
+
     $resourceParams = $converter->convertEndpointToResource($endpoint, 'ProtectedResource');
-    
+
     expect($resourceParams['readLogic'])->toContain("\$headers['Authorization'] = 'Bearer '");
     expect($resourceParams['readLogic'])->toContain("\$headers['X-API-Key'] = config('services.api.key')");
 });

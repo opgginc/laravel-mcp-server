@@ -150,24 +150,24 @@ class SwaggerParserTest extends TestCase
                 $this->assertEquals('GetPetByIdTool', $className);
             }
         }
-        
+
         // Test path-based naming (without operationId)
         $testEndpoint = [
             'path' => '/lol/{region}/server-stats',
             'method' => 'GET',
             'operationId' => null,
         ];
-        
+
         $className = $converter->generateClassName($testEndpoint);
         $this->assertEquals('GetLolRegionServerStatsTool', $className);
-        
+
         // Test with kebab-case and underscores
         $testEndpoint2 = [
             'path' => '/api/v2/user-profiles/{user_id}/match-history',
             'method' => 'POST',
             'operationId' => null,
         ];
-        
+
         $className2 = $converter->generateClassName($testEndpoint2);
         $this->assertEquals('PostApiV2UserProfilesUserIdMatchHistoryTool', $className2);
     }

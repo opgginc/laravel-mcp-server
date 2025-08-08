@@ -100,10 +100,11 @@ class MakeSwaggerMcpToolCommand extends Command
                 ];
             }
 
-            $toolCount = count(array_filter($this->selectedEndpointsWithType, fn($e) => $e['type'] === 'tool'));
-            $resourceCount = count(array_filter($this->selectedEndpointsWithType, fn($e) => $e['type'] === 'resource'));
+            $toolCount = count(array_filter($this->selectedEndpointsWithType, fn ($e) => $e['type'] === 'tool'));
+            $resourceCount = count(array_filter($this->selectedEndpointsWithType, fn ($e) => $e['type'] === 'resource'));
 
             $this->info("Selected {$toolCount} tools and {$resourceCount} resources (excluding deprecated).");
+
             return;
         }
 
@@ -122,8 +123,8 @@ class MakeSwaggerMcpToolCommand extends Command
             $this->selectIndividuallyWithTypes();
         }
 
-        $toolCount = count(array_filter($this->selectedEndpointsWithType, fn($e) => $e['type'] === 'tool'));
-        $resourceCount = count(array_filter($this->selectedEndpointsWithType, fn($e) => $e['type'] === 'resource'));
+        $toolCount = count(array_filter($this->selectedEndpointsWithType, fn ($e) => $e['type'] === 'tool'));
+        $resourceCount = count(array_filter($this->selectedEndpointsWithType, fn ($e) => $e['type'] === 'resource'));
 
         $this->info("Selected {$toolCount} tools and {$resourceCount} resources.");
     }
@@ -243,17 +244,17 @@ class MakeSwaggerMcpToolCommand extends Command
                 // Ask for type
                 $defaultType = $endpoint['method'] === 'GET' ? 'Resource' : 'Tool';
                 $typeChoice = $this->choice(
-                    "Generate as",
+                    'Generate as',
                     ['Tool (for actions)', 'Resource (for read-only data)', 'Skip'],
                     $endpoint['method'] === 'GET' ? 1 : 0
                 );
 
-                if (!str_contains($typeChoice, 'Skip')) {
+                if (! str_contains($typeChoice, 'Skip')) {
                     $type = str_contains($typeChoice, 'Tool') ? 'tool' : 'resource';
 
                     // Validate: only GET can be resources
                     if ($type === 'resource' && $endpoint['method'] !== 'GET') {
-                        $this->warn("Only GET endpoints can be resources. Generating as Tool instead.");
+                        $this->warn('Only GET endpoints can be resources. Generating as Tool instead.');
                         $type = 'tool';
                     }
 
@@ -285,7 +286,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
             if ($this->confirm("Include tag: {$label}?", true)) {
                 foreach ($endpoints as $endpoint) {
-                    if ($endpoint['deprecated'] && !$this->confirm("Include deprecated: {$endpoint['method']} {$endpoint['path']}?", false)) {
+                    if ($endpoint['deprecated'] && ! $this->confirm("Include deprecated: {$endpoint['method']} {$endpoint['path']}?", false)) {
                         continue;
                     }
 
@@ -299,7 +300,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                     $this->info($endpointLabel);
                     $typeChoice = $this->choice(
-                        "Generate as",
+                        'Generate as',
                         ['Tool', 'Resource', 'Skip'],
                         0
                     );
@@ -309,7 +310,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                         // Validate: only GET can be resources
                         if ($type === 'resource' && $endpoint['method'] !== 'GET') {
-                            $this->warn("Only GET endpoints can be resources. Generating as Tool instead.");
+                            $this->warn('Only GET endpoints can be resources. Generating as Tool instead.');
                             $type = 'tool';
                         }
 
@@ -344,7 +345,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
             if ($this->confirm("Include path prefix '/{$prefix}' ({$count} endpoints)?", true)) {
                 foreach ($endpoints as $endpoint) {
-                    if ($endpoint['deprecated'] && !$this->confirm("Include deprecated: {$endpoint['method']} {$endpoint['path']}?", false)) {
+                    if ($endpoint['deprecated'] && ! $this->confirm("Include deprecated: {$endpoint['method']} {$endpoint['path']}?", false)) {
                         continue;
                     }
 
@@ -355,7 +356,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                     $this->info($endpointLabel);
                     $typeChoice = $this->choice(
-                        "Generate as",
+                        'Generate as',
                         ['Tool', 'Resource', 'Skip'],
                         $endpoint['method'] === 'GET' ? 1 : 0
                     );
@@ -365,7 +366,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                         // Validate: only GET can be resources
                         if ($type === 'resource' && $endpoint['method'] !== 'GET') {
-                            $this->warn("Only GET endpoints can be resources. Generating as Tool instead.");
+                            $this->warn('Only GET endpoints can be resources. Generating as Tool instead.');
                             $type = 'tool';
                         }
 
@@ -397,6 +398,7 @@ class MakeSwaggerMcpToolCommand extends Command
                 $this->selectedEndpoints = array_filter($endpoints, fn ($e) => ! $e['deprecated']);
                 $this->info('Selected '.count($this->selectedEndpoints).' endpoints (excluding deprecated).');
             }
+
             return;
         }
 
@@ -562,7 +564,7 @@ class MakeSwaggerMcpToolCommand extends Command
             $type = $item['type'];
 
             // Check if operationId looks like a hash
-            if (!empty($endpoint['operationId']) && preg_match('/^[a-f0-9]{32}$/i', $endpoint['operationId'])) {
+            if (! empty($endpoint['operationId']) && preg_match('/^[a-f0-9]{32}$/i', $endpoint['operationId'])) {
                 $this->comment("Note: operationId '{$endpoint['operationId']}' looks like a hash, will use path-based naming");
                 $endpoint['operationId'] = null;
             }
@@ -574,6 +576,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                 if (file_exists($path)) {
                     $this->warn("Skipping {$className} - already exists");
+
                     continue;
                 }
 
@@ -609,6 +612,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                 if (file_exists($path)) {
                     $this->warn("Skipping {$className} - already exists");
+
                     continue;
                 }
 
@@ -663,17 +667,17 @@ class MakeSwaggerMcpToolCommand extends Command
             $this->info('✅ MCP components generated successfully!');
             $this->newLine();
             $this->info('Next steps:');
-            
+
             $stepNumber = 1;
-            
-            if (!empty($generatedTools)) {
+
+            if (! empty($generatedTools)) {
                 $this->line("{$stepNumber}. Review generated tools in app/MCP/Tools/");
                 $stepNumber++;
                 $this->line("{$stepNumber}. Test tools with: php artisan mcp:test-tool <ToolName>");
                 $stepNumber++;
             }
 
-            if (!empty($generatedResources)) {
+            if (! empty($generatedResources)) {
                 $this->line("{$stepNumber}. Review generated resources in app/MCP/Resources/");
                 $stepNumber++;
                 $this->line("{$stepNumber}. Test resources with the MCP Inspector or client");

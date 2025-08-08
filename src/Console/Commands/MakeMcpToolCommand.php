@@ -202,7 +202,7 @@ class MakeMcpToolCommand extends Command
     {
         // Load the programmatic stub
         $stub = $this->files->get(__DIR__.'/../../stubs/tool.programmatic.stub');
-        
+
         $params = $this->dynamicParams;
 
         // Extract parameters
