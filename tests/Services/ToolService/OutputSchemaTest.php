@@ -22,7 +22,7 @@ test('tool with output schema returns structured content', function () {
     expect($data['id'])->toBe(1);
     expect($data['result']['content'][0]['type'])->toBe('structured');
     expect($data['result']['content'][0])->toHaveKey('structuredContent');
-    
+
     $content = $data['result']['content'][0]['structuredContent'];
     expect($content)->toBeArray();
     expect($content)->toHaveKey('name');
@@ -51,7 +51,7 @@ test('version check tool with output schema returns structured content', functio
     expect($data['id'])->toBe(1);
     expect($data['result']['content'][0]['type'])->toBe('structured');
     expect($data['result']['content'][0])->toHaveKey('structuredContent');
-    
+
     $content = $data['result']['content'][0]['structuredContent'];
     expect($content)->toBeArray();
     expect($content)->toHaveKey('version');
@@ -76,10 +76,10 @@ test('tools list includes output schemas for compliant tools', function () {
     expect($data['jsonrpc'])->toBe('2.0');
     expect($data['id'])->toBe(1);
     expect($data['result'])->toHaveKey('tools');
-    
+
     $tools = $data['result']['tools'];
     expect($tools)->toBeArray();
-    
+
     // Find the hello-world tool
     $helloTool = null;
     foreach ($tools as $tool) {
@@ -88,7 +88,7 @@ test('tools list includes output schemas for compliant tools', function () {
             break;
         }
     }
-    
+
     expect($helloTool)->not->toBeNull();
     expect($helloTool)->toHaveKey('outputSchema');
     expect($helloTool['outputSchema']['type'])->toBe('object');
@@ -99,7 +99,8 @@ test('tools list includes output schemas for compliant tools', function () {
 
 test('output schema validation rejects invalid data', function () {
     // Create a mock tool that returns invalid data for its schema
-    $mockTool = new class implements \OPGG\LaravelMcpServer\Services\ToolService\ToolInterface {
+    $mockTool = new class implements \OPGG\LaravelMcpServer\Services\ToolService\ToolInterface
+    {
         public function name(): string
         {
             return 'invalid-output-tool';
@@ -172,7 +173,8 @@ test('output schema validation rejects invalid data', function () {
 
 test('backward compatibility - tools without output schema return text content', function () {
     // Create a mock tool without output schema
-    $mockTool = new class implements \OPGG\LaravelMcpServer\Services\ToolService\ToolInterface {
+    $mockTool = new class implements \OPGG\LaravelMcpServer\Services\ToolService\ToolInterface
+    {
         public function name(): string
         {
             return 'legacy-tool';
@@ -242,7 +244,7 @@ test('legacy tools without output schema are not included in tool schemas', func
     $data = $response->json();
 
     $tools = $data['result']['tools'];
-    
+
     // Find the legacy tool (should not have outputSchema)
     $legacyTool = null;
     foreach ($tools as $tool) {
@@ -251,7 +253,7 @@ test('legacy tools without output schema are not included in tool schemas', func
             break;
         }
     }
-    
+
     expect($legacyTool)->not->toBeNull();
     expect($legacyTool)->not->toHaveKey('outputSchema');
 });

@@ -1,10 +1,11 @@
 <?php
 
-use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 
 test('tool repository includes output schema in schemas when present', function () {
-    $toolWithSchema = new class implements ToolInterface {
+    $toolWithSchema = new class implements ToolInterface
+    {
         public function name(): string
         {
             return 'tool-with-schema';
@@ -34,9 +35,9 @@ test('tool repository includes output schema in schemas when present', function 
             return [
                 'type' => 'object',
                 'properties' => [
-                    'result' => ['type' => 'string']
+                    'result' => ['type' => 'string'],
                 ],
-                'required' => ['result']
+                'required' => ['result'],
             ];
         }
 
@@ -46,11 +47,11 @@ test('tool repository includes output schema in schemas when present', function 
         }
     };
 
-    $repository = new ToolRepository();
+    $repository = new ToolRepository;
     $repository->register($toolWithSchema);
-    
+
     $schemas = $repository->getToolSchemas();
-    
+
     expect($schemas)->toHaveCount(1);
     expect($schemas[0]['name'])->toBe('tool-with-schema');
     expect($schemas[0])->toHaveKey('outputSchema');
@@ -60,7 +61,8 @@ test('tool repository includes output schema in schemas when present', function 
 });
 
 test('tool repository excludes output schema when not present', function () {
-    $toolWithoutSchema = new class implements ToolInterface {
+    $toolWithoutSchema = new class implements ToolInterface
+    {
         public function name(): string
         {
             return 'tool-without-schema';
@@ -91,18 +93,19 @@ test('tool repository excludes output schema when not present', function () {
         }
     };
 
-    $repository = new ToolRepository();
+    $repository = new ToolRepository;
     $repository->register($toolWithoutSchema);
-    
+
     $schemas = $repository->getToolSchemas();
-    
+
     expect($schemas)->toHaveCount(1);
     expect($schemas[0]['name'])->toBe('tool-without-schema');
     expect($schemas[0])->not->toHaveKey('outputSchema');
 });
 
 test('tool repository excludes output schema when method returns null', function () {
-    $toolWithNullSchema = new class implements ToolInterface {
+    $toolWithNullSchema = new class implements ToolInterface
+    {
         public function name(): string
         {
             return 'tool-with-null-schema';
@@ -138,18 +141,19 @@ test('tool repository excludes output schema when method returns null', function
         }
     };
 
-    $repository = new ToolRepository();
+    $repository = new ToolRepository;
     $repository->register($toolWithNullSchema);
-    
+
     $schemas = $repository->getToolSchemas();
-    
+
     expect($schemas)->toHaveCount(1);
     expect($schemas[0]['name'])->toBe('tool-with-null-schema');
     expect($schemas[0])->not->toHaveKey('outputSchema');
 });
 
 test('tool repository handles mixed tools with and without output schemas', function () {
-    $toolWithSchema = new class implements ToolInterface {
+    $toolWithSchema = new class implements ToolInterface
+    {
         public function name(): string
         {
             return 'tool-with-schema';
@@ -177,7 +181,7 @@ test('tool repository handles mixed tools with and without output schemas', func
         public function outputSchema(): ?array
         {
             return [
-                'type' => 'string'
+                'type' => 'string',
             ];
         }
 
@@ -187,7 +191,8 @@ test('tool repository handles mixed tools with and without output schemas', func
         }
     };
 
-    $toolWithoutSchema = new class implements ToolInterface {
+    $toolWithoutSchema = new class implements ToolInterface
+    {
         public function name(): string
         {
             return 'tool-without-schema';
@@ -218,18 +223,18 @@ test('tool repository handles mixed tools with and without output schemas', func
         }
     };
 
-    $repository = new ToolRepository();
+    $repository = new ToolRepository;
     $repository->register($toolWithSchema);
     $repository->register($toolWithoutSchema);
-    
+
     $schemas = $repository->getToolSchemas();
-    
+
     expect($schemas)->toHaveCount(2);
-    
+
     // Find tools by name
     $schemaToolIndex = null;
     $noSchemaToolIndex = null;
-    
+
     foreach ($schemas as $index => $schema) {
         if ($schema['name'] === 'tool-with-schema') {
             $schemaToolIndex = $index;
@@ -237,12 +242,12 @@ test('tool repository handles mixed tools with and without output schemas', func
             $noSchemaToolIndex = $index;
         }
     }
-    
+
     expect($schemaToolIndex)->not->toBeNull();
     expect($noSchemaToolIndex)->not->toBeNull();
-    
+
     expect($schemas[$schemaToolIndex])->toHaveKey('outputSchema');
     expect($schemas[$schemaToolIndex]['outputSchema']['type'])->toBe('string');
-    
+
     expect($schemas[$noSchemaToolIndex])->not->toHaveKey('outputSchema');
 });
