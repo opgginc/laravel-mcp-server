@@ -399,9 +399,9 @@ PHP;
      */
     protected function generateHttpClientSetup(): string
     {
-        return "        // Build request\n" .
-               "        \$request = Http::withHeaders(\$headers ?? [])\n" .
-               "            ->timeout({$this->httpTimeout})\n" .
+        return "        // Build request\n".
+               "        \$request = Http::withHeaders(\$headers ?? [])\n".
+               "            ->timeout({$this->httpTimeout})\n".
                "            ->retry(3, 100);\n\n";
     }
 
@@ -411,21 +411,21 @@ PHP;
     protected function generateQueryParametersCode(array $parameters): string
     {
         $queryParams = array_filter($parameters, fn ($p) => $p['in'] === 'query');
-        
+
         if (empty($queryParams)) {
             return '';
         }
 
         $code = "        // Add query parameters\n";
         $code .= "        \$queryParams = [];\n";
-        
+
         foreach ($queryParams as $param) {
             $name = $param['name'];
             $code .= "        if (isset(\$arguments['{$name}'])) {\n";
             $code .= "            \$queryParams['{$name}'] = \$arguments['{$name}'];\n";
             $code .= "        }\n";
         }
-        
+
         $code .= "        if (!empty(\$queryParams)) {\n";
         $code .= "            \$request = \$request->withQueryParameters(\$queryParams);\n";
         $code .= "        }\n\n";
@@ -440,7 +440,7 @@ PHP;
     {
         $code = "        // Execute request\n";
 
-        return $code . match ($method) {
+        return $code.match ($method) {
             'get' => "        \$response = \$request->get(\$url);\n",
             'post' => "        \$response = \$request->post(\$url, \$arguments['body'] ?? []);\n",
             'put' => "        \$response = \$request->put(\$url, \$arguments['body'] ?? []);\n",

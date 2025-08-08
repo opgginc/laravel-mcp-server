@@ -23,14 +23,14 @@ class SwaggerParser
     protected function isValidUrl(string $source): bool
     {
         // Basic URL validation
-        if (!filter_var($source, FILTER_VALIDATE_URL)) {
+        if (! filter_var($source, FILTER_VALIDATE_URL)) {
             return false;
         }
 
         $parsedUrl = parse_url($source);
-        
+
         // Ensure scheme is HTTP or HTTPS only
-        if (!in_array($parsedUrl['scheme'] ?? '', ['http', 'https'])) {
+        if (! in_array($parsedUrl['scheme'] ?? '', ['http', 'https'])) {
             return false;
         }
 
