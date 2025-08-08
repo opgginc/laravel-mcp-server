@@ -10,6 +10,8 @@ class SwaggerToMcpConverter
 
     protected array $authConfig = [];
 
+    protected int $httpTimeout = 30;
+
     public function __construct(SwaggerParser $parser)
     {
         $this->parser = $parser;
@@ -21,6 +23,16 @@ class SwaggerToMcpConverter
     public function setAuthConfig(array $config): self
     {
         $this->authConfig = $config;
+
+        return $this;
+    }
+
+    /**
+     * Set HTTP timeout in seconds
+     */
+    public function setHttpTimeout(int $timeout): self
+    {
+        $this->httpTimeout = $timeout;
 
         return $this;
     }
@@ -278,8 +290,8 @@ class SwaggerToMcpConverter
 
         if ($validator->fails()) {
             throw new JsonRpcErrorException(
-                message: 'Validation failed: ' . $validator->errors()->first(),
-                code: JsonRpcErrorCode::INVALID_REQUEST
+                'Validation failed: ' . $validator->errors()->first(),
+                JsonRpcErrorCode::INVALID_PARAMS
             );
         }
 
@@ -300,8 +312,8 @@ PHP;
         // Check response status
         if (!$response->successful()) {
             throw new JsonRpcErrorException(
-                message: 'API request failed: ' . $response->body(),
-                code: JsonRpcErrorCode::INTERNAL_ERROR
+                'API request failed: ' . $response->body(),
+                JsonRpcErrorCode::INTERNAL_ERROR
             );
         }
 
@@ -375,51 +387,67 @@ PHP;
      */
     protected function generateHttpRequest(string $method, array $endpoint): string
     {
-        $code = "        // Build request\n";
-        $code .= "        \$request = Http::withHeaders(\$headers ?? [])\n";
-        $code .= "            ->timeout(30)\n";
-        $code .= "            ->retry(3, 100);\n\n";
-
-        // Add query parameters
-        $queryParams = array_filter($endpoint['parameters'], fn ($p) => $p['in'] === 'query');
-        if (! empty($queryParams)) {
-            $code .= "        // Add query parameters\n";
-            $code .= "        \$queryParams = [];\n";
-            foreach ($queryParams as $param) {
-                $name = $param['name'];
-                $code .= "        if (isset(\$arguments['{$name}'])) {\n";
-                $code .= "            \$queryParams['{$name}'] = \$arguments['{$name}'];\n";
-                $code .= "        }\n";
-            }
-            $code .= "        if (!empty(\$queryParams)) {\n";
-            $code .= "            \$request = \$request->withQueryParameters(\$queryParams);\n";
-            $code .= "        }\n\n";
-        }
-
-        // Make request
-        $code .= "        // Execute request\n";
-
-        switch ($method) {
-            case 'get':
-                $code .= "        \$response = \$request->get(\$url);\n";
-                break;
-            case 'post':
-                $code .= "        \$response = \$request->post(\$url, \$arguments['body'] ?? []);\n";
-                break;
-            case 'put':
-                $code .= "        \$response = \$request->put(\$url, \$arguments['body'] ?? []);\n";
-                break;
-            case 'patch':
-                $code .= "        \$response = \$request->patch(\$url, \$arguments['body'] ?? []);\n";
-                break;
-            case 'delete':
-                $code .= "        \$response = \$request->delete(\$url);\n";
-                break;
-            default:
-                $code .= "        \$response = \$request->{$method}(\$url);\n";
-        }
+        $code = $this->generateHttpClientSetup();
+        $code .= $this->generateQueryParametersCode($endpoint['parameters']);
+        $code .= $this->generateHttpMethodCall($method);
 
         return $code;
+    }
+
+    /**
+     * Generate HTTP client setup code
+     */
+    protected function generateHttpClientSetup(): string
+    {
+        return "        // Build request\n" .
+               "        \$request = Http::withHeaders(\$headers ?? [])\n" .
+               "            ->timeout({$this->httpTimeout})\n" .
+               "            ->retry(3, 100);\n\n";
+    }
+
+    /**
+     * Generate query parameters handling code
+     */
+    protected function generateQueryParametersCode(array $parameters): string
+    {
+        $queryParams = array_filter($parameters, fn ($p) => $p['in'] === 'query');
+        
+        if (empty($queryParams)) {
+            return '';
+        }
+
+        $code = "        // Add query parameters\n";
+        $code .= "        \$queryParams = [];\n";
+        
+        foreach ($queryParams as $param) {
+            $name = $param['name'];
+            $code .= "        if (isset(\$arguments['{$name}'])) {\n";
+            $code .= "            \$queryParams['{$name}'] = \$arguments['{$name}'];\n";
+            $code .= "        }\n";
+        }
+        
+        $code .= "        if (!empty(\$queryParams)) {\n";
+        $code .= "            \$request = \$request->withQueryParameters(\$queryParams);\n";
+        $code .= "        }\n\n";
+
+        return $code;
+    }
+
+    /**
+     * Generate HTTP method call code
+     */
+    protected function generateHttpMethodCall(string $method): string
+    {
+        $code = "        // Execute request\n";
+
+        return $code . match ($method) {
+            'get' => "        \$response = \$request->get(\$url);\n",
+            'post' => "        \$response = \$request->post(\$url, \$arguments['body'] ?? []);\n",
+            'put' => "        \$response = \$request->put(\$url, \$arguments['body'] ?? []);\n",
+            'patch' => "        \$response = \$request->patch(\$url, \$arguments['body'] ?? []);\n",
+            'delete' => "        \$response = \$request->delete(\$url);\n",
+            default => "        \$response = \$request->{$method}(\$url);\n",
+        };
     }
 
     /**
@@ -616,7 +644,7 @@ PHP;
             
             // Make HTTP request
             $response = Http::withHeaders($headers)
-                ->timeout(30)
+                ->timeout({{ timeout }})
                 ->retry(3, 100)
 {{ queryParams }}
                 ->get($url);
@@ -640,6 +668,7 @@ PHP;
         // Replace placeholders
         $logic = str_replace('{{ baseUrl }}', $baseUrl, $logic);
         $logic = str_replace('{{ path }}', $path, $logic);
+        $logic = str_replace('{{ timeout }}', (string) $this->httpTimeout, $logic);
 
         // Add path parameter replacements
         $pathParams = $this->generateResourcePathParams($endpoint['parameters'] ?? []);
