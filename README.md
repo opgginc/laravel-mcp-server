@@ -32,7 +32,31 @@
 
 ## ⚠️ Version Information & Breaking Changes
 
-### v1.3.0 Changes (Current)
+### v1.4.0 Changes (Latest) 🚀
+
+Version 1.4.0 introduces powerful automatic tool generation from Swagger/OpenAPI specifications:
+
+**New Features:**
+- **Swagger/OpenAPI Tool Generator**: Automatically generate MCP tools from any Swagger/OpenAPI specification
+  - Supports both OpenAPI 3.x and Swagger 2.0 formats
+  - Interactive endpoint selection with grouping options
+  - Automatic authentication logic generation (API Key, Bearer Token, OAuth2)
+  - Smart naming for readable class names (handles hash-based operationIds)
+  - Built-in API testing before generation
+  - Complete Laravel HTTP client integration with retry logic
+
+**Example Usage:**
+```bash
+# Generate tools from OP.GG API
+php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
+
+# With options
+php artisan make:swagger-mcp-tool ./api-spec.json --test-api --group-by=tag --prefix=MyApi
+```
+
+This feature dramatically reduces the time needed to integrate external APIs into your MCP server!
+
+### v1.3.0 Changes
 
 Version 1.3.0 introduces improvements to the `ToolInterface` for better communication control:
 
@@ -309,6 +333,87 @@ This command:
 - Automatically converts the name to proper case format
 - Creates a properly structured tool class in `app/MCP/Tools`
 - Offers to automatically register the tool in your configuration
+
+#### Generate Tools from Swagger/OpenAPI Specifications (v1.4.0+)
+
+Automatically generate MCP tools from any Swagger/OpenAPI specification with a single command:
+
+```bash
+# From URL
+php artisan make:swagger-mcp-tool https://api.example.com/swagger.json
+
+# From local file
+php artisan make:swagger-mcp-tool ./specs/openapi.json
+
+# With options
+php artisan make:swagger-mcp-tool https://api.example.com/swagger.json \
+  --test-api \
+  --group-by=tag \
+  --prefix=MyApi
+```
+
+**Real-world Example with OP.GG API:**
+
+```bash
+➜ php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
+
+🚀 Swagger/OpenAPI to MCP Tool Generator
+=========================================
+📄 Loading spec from: https://api.op.gg/lol/swagger.json
+✅ Spec loaded successfully!
++-----------------+-------------------------+
+| Property        | Value                   |
++-----------------+-------------------------+
+| Title           | OP.GG Api Documentation |
+| Version         | openapi-3.0.0           |
+| Base URL        | https://api.op.gg      |
+| Total Endpoints | 6                       |
+| Tags            | Riot                    |
+| Security        |                         |
++-----------------+-------------------------+
+
+Would you like to modify the base URL? Current: https://api.op.gg (yes/no) [no]:
+> no
+
+📋 Select endpoints to generate tools for:
+Include tag: Riot (6 endpoints)? (yes/no) [yes]:
+> yes
+
+Selected 6 endpoints.
+🛠️ Generating MCP tools...
+Note: operationId '5784a7dfd226e1621b0e6ee8c4f39407' looks like a hash, will use path-based naming
+Generating: GetLolRegionRankingsGameTypeTool
+  ✅ Generated: GetLolRegionRankingsGameTypeTool
+Generating: GetLolRegionServerStatsTool
+  ✅ Generated: GetLolRegionServerStatsTool
+...
+
+📦 Generated 6 MCP tools:
+  - GetLolRegionRankingsGameTypeTool
+  - GetLolRegionServerStatsTool
+  - GetLolMetaChampionsTool
+  ...
+
+✅ MCP tools generated successfully!
+```
+
+**Key Features:**
+- **Automatic API parsing**: Supports OpenAPI 3.x and Swagger 2.0 specifications
+- **Smart naming**: Converts paths like `/lol/{region}/server-stats` to `GetLolRegionServerStatsTool`
+- **Hash detection**: Automatically detects MD5-like operationIds and uses path-based naming instead
+- **Interactive mode**: Select which endpoints to convert into tools
+- **API testing**: Test API connectivity before generating tools
+- **Authentication support**: Automatically generates authentication logic for API Key, Bearer Token, and OAuth2
+- **Smart grouping**: Group endpoints by tags or path prefixes
+- **Code generation**: Creates ready-to-use tool classes with Laravel HTTP client integration
+
+The generated tools include:
+- Proper input validation based on API parameters
+- Authentication headers configuration
+- Error handling for API responses with JsonRpcErrorException
+- Request retry logic (3 retries with 100ms delay)
+- Query parameter, path parameter, and request body handling
+- Laravel HTTP client with timeout configuration
 
 You can also manually create and register tools in `config/mcp-server.php`:
 

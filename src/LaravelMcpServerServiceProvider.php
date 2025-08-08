@@ -9,6 +9,7 @@ use OPGG\LaravelMcpServer\Console\Commands\MakeMcpPromptCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceTemplateCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
+use OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MigrateToolsCommand;
 use OPGG\LaravelMcpServer\Console\Commands\TestMcpToolCommand;
 use OPGG\LaravelMcpServer\Http\Controllers\MessageController;
@@ -38,6 +39,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
                 MakeMcpResourceTemplateCommand::class,
                 MakeMcpPromptCommand::class,
                 MakeMcpNotificationCommand::class,
+                MakeSwaggerMcpToolCommand::class,
                 TestMcpToolCommand::class,
                 MigrateToolsCommand::class,
             ]);

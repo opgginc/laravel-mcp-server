@@ -13,7 +13,7 @@ class MakeMcpToolCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'make:mcp-tool {name : The name of the MCP tool}';
+    protected $signature = 'make:mcp-tool {name : The name of the MCP tool} {--programmatic : Use programmatic mode with dynamic parameters}';
 
     /**
      * The console command description.
@@ -42,6 +42,11 @@ class MakeMcpToolCommand extends Command
     }
 
     /**
+     * Dynamic parameters for programmatic generation
+     */
+    protected array $dynamicParams = [];
+
+    /**
      * Execute the console command.
      *
      * @return int
@@ -68,26 +73,43 @@ class MakeMcpToolCommand extends Command
 
         $fullClassName = "\\App\\MCP\\Tools\\{$className}";
 
-        // Ask if they want to automatically register the tool
-        if ($this->confirm('🤖 Would you like to automatically register this tool in config/mcp-server.php?', true)) {
-            $this->registerToolInConfig($fullClassName);
+        // Ask if they want to automatically register the tool (skip in programmatic mode)
+        if (! $this->option('programmatic')) {
+            if ($this->confirm('🤖 Would you like to automatically register this tool in config/mcp-server.php?', true)) {
+                $this->registerToolInConfig($fullClassName);
+            } else {
+                $this->info("☑️ Don't forget to register your tool in config/mcp-server.php:");
+                $this->comment('    // config/mcp-server.php');
+                $this->comment("    'tools' => [");
+                $this->comment('        // other tools...');
+                $this->comment("        {$fullClassName}::class,");
+                $this->comment('    ],');
+            }
+
+            // Display testing instructions
+            $this->newLine();
+            $this->info('You can now test your tool with the following command:');
+            $this->comment('    php artisan mcp:test-tool '.$className);
+            $this->info('Or view all available tools:');
+            $this->comment('    php artisan mcp:test-tool --list');
         } else {
-            $this->info("☑️ Don't forget to register your tool in config/mcp-server.php:");
-            $this->comment('    // config/mcp-server.php');
-            $this->comment("    'tools' => [");
-            $this->comment('        // other tools...');
-            $this->comment("        {$fullClassName}::class,");
-            $this->comment('    ],');
+            // In programmatic mode, always register the tool
+            $this->registerToolInConfig($fullClassName);
         }
 
-        // Display testing instructions
-        $this->newLine();
-        $this->info('You can now test your tool with the following command:');
-        $this->comment('    php artisan mcp:test-tool '.$className);
-        $this->info('Or view all available tools:');
-        $this->comment('    php artisan mcp:test-tool --list');
-
         return 0;
+    }
+
+    /**
+     * Set dynamic parameters for programmatic generation
+     *
+     * @return $this
+     */
+    public function setDynamicParams(array $params): self
+    {
+        $this->dynamicParams = $params;
+
+        return $this;
     }
 
     /**
@@ -149,6 +171,11 @@ class MakeMcpToolCommand extends Command
      */
     protected function buildClass(string $className)
     {
+        // Use dynamic stub if in programmatic mode
+        if ($this->option('programmatic') && ! empty($this->dynamicParams)) {
+            return $this->buildDynamicClass($className);
+        }
+
         $stub = $this->files->get($this->getStubPath());
 
         // Generate a kebab-case tool name without the 'Tool' suffix
@@ -166,6 +193,115 @@ class MakeMcpToolCommand extends Command
         }
 
         return $this->replaceStubPlaceholders($stub, $className, $toolName);
+    }
+
+    /**
+     * Build a class with dynamic parameters
+     */
+    protected function buildDynamicClass(string $className): string
+    {
+        $params = $this->dynamicParams;
+
+        // Extract parameters
+        $toolName = $params['toolName'] ?? Str::kebab(preg_replace('/Tool$/', '', $className));
+        $description = $params['description'] ?? 'Auto-generated MCP tool';
+        $inputSchema = $params['inputSchema'] ?? [];
+        $annotations = $params['annotations'] ?? [];
+        $executeLogic = $params['executeLogic'] ?? '';
+        $imports = $params['imports'] ?? [];
+
+        // Build imports
+        $importsString = '';
+        foreach ($imports as $import) {
+            $importsString .= "use {$import};\n";
+        }
+
+        // Build input schema
+        $inputSchemaString = $this->arrayToPhpString($inputSchema, 2);
+
+        // Build annotations
+        $annotationsString = $this->arrayToPhpString($annotations, 2);
+
+        // Generate the class code
+        $code = <<<PHP
+<?php
+
+namespace App\\MCP\\Tools;
+
+use Illuminate\\Support\\Facades\\Validator;
+use OPGG\\LaravelMcpServer\\Enums\\ProcessMessageType;
+use OPGG\\LaravelMcpServer\\Exceptions\\Enums\\JsonRpcErrorCode;
+use OPGG\\LaravelMcpServer\\Exceptions\\JsonRpcErrorException;
+use OPGG\\LaravelMcpServer\\Services\\ToolService\\ToolInterface;
+{$importsString}
+
+/**
+ * {$className} - Auto-generated from Swagger/OpenAPI spec
+ */
+class {$className} implements ToolInterface
+{
+    public function isStreaming(): bool
+    {
+        return false;
+    }
+
+    public function name(): string
+    {
+        return '{$toolName}';
+    }
+
+    public function description(): string
+    {
+        return '{$description}';
+    }
+
+    public function inputSchema(): array
+    {
+        return {$inputSchemaString};
+    }
+
+    public function annotations(): array
+    {
+        return {$annotationsString};
+    }
+
+    public function execute(array \$arguments): mixed
+    {
+{$executeLogic}
+    }
+}
+PHP;
+
+        return $code;
+    }
+
+    /**
+     * Convert array to PHP string representation
+     */
+    protected function arrayToPhpString(array $array, int $indent = 0): string
+    {
+        if (empty($array)) {
+            return '[]';
+        }
+
+        $json = json_encode($array, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        // Convert JSON to PHP array syntax
+        $php = preg_replace('/^(\s*)"([^"]+)"\s*:/m', '$1\'$2\' =>', $json);
+        $php = str_replace('{', '[', $php);
+        $php = str_replace('}', ']', $php);
+        $php = preg_replace('/: true/', '=> true', $php);
+        $php = preg_replace('/: false/', '=> false', $php);
+        $php = preg_replace('/: null/', '=> null', $php);
+        $php = preg_replace('/: (\d+)/', '=> $1', $php);
+        $php = preg_replace('/: (\d+\.\d+)/', '=> $1', $php);
+
+        // Add indentation
+        $lines = explode("\n", $php);
+        $indentStr = str_repeat('    ', $indent);
+        $php = implode("\n".$indentStr, $lines);
+
+        return $php;
     }
 
     /**
