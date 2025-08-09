@@ -41,6 +41,7 @@ class JsonSchemaValidator
      * @param  mixed  $data  The data to validate
      * @param  array<string, mixed>  $schema  The JSON schema to validate against
      * @param  int  $depth  Current recursion depth
+     *
      * @throws InvalidArgumentException
      */
     private static function validateType(mixed $data, array $schema, int $depth = 0): void
@@ -97,6 +98,7 @@ class JsonSchemaValidator
      * @param  mixed  $data  The data to validate
      * @param  array<string, mixed>  $schema  The JSON schema to validate against
      * @param  int  $depth  Current recursion depth
+     *
      * @throws InvalidArgumentException
      */
     private static function validateObject(mixed $data, array $schema, int $depth = 0): void
@@ -142,6 +144,7 @@ class JsonSchemaValidator
      * @param  mixed  $data  The data to validate
      * @param  array<string, mixed>  $schema  The JSON schema to validate against
      * @param  int  $depth  Current recursion depth
+     *
      * @throws InvalidArgumentException
      */
     private static function validateArray(mixed $data, array $schema, int $depth = 0): void
