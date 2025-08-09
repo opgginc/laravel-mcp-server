@@ -520,7 +520,7 @@ test('generateGroupingPreviews returns preview examples for all grouping options
     // Mock the parser and converter
     $mockParser = Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser::class);
     $mockConverter = Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter::class);
-    
+
     // Sample endpoints for testing
     $sampleEndpoints = [
         ['method' => 'GET', 'path' => '/pets', 'tags' => ['pet']],
@@ -548,7 +548,7 @@ test('generateGroupingPreviews returns preview examples for all grouping options
 
     expect($result)->toBeArray();
     expect($result)->toHaveKey('tag');
-    expect($result)->toHaveKey('path'); 
+    expect($result)->toHaveKey('path');
     expect($result)->toHaveKey('none');
 
     // Check that 'none' has the default examples
@@ -562,7 +562,7 @@ test('generateGroupingPreviews handles endpoints with no tags', function () {
     // Mock the parser and converter
     $mockParser = Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser::class);
     $mockConverter = Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter::class);
-    
+
     // Endpoints without tags
     $sampleEndpoints = [
         ['method' => 'GET', 'path' => '/health', 'tags' => []],
@@ -602,7 +602,7 @@ test('getGroupingOption displays previews in interactive mode', function () {
     $mockPreviews = [
         'tag' => ['Tools/Pet/FindPetsTool.php', 'Resources/User/GetUserResource.php'],
         'path' => ['Tools/Api/PostApiTool.php', 'Tools/Users/GetUsersTool.php'],
-        'none' => ['Tools/General/YourEndpointTool.php', 'Resources/General/YourEndpointResource.php']
+        'none' => ['Tools/General/YourEndpointTool.php', 'Resources/General/YourEndpointResource.php'],
     ];
 
     $command->shouldReceive('generateGroupingPreviews')->andReturn($mockPreviews);

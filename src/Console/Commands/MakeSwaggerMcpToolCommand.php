@@ -159,19 +159,19 @@ class MakeSwaggerMcpToolCommand extends Command
 
             $choices = [
                 'tag' => 'Tag-based grouping (organize by OpenAPI tags)',
-                'path' => 'Path-based grouping (organize by API path)', 
+                'path' => 'Path-based grouping (organize by API path)',
                 'none' => 'No grouping (everything in General/ folder)',
             ];
 
             // Display previews
             foreach ($choices as $key => $description) {
                 $this->line("<options=bold>{$description}</>");
-                if (!empty($previews[$key])) {
+                if (! empty($previews[$key])) {
                     foreach ($previews[$key] as $example) {
                         $this->line("  <fg=cyan>📁 {$example}</>");
                     }
                 } else {
-                    $this->line("  <fg=yellow>No examples available</>");
+                    $this->line('  <fg=yellow>No examples available</>');
                 }
                 $this->newLine();
             }
@@ -203,7 +203,7 @@ class MakeSwaggerMcpToolCommand extends Command
         $previews = [
             'tag' => [],
             'path' => [],
-            'none' => ['Tools/General/YourEndpointTool.php', 'Resources/General/YourEndpointResource.php']
+            'none' => ['Tools/General/YourEndpointTool.php', 'Resources/General/YourEndpointResource.php'],
         ];
 
         // Get sample endpoints (max 5 per grouping type for clean display)
@@ -213,13 +213,13 @@ class MakeSwaggerMcpToolCommand extends Command
         // Generate tag-based previews
         $tagGroups = [];
         foreach ($sampleEndpoints as $endpoint) {
-            if (!empty($endpoint['tags'])) {
+            if (! empty($endpoint['tags'])) {
                 $tag = $endpoint['tags'][0];
                 $directory = $this->createTagDirectory($endpoint);
-                if (!isset($tagGroups[$directory])) {
+                if (! isset($tagGroups[$directory])) {
                     $tagGroups[$directory] = [];
                 }
-                
+
                 // Create example file names
                 $className = $this->converter->generateClassName($endpoint, '');
                 $type = $endpoint['method'] === 'GET' ? 'Resources' : 'Tools';
@@ -237,10 +237,10 @@ class MakeSwaggerMcpToolCommand extends Command
         $pathGroups = [];
         foreach ($sampleEndpoints as $endpoint) {
             $directory = $this->createPathDirectory($endpoint);
-            if (!isset($pathGroups[$directory])) {
+            if (! isset($pathGroups[$directory])) {
                 $pathGroups[$directory] = [];
             }
-            
+
             $className = $this->converter->generateClassName($endpoint, '');
             $type = $endpoint['method'] === 'GET' ? 'Resources' : 'Tools';
             $pathGroups[$directory][] = "{$type}/{$directory}/{$className}.php";
