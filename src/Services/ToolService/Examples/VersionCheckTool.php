@@ -55,6 +55,10 @@ class VersionCheckTool implements ToolInterface
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, string>
+     */
     public function execute(array $arguments): array
     {
         $now = now()->format('Y-m-d H:i:s');

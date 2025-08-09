@@ -11,10 +11,15 @@ use InvalidArgumentException;
 class JsonSchemaValidator
 {
     /**
+     * Maximum recursion depth to prevent stack overflow attacks
+     */
+    private const MAX_RECURSION_DEPTH = 100;
+
+    /**
      * Validates data against a JSON schema.
      *
      * @param  mixed  $data  The data to validate
-     * @param  array  $schema  The JSON schema to validate against
+     * @param  array<string, mixed>  $schema  The JSON schema to validate against
      * @return bool True if the data is valid
      *
      * @throws InvalidArgumentException If validation fails
@@ -22,7 +27,7 @@ class JsonSchemaValidator
     public static function validate(mixed $data, array $schema): bool
     {
         try {
-            self::validateType($data, $schema);
+            self::validateType($data, $schema, 0);
 
             return true;
         } catch (InvalidArgumentException $e) {
@@ -33,10 +38,17 @@ class JsonSchemaValidator
     /**
      * Validates the data type and structure.
      *
+     * @param  mixed  $data  The data to validate
+     * @param  array<string, mixed>  $schema  The JSON schema to validate against
+     * @param  int  $depth  Current recursion depth
      * @throws InvalidArgumentException
      */
-    private static function validateType(mixed $data, array $schema): void
+    private static function validateType(mixed $data, array $schema, int $depth = 0): void
     {
+        if ($depth > self::MAX_RECURSION_DEPTH) {
+            throw new InvalidArgumentException('Maximum schema nesting depth exceeded');
+        }
+
         $type = $schema['type'] ?? null;
 
         if ($type === null) {
@@ -45,10 +57,10 @@ class JsonSchemaValidator
 
         switch ($type) {
             case 'object':
-                self::validateObject($data, $schema);
+                self::validateObject($data, $schema, $depth);
                 break;
             case 'array':
-                self::validateArray($data, $schema);
+                self::validateArray($data, $schema, $depth);
                 break;
             case 'string':
                 if (! is_string($data)) {
@@ -82,9 +94,12 @@ class JsonSchemaValidator
     /**
      * Validates object structure and properties.
      *
+     * @param  mixed  $data  The data to validate
+     * @param  array<string, mixed>  $schema  The JSON schema to validate against
+     * @param  int  $depth  Current recursion depth
      * @throws InvalidArgumentException
      */
-    private static function validateObject(mixed $data, array $schema): void
+    private static function validateObject(mixed $data, array $schema, int $depth = 0): void
     {
         if (! is_array($data) && ! is_object($data)) {
             throw new InvalidArgumentException('Expected object, got '.gettype($data));
@@ -105,7 +120,7 @@ class JsonSchemaValidator
         $properties = $schema['properties'] ?? [];
         foreach ($properties as $property => $propertySchema) {
             if (array_key_exists($property, $dataArray)) {
-                self::validateType($dataArray[$property], $propertySchema);
+                self::validateType($dataArray[$property], $propertySchema, $depth + 1);
             }
         }
 
@@ -124,9 +139,12 @@ class JsonSchemaValidator
     /**
      * Validates array structure and items.
      *
+     * @param  mixed  $data  The data to validate
+     * @param  array<string, mixed>  $schema  The JSON schema to validate against
+     * @param  int  $depth  Current recursion depth
      * @throws InvalidArgumentException
      */
-    private static function validateArray(mixed $data, array $schema): void
+    private static function validateArray(mixed $data, array $schema, int $depth = 0): void
     {
         if (! is_array($data)) {
             throw new InvalidArgumentException('Expected array, got '.gettype($data));
@@ -136,7 +154,7 @@ class JsonSchemaValidator
         if (isset($schema['items'])) {
             foreach ($data as $index => $item) {
                 try {
-                    self::validateType($item, $schema['items']);
+                    self::validateType($item, $schema['items'], $depth + 1);
                 } catch (InvalidArgumentException $e) {
                     throw new InvalidArgumentException("Array item at index {$index}: ".$e->getMessage());
                 }

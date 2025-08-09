@@ -61,6 +61,10 @@ class HelloWorldTool implements ToolInterface
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, string>
+     */
     public function execute(array $arguments): array
     {
         $validator = Validator::make($arguments, [
