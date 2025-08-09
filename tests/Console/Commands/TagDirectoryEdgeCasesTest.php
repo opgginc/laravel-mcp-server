@@ -28,7 +28,7 @@ afterEach(function () {
 
 test('tag directory handles complex special characters', function () {
     $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolsFromSwaggerCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -53,7 +53,7 @@ test('tag directory handles complex special characters', function () {
 
 test('tag directory handles empty strings and whitespace', function () {
     $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolsFromSwaggerCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -72,7 +72,7 @@ test('tag directory handles empty strings and whitespace', function () {
 
 test('tag directory handles unicode characters', function () {
     $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolsFromSwaggerCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
