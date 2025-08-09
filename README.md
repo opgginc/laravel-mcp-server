@@ -813,7 +813,7 @@ Generating: LolRegionServerStatsResource
 - **Flexible organization strategies**:
   - **Tag-based grouping**: Organize by OpenAPI tags (e.g., `Tools/Pet/`, `Tools/Store/`)
   - **Path-based grouping**: Organize by API path segments (e.g., `Tools/Api/`, `Tools/Users/`)
-  - **Flat structure**: All tools in a single `General/` directory
+  - **Flat structure**: All tools and resources directly in root directories (`Tools/`, `Resources/`)
 - **Interactive grouping preview**: See exactly how your files will be organized before generation
 - **Code generation**: Creates ready-to-use classes with Laravel HTTP client integration
 
