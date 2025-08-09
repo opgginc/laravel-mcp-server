@@ -15,10 +15,10 @@ class MakeSwaggerMcpToolCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'make:swagger-mcp-tools {swagger_file : Swagger/OpenAPI spec URL or file path}
+    protected $signature = 'make:swagger-mcp-tool {source : Swagger/OpenAPI spec URL or file path}
                             {--force : Overwrite existing files}
                             {--test-api : Test API endpoints before generating tools}
-                            {--group-by=tag : Group endpoints by (tag|path|none)}
+                            {--group-by= : Group endpoints by tag or path (tag|path|none)}
                             {--prefix= : Prefix for generated tool class names}';
 
     /**
@@ -34,17 +34,15 @@ class MakeSwaggerMcpToolCommand extends Command
 
     protected array $authConfig = [];
 
-    protected array $selectedEndpoints = [];
-
     /**
      * Selected endpoints with their generation type
      */
     protected array $selectedEndpointsWithType = [];
 
     /**
-     * Generation type (tool or resource)
+     * Selected grouping method
      */
-    protected string $generateType = 'tool';
+    protected string $groupingMethod;
 
     /**
      * Execute the console command.
@@ -93,6 +91,9 @@ class MakeSwaggerMcpToolCommand extends Command
         $endpoints = $this->parser->getEndpoints();
 
         if ($this->option('no-interaction')) {
+            // Set grouping method for non-interactive mode
+            $this->groupingMethod = $this->getGroupingOption();
+
             // In non-interactive mode, use smart defaults
             foreach ($endpoints as $endpoint) {
                 if ($endpoint['deprecated']) {
@@ -120,11 +121,11 @@ class MakeSwaggerMcpToolCommand extends Command
         $this->comment('Tip: GET endpoints are typically Resources, while POST/PUT/DELETE are Tools');
         $this->newLine();
 
-        $groupBy = $this->option('group-by');
+        $this->groupingMethod = $this->getGroupingOption();
 
-        if ($groupBy === 'tag') {
+        if ($this->groupingMethod === 'tag') {
             $this->selectByTagWithTypes();
-        } elseif ($groupBy === 'path') {
+        } elseif ($this->groupingMethod === 'path') {
             $this->selectByPathWithTypes();
         } else {
             $this->selectIndividuallyWithTypes();
@@ -137,11 +138,143 @@ class MakeSwaggerMcpToolCommand extends Command
     }
 
     /**
+     * Get the grouping option - prompt user if not provided
+     */
+    protected function getGroupingOption(): string
+    {
+        $groupBy = $this->option('group-by');
+
+        // If grouping option is provided, return it
+        if ($groupBy) {
+            return $groupBy;
+        }
+
+        // If no interaction is disabled or option not provided, ask user interactively
+        if (! $this->option('no-interaction')) {
+            $this->newLine();
+            $this->info('🗂️ Choose how to organize your generated tools and resources:');
+            $this->newLine();
+
+            // Generate previews for each grouping option
+            $previews = $this->generateGroupingPreviews();
+
+            $choices = [
+                'tag' => 'Tag-based grouping (organize by OpenAPI tags)',
+                'path' => 'Path-based grouping (organize by API path)',
+                'none' => 'No grouping (everything in General/ folder)',
+            ];
+
+            // Display previews
+            foreach ($choices as $key => $description) {
+                $this->line("<options=bold>{$description}</>");
+                if (! empty($previews[$key])) {
+                    foreach ($previews[$key] as $example) {
+                        $this->line("  <fg=cyan>📁 {$example}</>");
+                    }
+                } else {
+                    $this->line('  <fg=yellow>No examples available</>');
+                }
+                $this->newLine();
+            }
+
+            $choice = $this->choice(
+                'Select grouping method',
+                array_values($choices),
+                0  // Default to first option (tag-based)
+            );
+
+            // Map choice back to key
+            $groupBy = array_search($choice, $choices);
+
+            $this->info("Selected: {$choice}");
+            $this->newLine();
+        } else {
+            // Default to 'tag' for non-interactive mode
+            $groupBy = 'tag';
+        }
+
+        return $groupBy;
+    }
+
+    /**
+     * Generate grouping previews to show users examples of how endpoints will be organized
+     */
+    protected function generateGroupingPreviews(): array
+    {
+        $previews = [
+            'tag' => [],
+            'path' => [],
+            'none' => ['Tools/General/YourEndpointTool.php', 'Resources/General/YourEndpointResource.php'],
+        ];
+
+        // Check if parser and converter are initialized
+        if (! isset($this->parser) || ! isset($this->converter)) {
+            return $previews;
+        }
+
+        // Get sample endpoints (max 5 per grouping type for clean display)
+        $endpoints = $this->parser->getEndpoints();
+        $sampleEndpoints = array_slice($endpoints, 0, 8); // Get first 8 endpoints
+
+        // Generate tag-based previews
+        $tagGroups = [];
+        foreach ($sampleEndpoints as $endpoint) {
+            if (! empty($endpoint['tags'])) {
+                $tag = $endpoint['tags'][0];
+                $directory = $this->createTagDirectory($endpoint);
+                if (! isset($tagGroups[$directory])) {
+                    $tagGroups[$directory] = [];
+                }
+
+                // Create example file names
+                $className = $this->converter->generateClassName($endpoint, '');
+                $type = $endpoint['method'] === 'GET' ? 'Resources' : 'Tools';
+                $tagGroups[$directory][] = "{$type}/{$directory}/{$className}.php";
+            }
+        }
+
+        // Limit to 4 most populated tag groups for display
+        $tagGroups = array_slice($tagGroups, 0, 4, true);
+        foreach ($tagGroups as $examples) {
+            $previews['tag'] = array_merge($previews['tag'], array_slice($examples, 0, 2));
+        }
+
+        // Generate path-based previews
+        $pathGroups = [];
+        foreach ($sampleEndpoints as $endpoint) {
+            $directory = $this->createPathDirectory($endpoint);
+            if (! isset($pathGroups[$directory])) {
+                $pathGroups[$directory] = [];
+            }
+
+            $className = $this->converter->generateClassName($endpoint, '');
+            $type = $endpoint['method'] === 'GET' ? 'Resources' : 'Tools';
+            $pathGroups[$directory][] = "{$type}/{$directory}/{$className}.php";
+        }
+
+        // Limit to 4 most populated path groups for display
+        $pathGroups = array_slice($pathGroups, 0, 4, true);
+        foreach ($pathGroups as $examples) {
+            $previews['path'] = array_merge($previews['path'], array_slice($examples, 0, 2));
+        }
+
+        // Limit each preview to 6 items max for clean display
+        foreach ($previews as $key => $items) {
+            if (count($items) > 6) {
+                $previews[$key] = array_slice($items, 0, 5);
+                $previews[$key][] = '... and more';
+            }
+        }
+
+        return $previews;
+    }
+
+    /**
      * Load and validate the Swagger/OpenAPI spec
      */
     protected function loadSpec(): void
     {
-        $source = $this->argument('swagger_file');
+        $source = $this->argument('source');
 
         $this->info("📄 Loading spec from: {$source}");
 
@@ -388,124 +521,6 @@ class MakeSwaggerMcpToolCommand extends Command
     }
 
     /**
-     * Select endpoints to generate tools for (OLD - kept for compatibility)
-     */
-    protected function selectEndpoints(): void
-    {
-        $endpoints = $this->parser->getEndpoints();
-
-        if ($this->option('no-interaction')) {
-            // In non-interactive mode, select appropriate endpoints based on type
-            if ($this->generateType === 'resource') {
-                // For resources, only select GET endpoints
-                $this->selectedEndpoints = array_filter($endpoints, fn ($e) => ! $e['deprecated'] && $e['method'] === 'GET');
-                $this->info('Selected '.count($this->selectedEndpoints).' GET endpoints for resources (excluding deprecated).');
-            } else {
-                // For tools, select all non-deprecated endpoints
-                $this->selectedEndpoints = array_filter($endpoints, fn ($e) => ! $e['deprecated']);
-                $this->info('Selected '.count($this->selectedEndpoints).' endpoints (excluding deprecated).');
-            }
-
-            return;
-        }
-
-        $componentType = $this->generateType === 'resource' ? 'resources' : 'tools';
-        $this->info("📋 Select endpoints to generate {$componentType} for:");
-
-        if ($this->generateType === 'resource') {
-            $this->comment('Note: Only GET endpoints can be converted to resources');
-        }
-
-        $groupBy = $this->option('group-by');
-
-        if ($groupBy === 'tag') {
-            $this->selectByTag();
-        } elseif ($groupBy === 'path') {
-            $this->selectByPath();
-        } else {
-            $this->selectIndividually();
-        }
-
-        $this->info('Selected '.count($this->selectedEndpoints).' endpoints.');
-    }
-
-    /**
-     * Select endpoints by tag
-     */
-    protected function selectByTag(): void
-    {
-        $byTag = $this->parser->getEndpointsByTag();
-
-        foreach ($byTag as $tag => $endpoints) {
-            $count = count($endpoints);
-            $deprecated = count(array_filter($endpoints, fn ($e) => $e['deprecated']));
-
-            $label = "{$tag} ({$count} endpoints";
-            if ($deprecated > 0) {
-                $label .= ", {$deprecated} deprecated";
-            }
-            $label .= ')';
-
-            if ($this->confirm("Include tag: {$label}?", true)) {
-                foreach ($endpoints as $endpoint) {
-                    if (! $endpoint['deprecated'] || $this->confirm("Include deprecated: {$endpoint['method']} {$endpoint['path']}?", false)) {
-                        $this->selectedEndpoints[] = $endpoint;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Select endpoints by path prefix
-     */
-    protected function selectByPath(): void
-    {
-        $byPath = [];
-
-        foreach ($this->parser->getEndpoints() as $endpoint) {
-            $parts = explode('/', trim($endpoint['path'], '/'));
-            $prefix = ! empty($parts[0]) ? $parts[0] : 'root';
-            if (! isset($byPath[$prefix])) {
-                $byPath[$prefix] = [];
-            }
-            $byPath[$prefix][] = $endpoint;
-        }
-
-        foreach ($byPath as $prefix => $endpoints) {
-            $count = count($endpoints);
-
-            if ($this->confirm("Include path prefix '/{$prefix}' ({$count} endpoints)?", true)) {
-                foreach ($endpoints as $endpoint) {
-                    if (! $endpoint['deprecated'] || $this->confirm("Include deprecated: {$endpoint['method']} {$endpoint['path']}?", false)) {
-                        $this->selectedEndpoints[] = $endpoint;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Select endpoints individually
-     */
-    protected function selectIndividually(): void
-    {
-        foreach ($this->parser->getEndpoints() as $endpoint) {
-            $label = "{$endpoint['method']} {$endpoint['path']}";
-            if ($endpoint['summary']) {
-                $label .= " - {$endpoint['summary']}";
-            }
-            if ($endpoint['deprecated']) {
-                $label .= ' [DEPRECATED]';
-            }
-
-            if ($this->confirm("Include: {$label}?", ! $endpoint['deprecated'])) {
-                $this->selectedEndpoints[] = $endpoint;
-            }
-        }
-    }
-
-    /**
      * Configure authentication
      */
     protected function configureAuthentication(): void
@@ -580,9 +595,9 @@ class MakeSwaggerMcpToolCommand extends Command
                 // Generate tool
                 $className = $this->converter->generateClassName($endpoint, $prefix);
 
-                // Create tag-based directory structure
-                $tagDirectory = $this->createTagDirectory($endpoint);
-                $path = app_path("MCP/Tools/{$tagDirectory}/{$className}.php");
+                // Create directory structure based on grouping strategy
+                $directory = $this->createDirectory($endpoint);
+                $path = app_path("MCP/Tools/{$directory}/{$className}.php");
 
                 if (file_exists($path)) {
                     $this->warn("Skipping {$className} - already exists");
@@ -596,7 +611,7 @@ class MakeSwaggerMcpToolCommand extends Command
                 $toolParams = $this->converter->convertEndpointToTool($endpoint, $className);
 
                 // Add tag directory to tool params for namespace handling
-                $toolParams['tagDirectory'] = $tagDirectory;
+                $toolParams['tagDirectory'] = $directory;
 
                 // Create the tool using MakeMcpToolCommand
                 $makeTool = new MakeMcpToolCommand(app('files'));
@@ -622,9 +637,9 @@ class MakeSwaggerMcpToolCommand extends Command
                 // Generate resource
                 $className = $this->converter->generateResourceClassName($endpoint, $prefix);
 
-                // Create tag-based directory structure
-                $tagDirectory = $this->createTagDirectory($endpoint);
-                $path = app_path("MCP/Resources/{$tagDirectory}/{$className}.php");
+                // Create directory structure based on grouping strategy
+                $directory = $this->createDirectory($endpoint);
+                $path = app_path("MCP/Resources/{$directory}/{$className}.php");
 
                 if (file_exists($path)) {
                     $this->warn("Skipping {$className} - already exists");
@@ -638,7 +653,7 @@ class MakeSwaggerMcpToolCommand extends Command
                 $resourceParams = $this->converter->convertEndpointToResource($endpoint, $className);
 
                 // Add tag directory to resource params for namespace handling
-                $resourceParams['tagDirectory'] = $tagDirectory;
+                $resourceParams['tagDirectory'] = $directory;
 
                 // Create the resource using MakeMcpResourceCommand
                 $makeResource = new MakeMcpResourceCommand(app('files'));
@@ -710,7 +725,22 @@ class MakeSwaggerMcpToolCommand extends Command
     }
 
     /**
-     * Create a tag directory name from endpoint tags
+     * Create a directory name based on grouping strategy
+     */
+    protected function createDirectory(array $endpoint): string
+    {
+        switch ($this->groupingMethod) {
+            case 'tag':
+                return $this->createTagDirectory($endpoint);
+            case 'path':
+                return $this->createPathDirectory($endpoint);
+            default:
+                return 'General';
+        }
+    }
+
+    /**
+     * Create a tag-based directory name from endpoint tags
      */
     protected function createTagDirectory(array $endpoint): string
     {
@@ -733,5 +763,20 @@ class MakeSwaggerMcpToolCommand extends Command
 
         // Convert to StudlyCase for directory naming
         return Str::studly($tag);
+    }
+
+    /**
+     * Create a path-based directory name from endpoint path
+     */
+    protected function createPathDirectory(array $endpoint): string
+    {
+        $path = $endpoint['path'] ?? '';
+        $parts = explode('/', trim($path, '/'));
+
+        // Use the first path segment, or 'Root' if no segments
+        $firstSegment = ! empty($parts[0]) ? $parts[0] : 'Root';
+
+        // Convert to StudlyCase for directory naming
+        return Str::studly($firstSegment);
     }
 }
