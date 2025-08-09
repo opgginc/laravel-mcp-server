@@ -40,7 +40,7 @@ class MakeSwaggerMcpToolCommand extends Command
      * Selected endpoints with their generation type
      */
     protected array $selectedEndpointsWithType = [];
-    
+
     /**
      * Generation type (tool or resource)
      */
@@ -721,7 +721,7 @@ class MakeSwaggerMcpToolCommand extends Command
         }
 
         $tag = $tags[0]; // Use the first tag
-        
+
         // Check if tag is empty or whitespace only
         if (trim($tag) === '') {
             return 'General';
@@ -730,7 +730,7 @@ class MakeSwaggerMcpToolCommand extends Command
         // Remove special characters and convert to StudlyCase
         // Replace special characters with spaces first
         $tag = str_replace(['/', '.', '@', '-', '_'], ' ', $tag);
-        
+
         // Convert to StudlyCase for directory naming
         return Str::studly($tag);
     }

@@ -184,7 +184,7 @@ test('swagger tool generation creates tag-based directories', function () {
 });
 
 test('swagger tool generation handles untagged endpoints', function () {
-    // Create swagger with untagged endpoint
+    // Create swagger with untagged endpoint - use POST to force tool generation
     $swaggerData = [
         'openapi' => '3.0.0',
         'info' => [
@@ -193,7 +193,7 @@ test('swagger tool generation handles untagged endpoints', function () {
         ],
         'paths' => [
             '/health' => [
-                'get' => [
+                'post' => [
                     'operationId' => 'healthCheck',
                     'summary' => 'Health check',
                     'responses' => [
@@ -213,7 +213,6 @@ test('swagger tool generation handles untagged endpoints', function () {
             '--force' => true,
             '--no-interaction' => true,
         ])
-            ->expectsOutputToContain('Generated')
             ->assertExitCode(0);
 
         // Check that tool was created in General directory

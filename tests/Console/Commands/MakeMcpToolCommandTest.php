@@ -184,9 +184,10 @@ class AddPetTool implements ToolInterface
     $result = $method->invoke($command, $fullyQualifiedClassName);
     expect($result)->toBeTrue();
 
-    // Verify the tool was added to config
+    // Verify the tool was added to config (with escaped backslashes)
     $configContent = File::get(config_path('mcp-server.php'));
-    expect($configContent)->toContain($fullyQualifiedClassName);
+    $escapedClassName = str_replace('\\', '\\\\', $fullyQualifiedClassName);
+    expect($configContent)->toContain($escapedClassName);
 });
 
 test('handles directory creation permissions gracefully', function () {

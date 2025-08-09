@@ -36,7 +36,7 @@ test('tag directory handles complex special characters', function () {
     // Test various special character combinations
     $testCases = [
         'user-management-v2' => 'UserManagementV2',
-        'api_v1_beta' => 'ApiV1Beta', 
+        'api_v1_beta' => 'ApiV1Beta',
         'pet store' => 'PetStore',
         'user.profile' => 'UserProfile',
         'admin-panel_v2.0' => 'AdminPanelV20',
@@ -194,7 +194,7 @@ test('swagger generation with mixed tagged and untagged endpoints', function () 
                 ],
             ],
             '/health' => [
-                'get' => [
+                'post' => [
                     // No tags
                     'operationId' => 'healthCheck',
                     'summary' => 'Health check',
@@ -202,7 +202,7 @@ test('swagger generation with mixed tagged and untagged endpoints', function () 
                 ],
             ],
             '/store/inventory' => [
-                'get' => [
+                'post' => [
                     'tags' => ['store', 'inventory'], // Multiple tags
                     'operationId' => 'getInventory',
                     'summary' => 'Get inventory',

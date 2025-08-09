@@ -343,25 +343,37 @@ class MakeMcpToolCommand extends Command
         $content = file_get_contents($configPath);
 
         // Find the tools array in the config file
-        if (! preg_match('/[\'"]tools[\'"]\s*=>\s*\[(.*?)\s*\],/s', $content, $matches)) {
+        if (! preg_match('/[\'"]tools[\'"]\s*=>\s*\[(.*?)\],/s', $content, $matches)) {
             $this->error('❌ Could not locate tools array in config file.');
 
             return false;
         }
 
         $toolsArrayContent = $matches[1];
-        $fullEntry = "\n        {$toolClassName}::class,";
+        // Escape backslashes for the config file
+        $escapedClassName = str_replace('\\', '\\\\', $toolClassName);
+        $fullEntry = "\n        {$escapedClassName}::class,";
 
-        // Check if the tool is already registered
-        if (strpos($toolsArrayContent, $toolClassName) !== false) {
+        // Check if the tool is already registered (check both escaped and unescaped)
+        if (strpos($toolsArrayContent, $escapedClassName) !== false || strpos($toolsArrayContent, $toolClassName) !== false) {
             $this->info('✅ Tool is already registered in config file.');
 
             return true;
         }
 
-        // Add the new tool to the tools array
-        $newToolsArrayContent = $toolsArrayContent.$fullEntry;
-        $newContent = str_replace($toolsArrayContent, $newToolsArrayContent, $content);
+        // Handle empty array case
+        if (trim($toolsArrayContent) === '') {
+            // Empty array, add the entry directly
+            $newContent = str_replace(
+                "'tools' => []",
+                "'tools' => [{$fullEntry}\n    ]",
+                $content
+            );
+        } else {
+            // Add the new tool to the tools array
+            $newToolsArrayContent = $toolsArrayContent.$fullEntry;
+            $newContent = str_replace($toolsArrayContent, $newToolsArrayContent, $content);
+        }
 
         // Write the updated content back to the config file
         if (file_put_contents($configPath, $newContent)) {
