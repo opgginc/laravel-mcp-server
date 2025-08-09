@@ -33,7 +33,6 @@ class MakeSwaggerMcpToolCommand extends Command
 
     protected array $authConfig = [];
 
-
     /**
      * Selected endpoints with their generation type
      */
@@ -380,10 +379,6 @@ class MakeSwaggerMcpToolCommand extends Command
         }
     }
 
-
-
-
-
     /**
      * Configure authentication
      */
@@ -594,7 +589,7 @@ class MakeSwaggerMcpToolCommand extends Command
     protected function createDirectory(array $endpoint): string
     {
         $groupBy = $this->option('group-by');
-        
+
         switch ($groupBy) {
             case 'tag':
                 return $this->createTagDirectory($endpoint);
@@ -629,10 +624,10 @@ class MakeSwaggerMcpToolCommand extends Command
     {
         $path = $endpoint['path'] ?? '';
         $parts = explode('/', trim($path, '/'));
-        
+
         // Use the first path segment, or 'Root' if no segments
-        $firstSegment = !empty($parts[0]) ? $parts[0] : 'Root';
-        
+        $firstSegment = ! empty($parts[0]) ? $parts[0] : 'Root';
+
         // Convert to StudlyCase for directory naming
         return Str::studly($firstSegment);
     }
