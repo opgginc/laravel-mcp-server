@@ -34,7 +34,7 @@ test('createDirectory returns tag-based directory by default', function () {
 
     // Mock the command and set the groupingMethod property
     $command = Mockery::mock($command)->makePartial();
-    
+
     // Use reflection to set the groupingMethod property
     $property = new ReflectionProperty($command, 'groupingMethod');
     $property->setAccessible(true);
@@ -54,7 +54,7 @@ test('createDirectory returns path-based directory', function () {
 
     // Mock the command and set the groupingMethod property
     $command = Mockery::mock($command)->makePartial();
-    
+
     // Use reflection to set the groupingMethod property
     $property = new ReflectionProperty($command, 'groupingMethod');
     $property->setAccessible(true);
@@ -74,7 +74,7 @@ test('createDirectory returns General for none grouping', function () {
 
     // Mock the command and set the groupingMethod property
     $command = Mockery::mock($command)->makePartial();
-    
+
     // Use reflection to set the groupingMethod property
     $property = new ReflectionProperty($command, 'groupingMethod');
     $property->setAccessible(true);
@@ -414,7 +414,7 @@ test('swagger tool generation creates path-based directories', function () {
 // Test interactive grouping option selection
 test('getGroupingOption returns provided option when set', function () {
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
-    
+
     // Mock the option method to return a value
     $command = Mockery::mock($command)->makePartial();
     $command->shouldReceive('option')->with('group-by')->andReturn('path');
@@ -430,7 +430,7 @@ test('getGroupingOption returns provided option when set', function () {
 
 test('getGroupingOption returns tag for non-interactive mode when no option provided', function () {
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
-    
+
     // Mock the option method to return null (no option provided)
     $command = Mockery::mock($command)->makePartial();
     $command->shouldReceive('option')->with('group-by')->andReturn(null);
@@ -446,14 +446,14 @@ test('getGroupingOption returns tag for non-interactive mode when no option prov
 
 test('getGroupingOption prompts user when no option and interactive mode', function () {
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
-    
+
     // Mock the command methods
     $command = Mockery::mock($command)->makePartial();
     $command->shouldReceive('option')->with('group-by')->andReturn(null);
     $command->shouldReceive('option')->with('no-interaction')->andReturn(false);
     $command->shouldReceive('newLine')->andReturn();
     $command->shouldReceive('info')->with(Mockery::any())->andReturn();
-    
+
     // Mock choice method to return the first option (tag-based)
     $command->shouldReceive('choice')
         ->with('Select grouping method', Mockery::any(), 0)
@@ -469,14 +469,14 @@ test('getGroupingOption prompts user when no option and interactive mode', funct
 
 test('getGroupingOption handles path selection in interactive mode', function () {
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
-    
+
     // Mock the command methods
     $command = Mockery::mock($command)->makePartial();
     $command->shouldReceive('option')->with('group-by')->andReturn(null);
     $command->shouldReceive('option')->with('no-interaction')->andReturn(false);
     $command->shouldReceive('newLine')->andReturn();
     $command->shouldReceive('info')->with(Mockery::any())->andReturn();
-    
+
     // Mock choice method to return path-based option
     $command->shouldReceive('choice')
         ->with('Select grouping method', Mockery::any(), 0)
@@ -492,14 +492,14 @@ test('getGroupingOption handles path selection in interactive mode', function ()
 
 test('getGroupingOption handles none selection in interactive mode', function () {
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
-    
+
     // Mock the command methods
     $command = Mockery::mock($command)->makePartial();
     $command->shouldReceive('option')->with('group-by')->andReturn(null);
     $command->shouldReceive('option')->with('no-interaction')->andReturn(false);
     $command->shouldReceive('newLine')->andReturn();
     $command->shouldReceive('info')->with(Mockery::any())->andReturn();
-    
+
     // Mock choice method to return none option
     $command->shouldReceive('choice')
         ->with('Select grouping method', Mockery::any(), 0)

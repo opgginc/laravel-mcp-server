@@ -92,7 +92,7 @@ class MakeSwaggerMcpToolCommand extends Command
         if ($this->option('no-interaction')) {
             // Set grouping method for non-interactive mode
             $this->groupingMethod = $this->getGroupingOption();
-            
+
             // In non-interactive mode, use smart defaults
             foreach ($endpoints as $endpoint) {
                 if ($endpoint['deprecated']) {
@@ -142,7 +142,7 @@ class MakeSwaggerMcpToolCommand extends Command
     protected function getGroupingOption(): string
     {
         $groupBy = $this->option('group-by');
-        
+
         // If grouping option is provided, return it
         if ($groupBy) {
             return $groupBy;
@@ -153,22 +153,22 @@ class MakeSwaggerMcpToolCommand extends Command
             $this->newLine();
             $this->info('🗂️ Choose how to organize your generated tools and resources:');
             $this->newLine();
-            
+
             $choices = [
                 'tag' => 'Tag-based grouping (organize by OpenAPI tags like Pet/, Store/, User/)',
                 'path' => 'Path-based grouping (organize by API path like Api/, Users/, Orders/)',
-                'none' => 'No grouping (everything in General/ folder)'
+                'none' => 'No grouping (everything in General/ folder)',
             ];
-            
+
             $choice = $this->choice(
                 'Select grouping method',
                 array_values($choices),
                 0  // Default to first option (tag-based)
             );
-            
+
             // Map choice back to key
             $groupBy = array_search($choice, $choices);
-            
+
             $this->info("Selected: {$choice}");
             $this->newLine();
         } else {
