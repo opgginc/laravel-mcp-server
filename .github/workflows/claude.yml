@@ -41,7 +41,7 @@ jobs:
             actions: read
           
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
-          # model: "claude-opus-4-20250514"
+          model: "claude-opus-4-1-20250805"
           
           # Optional: Customize the trigger phrase (default: @claude)
           # trigger_phrase: "/claude"
@@ -62,3 +62,19 @@ jobs:
           # claude_env: |
           #   NODE_ENV: test
 
+      - name: Review and clean unnecessary codes
+        id: claude-clean
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
+          model: "claude-opus-4-1-20250805"
+          
+          # Direct prompt for automated review (no @claude mention needed)
+          direct_prompt: |
+            Please review all the codes of this PR, and clean unnecessary code:
+            - Remove unused code
+            - Remove unnecessary backward compatibility 
+
+            Be constructive and make concise code.
