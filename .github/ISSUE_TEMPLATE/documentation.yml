@@ -1,0 +1,37 @@
+name: Documentation
+description: Report documentation issues or improvements
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+    - type: markdown
+      attributes:
+          value: Help us improve our documentation!
+    - type: dropdown
+      id: doc-type
+      attributes:
+          label: Documentation Type
+          description: What type of documentation issue?
+          options:
+              - Missing documentation
+              - Unclear documentation
+              - Incorrect documentation
+              - Examples needed
+              - Other
+      validations:
+          required: true
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: Describe the documentation issue.
+          placeholder: The documentation for X is unclear because...
+      validations:
+          required: true
+    - type: textarea
+      id: suggested-improvement
+      attributes:
+          label: Suggested Improvement
+          description: Specific suggestions for improvement.
+          placeholder: I suggest adding...
+      validations:
+          required: false

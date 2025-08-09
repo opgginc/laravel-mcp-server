@@ -1,0 +1,31 @@
+name: Improvement
+description: Suggest an improvement or enhancement
+title: "[Improvement]: "
+labels: ["improvement", "enhancement"]
+body:
+    - type: markdown
+      attributes:
+          value: Thanks for suggesting an improvement!
+    - type: textarea
+      id: improvement-description
+      attributes:
+          label: What would you like to improve?
+          description: Describe the current functionality and how it could be better.
+          placeholder: The current X feature could be improved by...
+      validations:
+          required: true
+    - type: textarea
+      id: proposed-solution
+      attributes:
+          label: Proposed Solution
+          description: Ideas on how to implement this improvement.
+          placeholder: I suggest implementing this by...
+      validations:
+          required: false
+    - type: textarea
+      id: additional-context
+      attributes:
+          label: Additional Context
+          description: Any other context or examples.
+      validations:
+          required: false
