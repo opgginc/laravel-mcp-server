@@ -1,0 +1,46 @@
+name: Documentation
+description: Report documentation issues or suggest documentation improvements
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Help us improve our documentation! Let us know what's missing, unclear, or could be better.
+    - type: dropdown
+      id: doc-type
+      attributes:
+          label: Documentation Type
+          description: What type of documentation issue is this?
+          options:
+              - Missing documentation
+              - Unclear/confusing documentation
+              - Incorrect/outdated documentation
+              - Additional examples needed
+              - Other
+      validations:
+          required: true
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: Describe the documentation issue or improvement.
+          placeholder: The documentation for X feature is missing/unclear because...
+      validations:
+          required: true
+    - type: input
+      id: affected-section
+      attributes:
+          label: Affected Documentation Section
+          description: Which section of the documentation is affected? (e.g., README, specific doc file, API docs)
+          placeholder: README.md, Installation section
+      validations:
+          required: false
+    - type: textarea
+      id: suggested-improvement
+      attributes:
+          label: Suggested Improvement
+          description: If you have specific suggestions for improving the documentation, please share them.
+          placeholder: I suggest adding an example that shows...
+      validations:
+          required: false

@@ -22,7 +22,7 @@ body:
           description: How did this occur, please add any config values used and provide a set of reliable steps if possible.
           placeholder: When I do X I see Y.
       validations:
-          required: true
+          required: false
     - type: input
       id: package-version
       attributes:
@@ -30,7 +30,7 @@ body:
           description: What version of our Package are you running? Please be as specific as possible
           placeholder: 2.0.0
       validations:
-          required: true
+          required: false
     - type: input
       id: php-version
       attributes:
@@ -38,7 +38,7 @@ body:
           description: What version of PHP are you running? Please be as specific as possible
           placeholder: 8.2.0
       validations:
-          required: true
+          required: false
     - type: input
       id: laravel-version
       attributes:
@@ -46,7 +46,7 @@ body:
         description: What version of Laravel are you running? Please be as specific as possible
         placeholder: 9.0.0
       validations:
-        required: true
+        required: false
     - type: dropdown
       id: operating-systems
       attributes:
