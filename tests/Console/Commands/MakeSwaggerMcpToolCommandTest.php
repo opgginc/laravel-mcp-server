@@ -2,10 +2,12 @@
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
+use Mockery;
 
 beforeEach(function () {
     // Clean up directories before each test
     File::deleteDirectory(app_path('MCP/Tools'));
+    File::deleteDirectory(app_path('MCP/Resources'));
 
     // Create a minimal config file for testing
     $configDir = config_path();
@@ -20,9 +22,43 @@ beforeEach(function () {
 afterEach(function () {
     // Clean up after each test
     File::deleteDirectory(app_path('MCP/Tools'));
+    File::deleteDirectory(app_path('MCP/Resources'));
     if (File::exists(config_path('mcp-server.php'))) {
         File::delete(config_path('mcp-server.php'));
     }
+});
+
+// Test tag-based directory creation
+test('createDirectory returns tag-based directory by default', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    // Mock the option method to return 'tag'
+    $command = Mockery::mock($command)->makePartial();
+    $command->shouldReceive('option')->with('group-by')->andReturn('tag');
+
+    $method = new ReflectionMethod($command, 'createDirectory');
+    $method->setAccessible(true);
+
+    $endpoint = ['tags' => ['pet']];
+    $result = $method->invoke($command, $endpoint);
+
+    expect($result)->toBe('Pet');
+});
+
+test('createDirectory returns path-based directory', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    // Mock the option method to return 'path'
+    $command = Mockery::mock($command)->makePartial();
+    $command->shouldReceive('option')->with('group-by')->andReturn('path');
+
+    $method = new ReflectionMethod($command, 'createDirectory');
+    $method->setAccessible(true);
+
+    $endpoint = ['path' => '/users/profile'];
+    $result = $method->invoke($command, $endpoint);
+
+    expect($result)->toBe('Users');
 });
 
 test('createTagDirectory returns StudlyCase for single tag', function () {
@@ -110,6 +146,67 @@ test('createTagDirectory handles numbers in tags', function () {
     expect($result)->toBe('ApiV2');
 });
 
+// Test path-based directory creation
+test('createPathDirectory returns StudlyCase for path segments', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    $method = new ReflectionMethod($command, 'createPathDirectory');
+    $method->setAccessible(true);
+
+    $endpoint = ['path' => '/users/profile'];
+    $result = $method->invoke($command, $endpoint);
+
+    expect($result)->toBe('Users');
+});
+
+test('createPathDirectory returns Root for empty path', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    $method = new ReflectionMethod($command, 'createPathDirectory');
+    $method->setAccessible(true);
+
+    $endpoint = ['path' => '/'];
+    $result = $method->invoke($command, $endpoint);
+
+    expect($result)->toBe('Root');
+});
+
+test('createPathDirectory handles snake_case path segments', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    $method = new ReflectionMethod($command, 'createPathDirectory');
+    $method->setAccessible(true);
+
+    $endpoint = ['path' => '/user_profiles/details'];
+    $result = $method->invoke($command, $endpoint);
+
+    expect($result)->toBe('UserProfiles');
+});
+
+test('createPathDirectory handles kebab-case path segments', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    $method = new ReflectionMethod($command, 'createPathDirectory');
+    $method->setAccessible(true);
+
+    $endpoint = ['path' => '/api-v1/users'];
+    $result = $method->invoke($command, $endpoint);
+
+    expect($result)->toBe('ApiV1');
+});
+
+test('createPathDirectory handles missing path key', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    $method = new ReflectionMethod($command, 'createPathDirectory');
+    $method->setAccessible(true);
+
+    $endpoint = [];
+    $result = $method->invoke($command, $endpoint);
+
+    expect($result)->toBe('Root');
+});
+
 test('swagger tool generation creates tag-based directories', function () {
     // Create a minimal swagger.json file
     $swaggerData = [
@@ -146,11 +243,11 @@ test('swagger tool generation creates tag-based directories', function () {
     File::put($swaggerPath, json_encode($swaggerData));
 
     try {
-        $this->artisan('make:swagger-mcp-tools', [
-            'swagger_file' => $swaggerPath,
-            '--force' => true,
+        $this->artisan('make:swagger-mcp-tool', [
+            'source' => $swaggerPath,
+            '--no-interaction' => true,
         ])
-            ->expectsOutputToContain('Tools generated successfully!')
+            ->expectsOutputToContain('MCP components generated successfully!')
             ->assertExitCode(0);
 
         // Check that tools were created in tag-based directories
@@ -200,11 +297,11 @@ test('swagger tool generation handles untagged endpoints', function () {
     File::put($swaggerPath, json_encode($swaggerData));
 
     try {
-        $this->artisan('make:swagger-mcp-tools', [
-            'swagger_file' => $swaggerPath,
-            '--force' => true,
+        $this->artisan('make:swagger-mcp-tool', [
+            'source' => $swaggerPath,
+            '--no-interaction' => true,
         ])
-            ->expectsOutputToContain('Tools generated successfully!')
+            ->expectsOutputToContain('MCP components generated successfully!')
             ->assertExitCode(0);
 
         // Check that tool was created in General directory
@@ -216,6 +313,70 @@ test('swagger tool generation handles untagged endpoints', function () {
         expect($healthToolContent)->toContain('namespace App\\MCP\\Tools\\General;');
 
     } finally {
+        if (File::exists($swaggerPath)) {
+            File::delete($swaggerPath);
+        }
+    }
+});
+
+test('swagger tool generation creates path-based directories', function () {
+    // Create swagger with various path structures
+    $swaggerData = [
+        'openapi' => '3.0.0',
+        'info' => [
+            'title' => 'Test API',
+            'version' => '1.0.0',
+        ],
+        'paths' => [
+            '/users/profile' => [
+                'get' => [
+                    'operationId' => 'getUserProfile',
+                    'summary' => 'Get user profile',
+                    'responses' => [
+                        '200' => ['description' => 'Success'],
+                    ],
+                ],
+            ],
+            '/api/v1/orders' => [
+                'post' => [
+                    'operationId' => 'createOrder',
+                    'summary' => 'Create an order',
+                    'responses' => [
+                        '201' => ['description' => 'Created'],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $swaggerPath = storage_path('swagger-path-test.json');
+    File::put($swaggerPath, json_encode($swaggerData));
+
+    try {
+        $this->artisan('make:swagger-mcp-tool', [
+            'source' => $swaggerPath,
+            '--group-by' => 'path',
+            '--no-interaction' => true,
+        ])
+            ->expectsOutputToContain('MCP components generated successfully!')
+            ->assertExitCode(0);
+
+        // Check that tools were created in path-based directories
+        $userResourcePath = app_path('MCP/Resources/Users/GetUserProfileResource.php');
+        $apiToolPath = app_path('MCP/Tools/Api/CreateOrderTool.php');
+
+        expect(File::exists($userResourcePath))->toBeTrue();
+        expect(File::exists($apiToolPath))->toBeTrue();
+
+        // Verify namespace in generated files
+        $userResourceContent = File::get($userResourcePath);
+        expect($userResourceContent)->toContain('namespace App\\MCP\\Resources\\Users;');
+
+        $apiToolContent = File::get($apiToolPath);
+        expect($apiToolContent)->toContain('namespace App\\MCP\\Tools\\Api;');
+
+    } finally {
+        // Clean up
         if (File::exists($swaggerPath)) {
             File::delete($swaggerPath);
         }
