@@ -79,28 +79,28 @@ class MakeMcpToolCommand extends Command
         }
         $fullClassName .= $className;
 
-        // Ask if they want to automatically register the tool (skip in programmatic mode)
-        if (! $this->option('programmatic')) {
-            if ($this->confirm('🤖 Would you like to automatically register this tool in config/mcp-server.php?', true)) {
-                $this->registerToolInConfig($fullClassName);
-            } else {
-                $this->info("☑️ Don't forget to register your tool in config/mcp-server.php:");
-                $this->comment('    // config/mcp-server.php');
-                $this->comment("    'tools' => [");
-                $this->comment('        // other tools...');
-                $this->comment("        {$fullClassName}::class,");
-                $this->comment('    ],');
-            }
+        // Ask if they want to automatically register the tool
+        if ($this->option('programmatic') || $this->option('no-interaction')) {
+            // In programmatic or no-interaction mode, always register automatically
+            $this->registerToolInConfig($fullClassName);
+        } elseif ($this->confirm('🤖 Would you like to automatically register this tool in config/mcp-server.php?', true)) {
+            $this->registerToolInConfig($fullClassName);
+        } else {
+            $this->info("☑️ Don't forget to register your tool in config/mcp-server.php:");
+            $this->comment('    // config/mcp-server.php');
+            $this->comment("    'tools' => [");
+            $this->comment('        // other tools...');
+            $this->comment("        {$fullClassName}::class,");
+            $this->comment('    ],');
+        }
 
-            // Display testing instructions
+        // Display testing instructions (skip in programmatic or no-interaction mode)
+        if (! $this->option('programmatic') && ! $this->option('no-interaction')) {
             $this->newLine();
             $this->info('You can now test your tool with the following command:');
             $this->comment('    php artisan mcp:test-tool '.$className);
             $this->info('Or view all available tools:');
             $this->comment('    php artisan mcp:test-tool --list');
-        } else {
-            // In programmatic mode, always register the tool
-            $this->registerToolInConfig($fullClassName);
         }
 
         return 0;
@@ -365,11 +365,15 @@ class MakeMcpToolCommand extends Command
 
         // Write the updated content back to the config file
         if (file_put_contents($configPath, $newContent)) {
-            $this->info('✅ Tool registered successfully in config/mcp-server.php');
+            if (property_exists($this, 'output') && $this->output) {
+                $this->info('✅ Tool registered successfully in config/mcp-server.php');
+            }
 
             return true;
         } else {
-            $this->error('❌ Failed to update config file. Please manually register the tool.');
+            if (property_exists($this, 'output') && $this->output) {
+                $this->error('❌ Failed to update config file. Please manually register the tool.');
+            }
 
             return false;
         }

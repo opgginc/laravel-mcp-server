@@ -15,7 +15,8 @@ class MakeSwaggerMcpToolCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'make:swagger-mcp-tool {source : Swagger/OpenAPI spec URL or file path}
+    protected $signature = 'make:swagger-mcp-tools {swagger_file : Swagger/OpenAPI spec URL or file path}
+                            {--force : Overwrite existing files}
                             {--test-api : Test API endpoints before generating tools}
                             {--group-by=tag : Group endpoints by (tag|path|none)}
                             {--prefix= : Prefix for generated tool class names}';
@@ -39,6 +40,11 @@ class MakeSwaggerMcpToolCommand extends Command
      * Selected endpoints with their generation type
      */
     protected array $selectedEndpointsWithType = [];
+    
+    /**
+     * Generation type (tool or resource)
+     */
+    protected string $generateType = 'tool';
 
     /**
      * Execute the console command.
@@ -135,7 +141,7 @@ class MakeSwaggerMcpToolCommand extends Command
      */
     protected function loadSpec(): void
     {
-        $source = $this->argument('source');
+        $source = $this->argument('swagger_file');
 
         $this->info("📄 Loading spec from: {$source}");
 
@@ -715,8 +721,17 @@ class MakeSwaggerMcpToolCommand extends Command
         }
 
         $tag = $tags[0]; // Use the first tag
+        
+        // Check if tag is empty or whitespace only
+        if (trim($tag) === '') {
+            return 'General';
+        }
 
-        // Convert tag to StudlyCase for directory naming
+        // Remove special characters and convert to StudlyCase
+        // Replace special characters with spaces first
+        $tag = str_replace(['/', '.', '@', '-', '_'], ' ', $tag);
+        
+        // Convert to StudlyCase for directory naming
         return Str::studly($tag);
     }
 }

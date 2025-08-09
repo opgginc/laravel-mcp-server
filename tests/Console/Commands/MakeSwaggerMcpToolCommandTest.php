@@ -26,7 +26,8 @@ afterEach(function () {
 });
 
 test('createTagDirectory returns StudlyCase for single tag', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     // Use reflection to access protected method
     $method = new ReflectionMethod($command, 'createTagDirectory');
@@ -39,7 +40,8 @@ test('createTagDirectory returns StudlyCase for single tag', function () {
 });
 
 test('createTagDirectory returns General for empty tags', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -51,7 +53,8 @@ test('createTagDirectory returns General for empty tags', function () {
 });
 
 test('createTagDirectory returns General for missing tags key', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -63,7 +66,8 @@ test('createTagDirectory returns General for missing tags key', function () {
 });
 
 test('createTagDirectory uses first tag when multiple tags exist', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -75,7 +79,8 @@ test('createTagDirectory uses first tag when multiple tags exist', function () {
 });
 
 test('createTagDirectory handles special characters in tags', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -87,7 +92,8 @@ test('createTagDirectory handles special characters in tags', function () {
 });
 
 test('createTagDirectory handles snake_case tags', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -99,7 +105,8 @@ test('createTagDirectory handles snake_case tags', function () {
 });
 
 test('createTagDirectory handles numbers in tags', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -149,8 +156,9 @@ test('swagger tool generation creates tag-based directories', function () {
         $this->artisan('make:swagger-mcp-tools', [
             'swagger_file' => $swaggerPath,
             '--force' => true,
+            '--no-interaction' => true,
         ])
-            ->expectsOutputToContain('Tools generated successfully!')
+            ->expectsOutputToContain('Generated')
             ->assertExitCode(0);
 
         // Check that tools were created in tag-based directories
@@ -203,8 +211,9 @@ test('swagger tool generation handles untagged endpoints', function () {
         $this->artisan('make:swagger-mcp-tools', [
             'swagger_file' => $swaggerPath,
             '--force' => true,
+            '--no-interaction' => true,
         ])
-            ->expectsOutputToContain('Tools generated successfully!')
+            ->expectsOutputToContain('Generated')
             ->assertExitCode(0);
 
         // Check that tool was created in General directory

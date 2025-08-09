@@ -79,21 +79,19 @@ class MakeMcpResourceCommand extends Command
         }
         $fullClassName .= $className;
 
-        // Ask if they want to automatically register the resource (skip in programmatic mode)
-        if (! $this->option('programmatic')) {
-            if ($this->confirm('🤖 Would you like to automatically register this resource in config/mcp-server.php?', true)) {
-                $this->registerResourceInConfig($fullClassName);
-            } else {
-                $this->info("☑️ Don't forget to register your resource in config/mcp-server.php:");
-                $this->comment('    // config/mcp-server.php');
-                $this->comment("    'resources' => [");
-                $this->comment('        // other resources...');
-                $this->comment("        {$fullClassName}::class,");
-                $this->comment('    ],');
-            }
-        } else {
-            // In programmatic mode, always register the resource
+        // Ask if they want to automatically register the resource
+        if ($this->option('programmatic') || $this->option('no-interaction')) {
+            // In programmatic or no-interaction mode, always register automatically
             $this->registerResourceInConfig($fullClassName);
+        } elseif ($this->confirm('🤖 Would you like to automatically register this resource in config/mcp-server.php?', true)) {
+            $this->registerResourceInConfig($fullClassName);
+        } else {
+            $this->info("☑️ Don't forget to register your resource in config/mcp-server.php:");
+            $this->comment('    // config/mcp-server.php');
+            $this->comment("    'resources' => [");
+            $this->comment('        // other resources...');
+            $this->comment("        {$fullClassName}::class,");
+            $this->comment('    ],');
         }
 
         return 0;
@@ -294,7 +292,9 @@ PHP;
         $configPath = config_path('mcp-server.php');
 
         if (! file_exists($configPath)) {
-            $this->error("❌ Config file not found: {$configPath}");
+            if (property_exists($this, 'output') && $this->output) {
+                $this->error("❌ Config file not found: {$configPath}");
+            }
 
             return false;
         }
@@ -310,17 +310,23 @@ PHP;
                 $newContent = str_replace($toolsArray, "{$toolsArray}{$resourcesArray}", $content);
 
                 if (file_put_contents($configPath, $newContent)) {
-                    $this->info('✅ Created resources array and registered resource in config/mcp-server.php');
+                    if (property_exists($this, 'output') && $this->output) {
+                        $this->info('✅ Created resources array and registered resource in config/mcp-server.php');
+                    }
 
                     return true;
                 } else {
-                    $this->error('❌ Failed to update config file. Please manually register the resource.');
+                    if (property_exists($this, 'output') && $this->output) {
+                        $this->error('❌ Failed to update config file. Please manually register the resource.');
+                    }
 
                     return false;
                 }
             }
 
-            $this->error('❌ Could not locate resources array in config file.');
+            if (property_exists($this, 'output') && $this->output) {
+                $this->error('❌ Could not locate resources array in config file.');
+            }
 
             return false;
         }
@@ -329,7 +335,9 @@ PHP;
 
         // Check if the resource is already registered
         if (strpos($resourcesArrayContent, $resourceClassName) !== false) {
-            $this->info('✅ Resource is already registered in config file.');
+            if (property_exists($this, 'output') && $this->output) {
+                $this->info('✅ Resource is already registered in config file.');
+            }
 
             return true;
         }
@@ -346,11 +354,15 @@ PHP;
 
         // Write the updated content back to the config file
         if (file_put_contents($configPath, $newContent)) {
-            $this->info('✅ Resource registered successfully in config/mcp-server.php');
+            if (property_exists($this, 'output') && $this->output) {
+                $this->info('✅ Resource registered successfully in config/mcp-server.php');
+            }
 
             return true;
         } else {
-            $this->error('❌ Failed to update config file. Please manually register the resource.');
+            if (property_exists($this, 'output') && $this->output) {
+                $this->error('❌ Failed to update config file. Please manually register the resource.');
+            }
 
             return false;
         }

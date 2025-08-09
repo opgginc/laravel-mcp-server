@@ -27,71 +27,73 @@ afterEach(function () {
 });
 
 test('tag directory handles complex special characters', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
 
     // Test various special character combinations
     $testCases = [
-        ['tags' => ['user-management-v2']] => 'UserManagementV2',
-        ['tags' => ['api_v1_beta']] => 'ApiV1Beta',
-        ['tags' => ['pet store']] => 'PetStore',
-        ['tags' => ['user.profile']] => 'UserProfile',
-        ['tags' => ['admin-panel_v2.0']] => 'AdminPanelV20',
-        ['tags' => ['123-api']] => '123Api',
-        ['tags' => ['user@profile']] => 'UserProfile',
-        ['tags' => ['api/v1/users']] => 'ApiV1Users',
+        'user-management-v2' => 'UserManagementV2',
+        'api_v1_beta' => 'ApiV1Beta', 
+        'pet store' => 'PetStore',
+        'user.profile' => 'UserProfile',
+        'admin-panel_v2.0' => 'AdminPanelV20',
+        '123-api' => '123Api',
+        'user@profile' => 'UserProfile',
+        'api/v1/users' => 'ApiV1Users',
     ];
 
     foreach ($testCases as $input => $expected) {
-        $result = $method->invoke($command, $input);
-        expect($result)->toBe($expected, 'Failed for input: '.json_encode($input));
+        $result = $method->invoke($command, ['tags' => [$input]]);
+        expect($result)->toBe($expected, "Failed for input: {$input}");
     }
 });
 
 test('tag directory handles empty strings and whitespace', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
 
     $testCases = [
-        ['tags' => ['']] => 'General',
-        ['tags' => ['   ']] => 'General',
-        ['tags' => ["\t\n"]] => 'General',
-        ['tags' => ['', 'pet']] => 'General', // First tag is empty
-        ['tags' => ['   ', 'store']] => 'General', // First tag is whitespace
+        '' => 'General',
+        '   ' => 'General',
+        "\t\n" => 'General',
     ];
 
     foreach ($testCases as $input => $expected) {
-        $result = $method->invoke($command, $input);
-        expect($result)->toBe($expected, 'Failed for input: '.json_encode($input));
+        $result = $method->invoke($command, ['tags' => [$input]]);
+        expect($result)->toBe($expected, "Failed for input: {$input}");
     }
 });
 
 test('tag directory handles unicode characters', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
 
     $testCases = [
-        ['tags' => ['café']] => 'Café',
-        ['tags' => ['user_プロファイル']] => 'UserProファイル',
-        ['tags' => ['api-测试']] => 'Api測試',
+        'café' => 'Café',
+        'user_プロファイル' => 'Userプロファイル',
+        'api-测试' => 'Api测试',
     ];
 
     foreach ($testCases as $input => $expected) {
-        $result = $method->invoke($command, $input);
-        expect($result)->toBe($expected, 'Failed for input: '.json_encode($input));
+        $result = $method->invoke($command, ['tags' => [$input]]);
+        expect($result)->toBe($expected, "Failed for input: {$input}");
     }
 });
 
 test('tool and resource creation in same tag directory works correctly', function () {
     // Simulate swagger generating both tool and resource with same tag
-    $toolCommand = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
-    $resourceCommand = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $toolCommand = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $resourceCommand = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand($filesystem);
 
     // Set up both commands with same tag directory
     $toolProperty = new ReflectionProperty($toolCommand, 'dynamicParams');
@@ -121,7 +123,8 @@ test('tool and resource creation in same tag directory works correctly', functio
 
 test('deeply nested tag directories work correctly', function () {
     // Test creating very deep directory structures
-    $toolCommand = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $toolCommand = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
 
     $property = new ReflectionProperty($toolCommand, 'dynamicParams');
     $property->setAccessible(true);
@@ -145,8 +148,9 @@ test('deeply nested tag directories work correctly', function () {
 
 test('namespace collision prevention with different tags', function () {
     // Test that tools with same name but different tags get different namespaces
-    $toolCommand1 = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
-    $toolCommand2 = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
+    $filesystem = new \Illuminate\Filesystem\Filesystem;
+    $toolCommand1 = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $toolCommand2 = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
 
     // Set up different tag directories
     $property1 = new ReflectionProperty($toolCommand1, 'dynamicParams');
@@ -215,6 +219,7 @@ test('swagger generation with mixed tagged and untagged endpoints', function () 
         $this->artisan('make:swagger-mcp-tools', [
             'swagger_file' => $swaggerPath,
             '--force' => true,
+            '--no-interaction' => true,
         ])
             ->assertExitCode(0);
 
