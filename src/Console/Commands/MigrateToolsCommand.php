@@ -65,19 +65,23 @@ class MigrateToolsCommand extends Command
                 $potentialCandidates++;
 
                 // Ask about backup creation only once
-                if ($createBackups === null && ! $this->option('no-backup')) {
-                    $createBackups = $this->confirm(
-                        'Do you want to create backup files before migration? (Recommended)',
-                        true // Default to yes
-                    );
-
-                    if ($createBackups) {
-                        $this->info('Backup files will be created with .backup extension.');
+                if ($createBackups === null) {
+                    if ($this->option('no-backup')) {
+                        $createBackups = false;
+                    } elseif ($this->option('no-interaction')) {
+                        $createBackups = true; // Default to yes in no-interaction mode
                     } else {
-                        $this->warn('No backup files will be created. Migration will modify files directly.');
+                        $createBackups = $this->confirm(
+                            'Do you want to create backup files before migration? (Recommended)',
+                            true // Default to yes
+                        );
+
+                        if ($createBackups) {
+                            $this->info('Backup files will be created with .backup extension.');
+                        } else {
+                            $this->warn('No backup files will be created. Migration will modify files directly.');
+                        }
                     }
-                } elseif ($this->option('no-backup')) {
-                    $createBackups = false;
                 }
 
                 $backupFilePath = $filePath.'.backup';

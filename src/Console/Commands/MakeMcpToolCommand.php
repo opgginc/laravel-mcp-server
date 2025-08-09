@@ -71,30 +71,36 @@ class MakeMcpToolCommand extends Command
 
         $this->info("✅ Created: {$path}");
 
-        $fullClassName = "\\App\\MCP\\Tools\\{$className}";
+        // Build full class name with tag directory support
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+        $fullClassName = '\\App\\MCP\\Tools\\';
+        if ($tagDirectory) {
+            $fullClassName .= "{$tagDirectory}\\";
+        }
+        $fullClassName .= $className;
 
-        // Ask if they want to automatically register the tool (skip in programmatic mode)
-        if (! $this->option('programmatic')) {
-            if ($this->confirm('🤖 Would you like to automatically register this tool in config/mcp-server.php?', true)) {
-                $this->registerToolInConfig($fullClassName);
-            } else {
-                $this->info("☑️ Don't forget to register your tool in config/mcp-server.php:");
-                $this->comment('    // config/mcp-server.php');
-                $this->comment("    'tools' => [");
-                $this->comment('        // other tools...');
-                $this->comment("        {$fullClassName}::class,");
-                $this->comment('    ],');
-            }
+        // Ask if they want to automatically register the tool
+        if ($this->option('programmatic') || $this->option('no-interaction')) {
+            // In programmatic or no-interaction mode, always register automatically
+            $this->registerToolInConfig($fullClassName);
+        } elseif ($this->confirm('🤖 Would you like to automatically register this tool in config/mcp-server.php?', true)) {
+            $this->registerToolInConfig($fullClassName);
+        } else {
+            $this->info("☑️ Don't forget to register your tool in config/mcp-server.php:");
+            $this->comment('    // config/mcp-server.php');
+            $this->comment("    'tools' => [");
+            $this->comment('        // other tools...');
+            $this->comment("        {$fullClassName}::class,");
+            $this->comment('    ],');
+        }
 
-            // Display testing instructions
+        // Display testing instructions (skip in programmatic or no-interaction mode)
+        if (! $this->option('programmatic') && ! $this->option('no-interaction')) {
             $this->newLine();
             $this->info('You can now test your tool with the following command:');
             $this->comment('    php artisan mcp:test-tool '.$className);
             $this->info('Or view all available tools:');
             $this->comment('    php artisan mcp:test-tool --list');
-        } else {
-            // In programmatic mode, always register the tool
-            $this->registerToolInConfig($fullClassName);
         }
 
         return 0;
@@ -143,6 +149,13 @@ class MakeMcpToolCommand extends Command
      */
     protected function getPath(string $className)
     {
+        // Check if we have a tag directory from dynamic params
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+
+        if ($tagDirectory) {
+            return app_path("MCP/Tools/{$tagDirectory}/{$className}.php");
+        }
+
         // Create the file in the app/MCP/Tools directory
         return app_path("MCP/Tools/{$className}.php");
     }
@@ -225,9 +238,16 @@ class MakeMcpToolCommand extends Command
         // Build annotations
         $annotationsString = $this->arrayToPhpString($annotations, 2);
 
+        // Build namespace with tag directory support
+        $namespace = 'App\\MCP\\Tools';
+        $tagDirectory = $params['tagDirectory'] ?? '';
+        if ($tagDirectory) {
+            $namespace .= '\\'.$tagDirectory;
+        }
+
         // Replace placeholders in stub
         $replacements = [
-            '{{ namespace }}' => 'App\\MCP\\Tools',
+            '{{ namespace }}' => $namespace,
             '{{ className }}' => $className,
             '{{ toolName }}' => $toolName,
             '{{ description }}' => addslashes($description),
@@ -290,9 +310,16 @@ class MakeMcpToolCommand extends Command
      */
     protected function replaceStubPlaceholders(string $stub, string $className, string $toolName)
     {
+        // Build namespace with tag directory support
+        $namespace = 'App\\MCP\\Tools';
+        $tagDirectory = $this->dynamicParams['tagDirectory'] ?? '';
+        if ($tagDirectory) {
+            $namespace .= '\\'.$tagDirectory;
+        }
+
         return str_replace(
             ['{{ className }}', '{{ namespace }}', '{{ toolName }}'],
-            [$className, 'App\\MCP\\Tools', $toolName],
+            [$className, $namespace, $toolName],
             $stub
         );
     }
@@ -316,33 +343,49 @@ class MakeMcpToolCommand extends Command
         $content = file_get_contents($configPath);
 
         // Find the tools array in the config file
-        if (! preg_match('/[\'"]tools[\'"]\s*=>\s*\[(.*?)\s*\],/s', $content, $matches)) {
+        if (! preg_match('/[\'"]tools[\'"]\s*=>\s*\[(.*?)\],/s', $content, $matches)) {
             $this->error('❌ Could not locate tools array in config file.');
 
             return false;
         }
 
         $toolsArrayContent = $matches[1];
-        $fullEntry = "\n        {$toolClassName}::class,";
+        // Escape backslashes for the config file
+        $escapedClassName = str_replace('\\', '\\\\', $toolClassName);
+        $fullEntry = "\n        {$escapedClassName}::class,";
 
-        // Check if the tool is already registered
-        if (strpos($toolsArrayContent, $toolClassName) !== false) {
+        // Check if the tool is already registered (check both escaped and unescaped)
+        if (strpos($toolsArrayContent, $escapedClassName) !== false || strpos($toolsArrayContent, $toolClassName) !== false) {
             $this->info('✅ Tool is already registered in config file.');
 
             return true;
         }
 
-        // Add the new tool to the tools array
-        $newToolsArrayContent = $toolsArrayContent.$fullEntry;
-        $newContent = str_replace($toolsArrayContent, $newToolsArrayContent, $content);
+        // Handle empty array case
+        if (trim($toolsArrayContent) === '') {
+            // Empty array, add the entry directly
+            $newContent = str_replace(
+                "'tools' => []",
+                "'tools' => [{$fullEntry}\n    ]",
+                $content
+            );
+        } else {
+            // Add the new tool to the tools array
+            $newToolsArrayContent = $toolsArrayContent.$fullEntry;
+            $newContent = str_replace($toolsArrayContent, $newToolsArrayContent, $content);
+        }
 
         // Write the updated content back to the config file
         if (file_put_contents($configPath, $newContent)) {
-            $this->info('✅ Tool registered successfully in config/mcp-server.php');
+            if (property_exists($this, 'output') && $this->output) {
+                $this->info('✅ Tool registered successfully in config/mcp-server.php');
+            }
 
             return true;
         } else {
-            $this->error('❌ Failed to update config file. Please manually register the tool.');
+            if (property_exists($this, 'output') && $this->output) {
+                $this->error('❌ Failed to update config file. Please manually register the tool.');
+            }
 
             return false;
         }
