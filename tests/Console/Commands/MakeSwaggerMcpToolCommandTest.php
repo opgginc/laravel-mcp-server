@@ -512,3 +512,118 @@ test('getGroupingOption handles none selection in interactive mode', function ()
 
     expect($result)->toBe('none');
 });
+
+// Test generateGroupingPreviews method
+test('generateGroupingPreviews returns preview examples for all grouping options', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    // Mock the parser and converter
+    $mockParser = Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser::class);
+    $mockConverter = Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter::class);
+    
+    // Sample endpoints for testing
+    $sampleEndpoints = [
+        ['method' => 'GET', 'path' => '/pets', 'tags' => ['pet']],
+        ['method' => 'POST', 'path' => '/pets', 'tags' => ['pet']],
+        ['method' => 'GET', 'path' => '/users', 'tags' => ['user']],
+        ['method' => 'GET', 'path' => '/api/orders', 'tags' => ['order']],
+    ];
+
+    $mockParser->shouldReceive('getEndpoints')->andReturn($sampleEndpoints);
+    $mockConverter->shouldReceive('generateClassName')->andReturn('SampleTool');
+
+    // Use reflection to set the parser and converter properties
+    $parserProperty = new ReflectionProperty($command, 'parser');
+    $parserProperty->setAccessible(true);
+    $parserProperty->setValue($command, $mockParser);
+
+    $converterProperty = new ReflectionProperty($command, 'converter');
+    $converterProperty->setAccessible(true);
+    $converterProperty->setValue($command, $mockConverter);
+
+    $method = new ReflectionMethod($command, 'generateGroupingPreviews');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($command);
+
+    expect($result)->toBeArray();
+    expect($result)->toHaveKey('tag');
+    expect($result)->toHaveKey('path'); 
+    expect($result)->toHaveKey('none');
+
+    // Check that 'none' has the default examples
+    expect($result['none'])->toContain('Tools/General/YourEndpointTool.php');
+    expect($result['none'])->toContain('Resources/General/YourEndpointResource.php');
+});
+
+test('generateGroupingPreviews handles endpoints with no tags', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    // Mock the parser and converter
+    $mockParser = Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser::class);
+    $mockConverter = Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter::class);
+    
+    // Endpoints without tags
+    $sampleEndpoints = [
+        ['method' => 'GET', 'path' => '/health', 'tags' => []],
+        ['method' => 'POST', 'path' => '/api/test'],
+    ];
+
+    $mockParser->shouldReceive('getEndpoints')->andReturn($sampleEndpoints);
+    $mockConverter->shouldReceive('generateClassName')->andReturn('HealthTool');
+
+    // Use reflection to set the parser and converter properties
+    $parserProperty = new ReflectionProperty($command, 'parser');
+    $parserProperty->setAccessible(true);
+    $parserProperty->setValue($command, $mockParser);
+
+    $converterProperty = new ReflectionProperty($command, 'converter');
+    $converterProperty->setAccessible(true);
+    $converterProperty->setValue($command, $mockConverter);
+
+    $method = new ReflectionMethod($command, 'generateGroupingPreviews');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($command);
+
+    expect($result)->toBeArray();
+    expect($result['tag'])->toBeArray(); // Should still work, just might be empty
+    expect($result['path'])->toBeArray(); // Should have path-based examples
+});
+
+test('getGroupingOption displays previews in interactive mode', function () {
+    $command = Mockery::mock(\OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand)->makePartial();
+
+    // Mock the option method to return null (no group-by option provided)
+    $command->shouldReceive('option')->with('group-by')->andReturn(null);
+    $command->shouldReceive('option')->with('no-interaction')->andReturn(false);
+
+    // Mock the preview generation
+    $mockPreviews = [
+        'tag' => ['Tools/Pet/FindPetsTool.php', 'Resources/User/GetUserResource.php'],
+        'path' => ['Tools/Api/PostApiTool.php', 'Tools/Users/GetUsersTool.php'],
+        'none' => ['Tools/General/YourEndpointTool.php', 'Resources/General/YourEndpointResource.php']
+    ];
+
+    $command->shouldReceive('generateGroupingPreviews')->andReturn($mockPreviews);
+
+    // Mock output methods
+    $command->shouldReceive('newLine')->andReturn();
+    $command->shouldReceive('info')->with('🗂️ Choose how to organize your generated tools and resources:')->andReturn();
+    $command->shouldReceive('line')->with(Mockery::pattern('/<options=bold>.*<\/>/'));
+    $command->shouldReceive('line')->with(Mockery::pattern('/📁/'));
+
+    // Mock choice method
+    $command->shouldReceive('choice')
+        ->with('Select grouping method', Mockery::any(), 0)
+        ->andReturn('Tag-based grouping (organize by OpenAPI tags)');
+
+    $command->shouldReceive('info')->with(Mockery::any())->andReturn();
+
+    $method = new ReflectionMethod($command, 'getGroupingOption');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($command);
+
+    expect($result)->toBe('tag');
+});

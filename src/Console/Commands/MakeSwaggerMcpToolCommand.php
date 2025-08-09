@@ -154,11 +154,27 @@ class MakeSwaggerMcpToolCommand extends Command
             $this->info('🗂️ Choose how to organize your generated tools and resources:');
             $this->newLine();
 
+            // Generate previews for each grouping option
+            $previews = $this->generateGroupingPreviews();
+
             $choices = [
-                'tag' => 'Tag-based grouping (organize by OpenAPI tags like Pet/, Store/, User/)',
-                'path' => 'Path-based grouping (organize by API path like Api/, Users/, Orders/)',
+                'tag' => 'Tag-based grouping (organize by OpenAPI tags)',
+                'path' => 'Path-based grouping (organize by API path)', 
                 'none' => 'No grouping (everything in General/ folder)',
             ];
+
+            // Display previews
+            foreach ($choices as $key => $description) {
+                $this->line("<options=bold>{$description}</>");
+                if (!empty($previews[$key])) {
+                    foreach ($previews[$key] as $example) {
+                        $this->line("  <fg=cyan>📁 {$example}</>");
+                    }
+                } else {
+                    $this->line("  <fg=yellow>No examples available</>");
+                }
+                $this->newLine();
+            }
 
             $choice = $this->choice(
                 'Select grouping method',
@@ -177,6 +193,74 @@ class MakeSwaggerMcpToolCommand extends Command
         }
 
         return $groupBy;
+    }
+
+    /**
+     * Generate grouping previews to show users examples of how endpoints will be organized
+     */
+    protected function generateGroupingPreviews(): array
+    {
+        $previews = [
+            'tag' => [],
+            'path' => [],
+            'none' => ['Tools/General/YourEndpointTool.php', 'Resources/General/YourEndpointResource.php']
+        ];
+
+        // Get sample endpoints (max 5 per grouping type for clean display)
+        $endpoints = $this->parser->getEndpoints();
+        $sampleEndpoints = array_slice($endpoints, 0, 8); // Get first 8 endpoints
+
+        // Generate tag-based previews
+        $tagGroups = [];
+        foreach ($sampleEndpoints as $endpoint) {
+            if (!empty($endpoint['tags'])) {
+                $tag = $endpoint['tags'][0];
+                $directory = $this->createTagDirectory($endpoint);
+                if (!isset($tagGroups[$directory])) {
+                    $tagGroups[$directory] = [];
+                }
+                
+                // Create example file names
+                $className = $this->converter->generateClassName($endpoint, '');
+                $type = $endpoint['method'] === 'GET' ? 'Resources' : 'Tools';
+                $tagGroups[$directory][] = "{$type}/{$directory}/{$className}.php";
+            }
+        }
+
+        // Limit to 4 most populated tag groups for display
+        $tagGroups = array_slice($tagGroups, 0, 4, true);
+        foreach ($tagGroups as $examples) {
+            $previews['tag'] = array_merge($previews['tag'], array_slice($examples, 0, 2));
+        }
+
+        // Generate path-based previews
+        $pathGroups = [];
+        foreach ($sampleEndpoints as $endpoint) {
+            $directory = $this->createPathDirectory($endpoint);
+            if (!isset($pathGroups[$directory])) {
+                $pathGroups[$directory] = [];
+            }
+            
+            $className = $this->converter->generateClassName($endpoint, '');
+            $type = $endpoint['method'] === 'GET' ? 'Resources' : 'Tools';
+            $pathGroups[$directory][] = "{$type}/{$directory}/{$className}.php";
+        }
+
+        // Limit to 4 most populated path groups for display
+        $pathGroups = array_slice($pathGroups, 0, 4, true);
+        foreach ($pathGroups as $examples) {
+            $previews['path'] = array_merge($previews['path'], array_slice($examples, 0, 2));
+        }
+
+        // Limit each preview to 6 items max for clean display
+        foreach ($previews as $key => $items) {
+            if (count($items) > 6) {
+                $previews[$key] = array_slice($items, 0, 5);
+                $previews[$key][] = '... and more';
+            }
+        }
+
+        return $previews;
     }
 
     /**
