@@ -37,11 +37,36 @@ class VersionCheckTool implements ToolInterface
         return [];
     }
 
-    public function execute(array $arguments): string
+    public function outputSchema(): ?array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'version' => [
+                    'type' => 'string',
+                    'description' => 'The Laravel framework version',
+                ],
+                'timestamp' => [
+                    'type' => 'string',
+                    'description' => 'The timestamp when the version was checked',
+                ],
+            ],
+            'required' => ['version', 'timestamp'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, string>
+     */
+    public function execute(array $arguments): array
     {
         $now = now()->format('Y-m-d H:i:s');
         $version = App::version();
 
-        return "current Version: {$version} - {$now}";
+        return [
+            'version' => $version,
+            'timestamp' => $now,
+        ];
     }
 }
