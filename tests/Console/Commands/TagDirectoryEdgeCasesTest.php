@@ -216,7 +216,7 @@ test('swagger generation with mixed tagged and untagged endpoints', function () 
     File::put($swaggerPath, json_encode($swaggerData));
 
     try {
-        $this->artisan('make:mcp-tools-from-swagger', [
+        $this->artisan('make:swagger-mcp-tool', [
             'source' => $swaggerPath,
             '--no-interaction' => true,
         ])

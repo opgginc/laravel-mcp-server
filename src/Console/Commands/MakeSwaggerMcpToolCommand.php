@@ -15,7 +15,7 @@ class MakeSwaggerMcpToolCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'make:mcp-tools-from-swagger {source : Swagger/OpenAPI spec URL or file path}
+    protected $signature = 'make:swagger-mcp-tool {source : Swagger/OpenAPI spec URL or file path}
                             {--force : Overwrite existing files}
                             {--test-api : Test API endpoints before generating tools}
                             {--group-by= : Group endpoints by tag or path (tag|path|none)}
