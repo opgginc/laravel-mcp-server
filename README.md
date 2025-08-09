@@ -279,6 +279,306 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
 
 ## Basic Usage
 
+### 🔐 Authentication (CRITICAL FOR PRODUCTION)
+
+> **⚠️ SECURITY WARNING:** Authentication is **ESSENTIAL** for production deployments. Without proper authentication, your MCP server endpoints are publicly accessible, potentially exposing sensitive data and operations.
+
+The Laravel MCP Server uses Laravel's middleware system for authentication, providing flexibility to implement various authentication strategies. **By default, NO authentication is enabled** - you MUST configure it for production use.
+
+#### Quick Start: Securing Your MCP Server
+
+##### 1. Enable Authentication in Configuration
+
+Edit your `config/mcp-server.php` file to add authentication middleware:
+
+```php
+// config/mcp-server.php
+
+'middlewares' => [
+    // PRODUCTION CONFIGURATION (Choose one or combine):
+    'auth:sanctum',      // For Laravel Sanctum (recommended)
+    // 'auth:api',        // For Laravel Passport
+    // 'custom.mcp.auth', // For custom authentication
+    'throttle:100,1',     // Rate limiting (100 requests per minute)
+    'cors',               // CORS support if needed
+],
+```
+
+##### 2. Option A: Laravel Sanctum (Recommended)
+
+**Installation and Setup:**
+
+```bash
+# Install Sanctum
+composer require laravel/sanctum
+
+# Publish configuration
+php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+
+# Run migrations
+php artisan migrate
+```
+
+**Generate API Tokens for MCP Clients:**
+
+```php
+// In your application code or tinker
+$user = User::find(1);
+$token = $user->createToken('MCP Client')->plainTextToken;
+
+// Use this token in your MCP client configuration
+```
+
+**Client Usage:**
+
+```bash
+# Include the Bearer token in your requests
+curl -X POST http://your-server.com/mcp \
+  -H "Authorization: Bearer YOUR_SANCTUM_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+##### 3. Option B: Custom API Key Authentication
+
+**Create Custom Middleware:**
+
+```php
+// app/Http/Middleware/McpApiKeyAuth.php
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+
+class McpApiKeyAuth
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $apiKey = $request->header('X-MCP-API-Key');
+        
+        // Validate against environment variable or database
+        if ($apiKey !== config('mcp.api_key')) {
+            return response()->json([
+                'jsonrpc' => '2.0',
+                'error' => [
+                    'code' => -32001,
+                    'message' => 'Unauthorized: Invalid API key'
+                ]
+            ], 401);
+        }
+        
+        return $next($request);
+    }
+}
+```
+
+**Register the Middleware:**
+
+```php
+// app/Http/Kernel.php
+protected $routeMiddleware = [
+    // ... other middleware
+    'mcp.auth' => \App\Http\Middleware\McpApiKeyAuth::class,
+];
+```
+
+**Configure in MCP Settings:**
+
+```php
+// config/mcp-server.php
+'middlewares' => [
+    'mcp.auth',        // Your custom API key middleware
+    'throttle:100,1',  // Rate limiting
+],
+
+// .env file
+MCP_API_KEY=your-secure-api-key-here
+```
+
+#### Advanced Security Configurations
+
+##### IP Whitelisting
+
+Restrict access to specific IP addresses:
+
+```php
+// app/Http/Middleware/McpIpWhitelist.php
+class McpIpWhitelist
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $allowedIps = config('mcp.allowed_ips', []);
+        
+        if (!empty($allowedIps) && !in_array($request->ip(), $allowedIps)) {
+            return response()->json([
+                'jsonrpc' => '2.0',
+                'error' => [
+                    'code' => -32004,
+                    'message' => 'Access denied from this IP address'
+                ]
+            ], 403);
+        }
+        
+        return $next($request);
+    }
+}
+```
+
+##### Role-Based Access Control (RBAC)
+
+Control access to specific tools based on user roles:
+
+```php
+// app/Http/Middleware/McpRoleAuth.php
+class McpRoleAuth
+{
+    public function handle(Request $request, Closure $next, string $role)
+    {
+        $user = auth()->user();
+        
+        if (!$user || !$user->hasRole($role)) {
+            return response()->json([
+                'jsonrpc' => '2.0',
+                'error' => [
+                    'code' => -32003,
+                    'message' => 'Forbidden: Insufficient permissions'
+                ]
+            ], 403);
+        }
+        
+        return $next($request);
+    }
+}
+```
+
+##### Audit Logging
+
+Track all MCP requests for security monitoring:
+
+```php
+// app/Http/Middleware/McpAuditLog.php
+class McpAuditLog
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $response = $next($request);
+        
+        Log::channel('mcp_audit')->info('MCP Request', [
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'ip' => $request->ip(),
+            'user_id' => auth()->id(),
+            'payload' => $request->json()->all(),
+            'status' => $response->getStatusCode(),
+            'timestamp' => now(),
+        ]);
+        
+        return $response;
+    }
+}
+```
+
+#### Environment-Specific Configuration
+
+Configure different authentication strategies per environment:
+
+```php
+// config/mcp-server.php
+'middlewares' => array_filter([
+    // Always apply rate limiting
+    'throttle:' . env('MCP_RATE_LIMIT', '60') . ',1',
+    
+    // Authentication only in non-local environments
+    env('APP_ENV') !== 'local' ? 'auth:sanctum' : null,
+    
+    // IP whitelisting for production
+    env('APP_ENV') === 'production' ? 'mcp.ip.whitelist' : null,
+    
+    // Audit logging for production
+    env('APP_ENV') === 'production' ? 'mcp.audit' : null,
+    
+    // CORS if needed
+    env('MCP_CORS_ENABLED', false) ? 'cors' : null,
+]),
+```
+
+#### Testing Authentication
+
+Verify your authentication is working correctly:
+
+```bash
+# Test without authentication (should fail)
+curl -X POST http://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# Expected: 401 Unauthorized
+
+# Test with valid authentication
+curl -X POST http://your-server.com/mcp \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# Expected: 200 OK with tools list
+
+# Test rate limiting (make multiple rapid requests)
+for i in {1..101}; do
+  curl -X POST http://your-server.com/mcp \
+    -H "Authorization: Bearer YOUR_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","id":'$i',"method":"ping"}'
+done
+# Expected: 429 Too Many Requests after limit exceeded
+```
+
+#### Security Best Practices
+
+1. **Never expose MCP endpoints without authentication in production**
+2. **Use HTTPS exclusively** - Never send authentication tokens over HTTP
+3. **Implement rate limiting** to prevent abuse
+4. **Rotate API keys/tokens regularly**
+5. **Monitor and audit** all MCP requests
+6. **Use environment variables** for sensitive configuration
+7. **Implement IP whitelisting** for additional security when possible
+8. **Consider OAuth2** for third-party integrations
+9. **Test your authentication** thoroughly before deployment
+10. **Document your authentication** method for your team
+
+#### Common Authentication Patterns
+
+##### Internal Services
+For microservices or internal tools:
+```php
+'middlewares' => [
+    'mcp.api.key',      // Simple API key
+    'mcp.ip.whitelist', // Restrict to internal IPs
+    'throttle:1000,1',  // Higher rate limit for internal use
+]
+```
+
+##### Public API with User Authentication
+For user-facing applications:
+```php
+'middlewares' => [
+    'auth:sanctum',     // User authentication
+    'throttle:60,1',    // Stricter rate limiting
+    'cors',             // CORS for web clients
+    'mcp.audit',        // Audit all requests
+]
+```
+
+##### Partner Integration
+For third-party integrations:
+```php
+'middlewares' => [
+    'auth:api',         // OAuth2 via Passport
+    'throttle:100,1',   // Moderate rate limiting
+    'mcp.partner.acl',  // Partner-specific access control
+    'mcp.audit',        // Full audit trail
+]
+```
+
 ### Domain Restriction
 
 You can restrict MCP server routes to specific domain(s) for better security and organization:
