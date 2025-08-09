@@ -161,15 +161,15 @@ class MakeSwaggerMcpToolCommand extends Command
             $choices = [
                 'tag' => 'Tag-based grouping (organize by OpenAPI tags)',
                 'path' => 'Path-based grouping (organize by API path)',
-                'none' => 'No grouping (everything in General/ folder)',
+                'none' => 'No grouping (everything in root folder)',
             ];
 
             // Display previews
             foreach ($choices as $key => $description) {
                 $this->line("<options=bold>{$description}</>");
                 if (! empty($previews[$key])) {
-                    foreach ($previews[$key] as $example) {
-                        $this->line("  <fg=cyan>📁 {$example}</>");
+                    foreach ($previews[$key] as $line) {
+                        $this->line($line);
                     }
                 } else {
                     $this->line('  <fg=yellow>No examples available</>');
@@ -204,7 +204,7 @@ class MakeSwaggerMcpToolCommand extends Command
         $previews = [
             'tag' => [],
             'path' => [],
-            'none' => ['Tools/General/YourEndpointTool.php', 'Resources/General/YourEndpointResource.php'],
+            'none' => [],
         ];
 
         // Check if parser and converter are initialized
@@ -212,60 +212,207 @@ class MakeSwaggerMcpToolCommand extends Command
             return $previews;
         }
 
-        // Get sample endpoints (max 5 per grouping type for clean display)
         $endpoints = $this->parser->getEndpoints();
-        $sampleEndpoints = array_slice($endpoints, 0, 8); // Get first 8 endpoints
+        $totalEndpoints = count($endpoints);
 
-        // Generate tag-based previews
-        $tagGroups = [];
-        foreach ($sampleEndpoints as $endpoint) {
-            if (! empty($endpoint['tags'])) {
-                $tag = $endpoint['tags'][0];
-                $directory = $this->createTagDirectory($endpoint);
-                if (! isset($tagGroups[$directory])) {
-                    $tagGroups[$directory] = [];
-                }
+        // Calculate statistics for each grouping method
+        $tagStats = [];
+        $pathStats = [];
+        $totalTools = 0;
+        $totalResources = 0;
+        $noneExamples = [];
 
-                // Create example file names
+        foreach ($endpoints as $endpoint) {
+            $isResource = $endpoint['method'] === 'GET';
+            if ($isResource) {
+                $totalResources++;
+            } else {
+                $totalTools++;
+            }
+
+            // Store example for no-grouping
+            if (count($noneExamples) < 3) {
                 $className = $this->converter->generateClassName($endpoint, '');
-                $type = $endpoint['method'] === 'GET' ? 'Resources' : 'Tools';
-                $tagGroups[$directory][] = "{$type}/{$directory}/{$className}.php";
+                $type = $isResource ? 'Resources' : 'Tools';
+                $noneExamples[] = ['className' => $className, 'type' => $type, 'endpoint' => $endpoint];
+            }
+
+            // Tag-based statistics
+            if (! empty($endpoint['tags'])) {
+                foreach ($endpoint['tags'] as $tag) {
+                    $directory = Str::studly(str_replace(['/', '.', '@', '-', '_'], ' ', $tag));
+                    if (! isset($tagStats[$directory])) {
+                        $tagStats[$directory] = ['tools' => 0, 'resources' => 0, 'original' => $tag, 'examples' => []];
+                    }
+                    if ($isResource) {
+                        $tagStats[$directory]['resources']++;
+                    } else {
+                        $tagStats[$directory]['tools']++;
+                    }
+                    // Store up to 2 examples per tag
+                    if (count($tagStats[$directory]['examples']) < 2) {
+                        $className = $this->converter->generateClassName($endpoint, '');
+                        $tagStats[$directory]['examples'][] = [
+                            'className' => $className,
+                            'method' => $endpoint['method'],
+                            'path' => $endpoint['path']
+                        ];
+                    }
+                }
+            } else {
+                if (! isset($tagStats['General'])) {
+                    $tagStats['General'] = ['tools' => 0, 'resources' => 0, 'original' => 'General', 'examples' => []];
+                }
+                if ($isResource) {
+                    $tagStats['General']['resources']++;
+                } else {
+                    $tagStats['General']['tools']++;
+                }
+                if (count($tagStats['General']['examples']) < 2) {
+                    $className = $this->converter->generateClassName($endpoint, '');
+                    $tagStats['General']['examples'][] = [
+                        'className' => $className,
+                        'method' => $endpoint['method'],
+                        'path' => $endpoint['path']
+                    ];
+                }
+            }
+
+            // Path-based statistics
+            $parts = explode('/', trim($endpoint['path'], '/'));
+            $firstSegment = ! empty($parts[0]) ? $parts[0] : 'Root';
+            $directory = Str::studly($firstSegment);
+            if (! isset($pathStats[$directory])) {
+                $pathStats[$directory] = ['tools' => 0, 'resources' => 0, 'original' => $firstSegment, 'examples' => []];
+            }
+            if ($isResource) {
+                $pathStats[$directory]['resources']++;
+            } else {
+                $pathStats[$directory]['tools']++;
+            }
+            // Store up to 2 examples per path group
+            if (count($pathStats[$directory]['examples']) < 2) {
+                $className = $this->converter->generateClassName($endpoint, '');
+                $pathStats[$directory]['examples'][] = [
+                    'className' => $className,
+                    'method' => $endpoint['method'],
+                    'path' => $endpoint['path']
+                ];
             }
         }
 
-        // Limit to 4 most populated tag groups for display
-        $tagGroups = array_slice($tagGroups, 0, 4, true);
-        foreach ($tagGroups as $examples) {
-            $previews['tag'] = array_merge($previews['tag'], array_slice($examples, 0, 2));
-        }
-
-        // Generate path-based previews
-        $pathGroups = [];
-        foreach ($sampleEndpoints as $endpoint) {
-            $directory = $this->createPathDirectory($endpoint);
-            if (! isset($pathGroups[$directory])) {
-                $pathGroups[$directory] = [];
+        // Format tag-based preview
+        $previews['tag'][] = "<comment>📊 Total: {$totalEndpoints} endpoints → {$totalTools} tools + {$totalResources} resources</comment>";
+        $previews['tag'][] = '';
+        
+        $tagCount = 0;
+        foreach ($tagStats as $dir => $stats) {
+            if ($tagCount >= 5) {
+                $remaining = count($tagStats) - $tagCount;
+                $previews['tag'][] = "  <fg=gray>... and {$remaining} more tag groups</>";
+                break;
             }
-
-            $className = $this->converter->generateClassName($endpoint, '');
-            $type = $endpoint['method'] === 'GET' ? 'Resources' : 'Tools';
-            $pathGroups[$directory][] = "{$type}/{$directory}/{$className}.php";
+            
+            $label = $stats['original'] !== $dir ? "{$stats['original']} → {$dir}" : $dir;
+            
+            if ($stats['tools'] > 0 && $stats['resources'] > 0) {
+                $previews['tag'][] = "  📁 <info>{$dir}/</info> <fg=gray>({$stats['tools']} tools, {$stats['resources']} resources)</>";
+            } elseif ($stats['tools'] > 0) {
+                $previews['tag'][] = "  📁 <info>Tools/{$dir}/</info> <fg=gray>({$stats['tools']} tools)</>";
+            } else {
+                $previews['tag'][] = "  📁 <info>Resources/{$dir}/</info> <fg=gray>({$stats['resources']} resources)</>";
+            }
+            
+            // Add examples for this tag
+            foreach ($stats['examples'] as $idx => $example) {
+                $previews['tag'][] = "     └─ {$example['className']}.php <fg=gray>({$example['method']} {$example['path']})</>";
+            }
+            
+            // Show if there are more files in this group
+            $totalInGroup = $stats['tools'] + $stats['resources'];
+            if ($totalInGroup > count($stats['examples'])) {
+                $remaining = $totalInGroup - count($stats['examples']);
+                $previews['tag'][] = "     └─ <fg=gray>... and {$remaining} more files</>";
+            }
+            
+            $tagCount++;
         }
 
-        // Limit to 4 most populated path groups for display
-        $pathGroups = array_slice($pathGroups, 0, 4, true);
-        foreach ($pathGroups as $examples) {
-            $previews['path'] = array_merge($previews['path'], array_slice($examples, 0, 2));
+        // Format path-based preview
+        $previews['path'][] = "<comment>📊 Total: {$totalEndpoints} endpoints → {$totalTools} tools + {$totalResources} resources</comment>";
+        $previews['path'][] = '';
+        
+        $pathCount = 0;
+        foreach ($pathStats as $dir => $stats) {
+            if ($pathCount >= 5) {
+                $remaining = count($pathStats) - $pathCount;
+                $previews['path'][] = "  <fg=gray>... and {$remaining} more path groups</>";
+                break;
+            }
+            
+            $label = "/{$stats['original']}";
+            
+            if ($stats['tools'] > 0 && $stats['resources'] > 0) {
+                $previews['path'][] = "  📁 <info>{$dir}/</info> <fg=gray>({$stats['tools']} tools, {$stats['resources']} resources from {$label})</>";
+            } elseif ($stats['tools'] > 0) {
+                $previews['path'][] = "  📁 <info>Tools/{$dir}/</info> <fg=gray>({$stats['tools']} tools from {$label})</>";
+            } else {
+                $previews['path'][] = "  📁 <info>Resources/{$dir}/</info> <fg=gray>({$stats['resources']} resources from {$label})</>";
+            }
+            
+            // Add examples for this path group
+            foreach ($stats['examples'] as $idx => $example) {
+                $previews['path'][] = "     └─ {$example['className']}.php <fg=gray>({$example['method']} {$example['path']})</>";
+            }
+            
+            // Show if there are more files in this group
+            $totalInGroup = $stats['tools'] + $stats['resources'];
+            if ($totalInGroup > count($stats['examples'])) {
+                $remaining = $totalInGroup - count($stats['examples']);
+                $previews['path'][] = "     └─ <fg=gray>... and {$remaining} more files</>";
+            }
+            
+            $pathCount++;
         }
 
-        // Limit each preview to 6 items max for clean display
-        foreach ($previews as $key => $items) {
-            if (count($items) > 6) {
-                $previews[$key] = array_slice($items, 0, 5);
-                $previews[$key][] = '... and more';
+        // Format no-grouping preview
+        $previews['none'][] = "<comment>📊 Total: {$totalEndpoints} endpoints → {$totalTools} tools + {$totalResources} resources</comment>";
+        $previews['none'][] = '';
+        
+        if ($totalTools > 0) {
+            $previews['none'][] = "  📁 <info>Tools/</info> <fg=gray>({$totalTools} files directly in root)</>";
+            
+            // Add tool examples
+            $toolExampleCount = 0;
+            foreach ($noneExamples as $example) {
+                if ($example['type'] === 'Tools' && $toolExampleCount < 2) {
+                    $previews['none'][] = "     └─ {$example['className']}.php <fg=gray>({$example['endpoint']['method']} {$example['endpoint']['path']})</>";
+                    $toolExampleCount++;
+                }
+            }
+            if ($totalTools > $toolExampleCount) {
+                $remaining = $totalTools - $toolExampleCount;
+                $previews['none'][] = "     └─ <fg=gray>... and {$remaining} more files</>";
             }
         }
-
+        
+        if ($totalResources > 0) {
+            $previews['none'][] = "  📁 <info>Resources/</info> <fg=gray>({$totalResources} files directly in root)</>";
+            
+            // Add resource examples
+            $resourceExampleCount = 0;
+            foreach ($noneExamples as $example) {
+                if ($example['type'] === 'Resources' && $resourceExampleCount < 2) {
+                    $previews['none'][] = "     └─ {$example['className']}.php <fg=gray>({$example['endpoint']['method']} {$example['endpoint']['path']})</>";
+                    $resourceExampleCount++;
+                }
+            }
+            if ($totalResources > $resourceExampleCount) {
+                $remaining = $totalResources - $resourceExampleCount;
+                $previews['none'][] = "     └─ <fg=gray>... and {$remaining} more files</>";
+            }
+        }
+        
         return $previews;
     }
 
@@ -382,7 +529,6 @@ class MakeSwaggerMcpToolCommand extends Command
 
             if ($this->confirm("Include: {$label}?", ! $endpoint['deprecated'])) {
                 // Ask for type
-                $defaultType = $endpoint['method'] === 'GET' ? 'Resource' : 'Tool';
                 $typeChoice = $this->choice(
                     'Generate as',
                     ['Tool (for actions)', 'Resource (for read-only data)', 'Skip'],
@@ -429,9 +575,6 @@ class MakeSwaggerMcpToolCommand extends Command
                     if ($endpoint['deprecated'] && ! $this->confirm("Include deprecated: {$endpoint['method']} {$endpoint['path']}?", false)) {
                         continue;
                     }
-
-                    // Smart default based on method
-                    $defaultType = $endpoint['method'] === 'GET' ? 'resource' : 'tool';
 
                     $endpointLabel = "{$endpoint['method']} {$endpoint['path']}";
                     if ($endpoint['summary']) {
@@ -597,7 +740,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                 // Create directory structure based on grouping strategy
                 $directory = $this->createDirectory($endpoint);
-                $path = app_path("MCP/Tools/{$directory}/{$className}.php");
+                $path = $directory ? app_path("MCP/Tools/{$directory}/{$className}.php") : app_path("MCP/Tools/{$className}.php");
 
                 if (file_exists($path)) {
                     $this->warn("Skipping {$className} - already exists");
@@ -639,7 +782,7 @@ class MakeSwaggerMcpToolCommand extends Command
 
                 // Create directory structure based on grouping strategy
                 $directory = $this->createDirectory($endpoint);
-                $path = app_path("MCP/Resources/{$directory}/{$className}.php");
+                $path = $directory ? app_path("MCP/Resources/{$directory}/{$className}.php") : app_path("MCP/Resources/{$className}.php");
 
                 if (file_exists($path)) {
                     $this->warn("Skipping {$className} - already exists");
@@ -735,7 +878,7 @@ class MakeSwaggerMcpToolCommand extends Command
             case 'path':
                 return $this->createPathDirectory($endpoint);
             default:
-                return 'General';
+                return ''; // No subdirectory for 'none' grouping
         }
     }
 

@@ -40,7 +40,8 @@ Version 1.4.0 introduces powerful automatic tool and resource generation from Sw
 - **Swagger/OpenAPI Tool & Resource Generator**: Automatically generate MCP tools or resources from any Swagger/OpenAPI specification
   - Supports both OpenAPI 3.x and Swagger 2.0 formats
   - **Choose generation type**: Generate as Tools (for actions) or Resources (for read-only data)
-  - **Multiple grouping strategies** (v1.4.1): Organize by tags, paths, or flat structure
+  - **Multiple grouping strategies** (v1.4.1): Organize by tags, paths, or root directory
+  - **Enhanced interactive preview** (v1.4.2): Shows directory structure with file counts and examples
   - **Interactive endpoint selection** with real-time preview of directory structure
   - Automatic authentication logic generation (API Key, Bearer Token, OAuth2)
   - Smart naming for readable class names (handles hash-based operationIds)
@@ -373,14 +374,14 @@ php artisan make:swagger-mcp-tool petstore.json --group-by=tag
 php artisan make:swagger-mcp-tool petstore.json --group-by=path
 # Creates: Tools/Api/, Tools/Users/, Tools/Orders/
 
-# No grouping - everything in General folder
+# No grouping - everything in root directories
 php artisan make:swagger-mcp-tool petstore.json --group-by=none
-# Creates: Tools/General/
+# Creates: Tools/, Resources/
 ```
 
-**Interactive Grouping Selection:**
+**Enhanced Interactive Preview (v1.4.2):**
 
-When you don't specify the `--group-by` option, the command will interactively show you a preview of how your endpoints will be organized for each grouping method:
+When you don't specify the `--group-by` option, the command shows a detailed preview with statistics:
 
 ```bash
 php artisan make:swagger-mcp-tool petstore.json
@@ -388,28 +389,57 @@ php artisan make:swagger-mcp-tool petstore.json
 🗂️ Choose how to organize your generated tools and resources:
 
 Tag-based grouping (organize by OpenAPI tags)
-  📁 Tools/Pet/FindPetTool.php
-  📁 Tools/Pet/UpdatePetTool.php
-  📁 Tools/Store/PlaceOrderTool.php
-  📁 Tools/User/CreateUserTool.php
+📊 Total: 25 endpoints → 15 tools + 10 resources
 
-Path-based grouping (organize by API path)
-  📁 Tools/Api/PostApiTool.php
-  📁 Tools/Users/GetUsersTool.php
-  📁 Tools/Orders/GetOrdersResource.php
+  📁 Pet/ (8 tools, 4 resources)
+     └─ CreatePetTool.php (POST /pet)
+     └─ UpdatePetTool.php (PUT /pet)
+     └─ ... and 10 more files
+  📁 Store/ (5 tools, 3 resources)  
+     └─ PlaceOrderTool.php (POST /store/order)
+     └─ GetInventoryResource.php (GET /store/inventory)
+     └─ ... and 6 more files
+  📁 User/ (2 tools, 3 resources)
+     └─ CreateUserTool.php (POST /user)
+     └─ GetUserByNameResource.php (GET /user/{username})
+     └─ ... and 3 more files
 
-No grouping (everything in General/ folder)
-  📁 Tools/General/YourEndpointTool.php
-  📁 Resources/General/YourEndpointResource.php
+Path-based grouping (organize by API path)  
+📊 Total: 25 endpoints → 15 tools + 10 resources
+
+  📁 Pet/ (12 files from /pet)
+     └─ PostPetTool.php (POST /pet)
+     └─ GetPetByIdResource.php (GET /pet/{petId})
+     └─ ... and 10 more files
+  📁 Store/ (8 files from /store)
+     └─ PostStoreOrderTool.php (POST /store/order)  
+     └─ GetStoreInventoryResource.php (GET /store/inventory)
+     └─ ... and 6 more files
+
+No grouping (everything in root folder)
+📊 Total: 25 endpoints → 15 tools + 10 resources
+
+  📁 Tools/ (15 files directly in root)
+     └─ CreatePetTool.php (POST /pet)
+     └─ UpdatePetTool.php (PUT /pet/{petId})
+     └─ ... and 13 more files
+  📁 Resources/ (10 files directly in root)
+     └─ GetPetByIdResource.php (GET /pet/{petId})
+     └─ GetStoreInventoryResource.php (GET /store/inventory)  
+     └─ ... and 8 more files
 
 Choose grouping method:
   [0] Tag-based grouping
-  [1] Path-based grouping
+  [1] Path-based grouping  
   [2] No grouping
  > 0
 ```
 
-The interactive preview shows actual file paths that will be generated from your specific swagger file, making it easy to choose the best organization strategy for your project.
+The interactive preview shows:
+- **Total counts**: How many tools and resources will be generated
+- **Directory structure**: Actual directories that will be created
+- **File examples**: Sample files with their corresponding API endpoints
+- **File distribution**: Number of files per directory/group
 
 **Real-world Example with OP.GG API:**
 
