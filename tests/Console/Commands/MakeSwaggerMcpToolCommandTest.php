@@ -277,7 +277,7 @@ test('swagger tool generation creates tag-based directories', function () {
     File::put($swaggerPath, json_encode($swaggerData));
 
     try {
-        $this->artisan('make:swagger-mcp-tool', [
+        $this->artisan('make:mcp-tools-from-swagger', [
             'source' => $swaggerPath,
             '--no-interaction' => true,
         ])
@@ -331,7 +331,7 @@ test('swagger tool generation handles untagged endpoints', function () {
     File::put($swaggerPath, json_encode($swaggerData));
 
     try {
-        $this->artisan('make:swagger-mcp-tool', [
+        $this->artisan('make:mcp-tools-from-swagger', [
             'source' => $swaggerPath,
             '--no-interaction' => true,
         ])
@@ -387,7 +387,7 @@ test('swagger tool generation creates path-based directories', function () {
     File::put($swaggerPath, json_encode($swaggerData));
 
     try {
-        $this->artisan('make:swagger-mcp-tool', [
+        $this->artisan('make:mcp-tools-from-swagger', [
             'source' => $swaggerPath,
             '--group-by' => 'path',
             '--no-interaction' => true,
