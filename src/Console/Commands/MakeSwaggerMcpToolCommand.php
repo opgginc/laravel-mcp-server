@@ -17,7 +17,7 @@ class MakeSwaggerMcpToolCommand extends Command
      */
     protected $signature = 'make:swagger-mcp-tool {source : Swagger/OpenAPI spec URL or file path}
                             {--test-api : Test API endpoints before generating tools}
-                            {--group-by=tag : Group endpoints by tag or path (tag|path|none)}
+                            {--group-by= : Group endpoints by tag or path (tag|path|none)}
                             {--prefix= : Prefix for generated tool class names}';
 
     /**
@@ -37,6 +37,11 @@ class MakeSwaggerMcpToolCommand extends Command
      * Selected endpoints with their generation type
      */
     protected array $selectedEndpointsWithType = [];
+
+    /**
+     * Selected grouping method
+     */
+    protected string $groupingMethod;
 
     /**
      * Execute the console command.
@@ -85,6 +90,9 @@ class MakeSwaggerMcpToolCommand extends Command
         $endpoints = $this->parser->getEndpoints();
 
         if ($this->option('no-interaction')) {
+            // Set grouping method for non-interactive mode
+            $this->groupingMethod = $this->getGroupingOption();
+            
             // In non-interactive mode, use smart defaults
             foreach ($endpoints as $endpoint) {
                 if ($endpoint['deprecated']) {
@@ -112,11 +120,11 @@ class MakeSwaggerMcpToolCommand extends Command
         $this->comment('Tip: GET endpoints are typically Resources, while POST/PUT/DELETE are Tools');
         $this->newLine();
 
-        $groupBy = $this->option('group-by');
+        $this->groupingMethod = $this->getGroupingOption();
 
-        if ($groupBy === 'tag') {
+        if ($this->groupingMethod === 'tag') {
             $this->selectByTagWithTypes();
-        } elseif ($groupBy === 'path') {
+        } elseif ($this->groupingMethod === 'path') {
             $this->selectByPathWithTypes();
         } else {
             $this->selectIndividuallyWithTypes();
@@ -126,6 +134,49 @@ class MakeSwaggerMcpToolCommand extends Command
         $resourceCount = count(array_filter($this->selectedEndpointsWithType, fn ($e) => $e['type'] === 'resource'));
 
         $this->info("Selected {$toolCount} tools and {$resourceCount} resources.");
+    }
+
+    /**
+     * Get the grouping option - prompt user if not provided
+     */
+    protected function getGroupingOption(): string
+    {
+        $groupBy = $this->option('group-by');
+        
+        // If grouping option is provided, return it
+        if ($groupBy) {
+            return $groupBy;
+        }
+
+        // If no interaction is disabled or option not provided, ask user interactively
+        if (! $this->option('no-interaction')) {
+            $this->newLine();
+            $this->info('🗂️ Choose how to organize your generated tools and resources:');
+            $this->newLine();
+            
+            $choices = [
+                'tag' => 'Tag-based grouping (organize by OpenAPI tags like Pet/, Store/, User/)',
+                'path' => 'Path-based grouping (organize by API path like Api/, Users/, Orders/)',
+                'none' => 'No grouping (everything in General/ folder)'
+            ];
+            
+            $choice = $this->choice(
+                'Select grouping method',
+                array_values($choices),
+                0  // Default to first option (tag-based)
+            );
+            
+            // Map choice back to key
+            $groupBy = array_search($choice, $choices);
+            
+            $this->info("Selected: {$choice}");
+            $this->newLine();
+        } else {
+            // Default to 'tag' for non-interactive mode
+            $groupBy = 'tag';
+        }
+
+        return $groupBy;
     }
 
     /**
@@ -588,9 +639,7 @@ class MakeSwaggerMcpToolCommand extends Command
      */
     protected function createDirectory(array $endpoint): string
     {
-        $groupBy = $this->option('group-by');
-
-        switch ($groupBy) {
+        switch ($this->groupingMethod) {
             case 'tag':
                 return $this->createTagDirectory($endpoint);
             case 'path':

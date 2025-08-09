@@ -32,9 +32,13 @@ afterEach(function () {
 test('createDirectory returns tag-based directory by default', function () {
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
 
-    // Mock the option method to return 'tag'
+    // Mock the command and set the groupingMethod property
     $command = Mockery::mock($command)->makePartial();
-    $command->shouldReceive('option')->with('group-by')->andReturn('tag');
+    
+    // Use reflection to set the groupingMethod property
+    $property = new ReflectionProperty($command, 'groupingMethod');
+    $property->setAccessible(true);
+    $property->setValue($command, 'tag');
 
     $method = new ReflectionMethod($command, 'createDirectory');
     $method->setAccessible(true);
@@ -48,9 +52,13 @@ test('createDirectory returns tag-based directory by default', function () {
 test('createDirectory returns path-based directory', function () {
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
 
-    // Mock the option method to return 'path'
+    // Mock the command and set the groupingMethod property
     $command = Mockery::mock($command)->makePartial();
-    $command->shouldReceive('option')->with('group-by')->andReturn('path');
+    
+    // Use reflection to set the groupingMethod property
+    $property = new ReflectionProperty($command, 'groupingMethod');
+    $property->setAccessible(true);
+    $property->setValue($command, 'path');
 
     $method = new ReflectionMethod($command, 'createDirectory');
     $method->setAccessible(true);
@@ -59,6 +67,26 @@ test('createDirectory returns path-based directory', function () {
     $result = $method->invoke($command, $endpoint);
 
     expect($result)->toBe('Users');
+});
+
+test('createDirectory returns General for none grouping', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+
+    // Mock the command and set the groupingMethod property
+    $command = Mockery::mock($command)->makePartial();
+    
+    // Use reflection to set the groupingMethod property
+    $property = new ReflectionProperty($command, 'groupingMethod');
+    $property->setAccessible(true);
+    $property->setValue($command, 'none');
+
+    $method = new ReflectionMethod($command, 'createDirectory');
+    $method->setAccessible(true);
+
+    $endpoint = ['tags' => ['pet']];
+    $result = $method->invoke($command, $endpoint);
+
+    expect($result)->toBe('General');
 });
 
 test('createTagDirectory returns StudlyCase for single tag', function () {
@@ -381,4 +409,106 @@ test('swagger tool generation creates path-based directories', function () {
             File::delete($swaggerPath);
         }
     }
+});
+
+// Test interactive grouping option selection
+test('getGroupingOption returns provided option when set', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    
+    // Mock the option method to return a value
+    $command = Mockery::mock($command)->makePartial();
+    $command->shouldReceive('option')->with('group-by')->andReturn('path');
+    $command->shouldReceive('option')->with('no-interaction')->andReturn(false);
+
+    $method = new ReflectionMethod($command, 'getGroupingOption');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($command);
+
+    expect($result)->toBe('path');
+});
+
+test('getGroupingOption returns tag for non-interactive mode when no option provided', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    
+    // Mock the option method to return null (no option provided)
+    $command = Mockery::mock($command)->makePartial();
+    $command->shouldReceive('option')->with('group-by')->andReturn(null);
+    $command->shouldReceive('option')->with('no-interaction')->andReturn(true);
+
+    $method = new ReflectionMethod($command, 'getGroupingOption');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($command);
+
+    expect($result)->toBe('tag');
+});
+
+test('getGroupingOption prompts user when no option and interactive mode', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    
+    // Mock the command methods
+    $command = Mockery::mock($command)->makePartial();
+    $command->shouldReceive('option')->with('group-by')->andReturn(null);
+    $command->shouldReceive('option')->with('no-interaction')->andReturn(false);
+    $command->shouldReceive('newLine')->andReturn();
+    $command->shouldReceive('info')->with(Mockery::any())->andReturn();
+    
+    // Mock choice method to return the first option (tag-based)
+    $command->shouldReceive('choice')
+        ->with('Select grouping method', Mockery::any(), 0)
+        ->andReturn('Tag-based grouping (organize by OpenAPI tags like Pet/, Store/, User/)');
+
+    $method = new ReflectionMethod($command, 'getGroupingOption');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($command);
+
+    expect($result)->toBe('tag');
+});
+
+test('getGroupingOption handles path selection in interactive mode', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    
+    // Mock the command methods
+    $command = Mockery::mock($command)->makePartial();
+    $command->shouldReceive('option')->with('group-by')->andReturn(null);
+    $command->shouldReceive('option')->with('no-interaction')->andReturn(false);
+    $command->shouldReceive('newLine')->andReturn();
+    $command->shouldReceive('info')->with(Mockery::any())->andReturn();
+    
+    // Mock choice method to return path-based option
+    $command->shouldReceive('choice')
+        ->with('Select grouping method', Mockery::any(), 0)
+        ->andReturn('Path-based grouping (organize by API path like Api/, Users/, Orders/)');
+
+    $method = new ReflectionMethod($command, 'getGroupingOption');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($command);
+
+    expect($result)->toBe('path');
+});
+
+test('getGroupingOption handles none selection in interactive mode', function () {
+    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    
+    // Mock the command methods
+    $command = Mockery::mock($command)->makePartial();
+    $command->shouldReceive('option')->with('group-by')->andReturn(null);
+    $command->shouldReceive('option')->with('no-interaction')->andReturn(false);
+    $command->shouldReceive('newLine')->andReturn();
+    $command->shouldReceive('info')->with(Mockery::any())->andReturn();
+    
+    // Mock choice method to return none option
+    $command->shouldReceive('choice')
+        ->with('Select grouping method', Mockery::any(), 0)
+        ->andReturn('No grouping (everything in General/ folder)');
+
+    $method = new ReflectionMethod($command, 'getGroupingOption');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($command);
+
+    expect($result)->toBe('none');
 });
