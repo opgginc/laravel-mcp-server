@@ -40,7 +40,8 @@ Version 1.4.0 introduces powerful automatic tool and resource generation from Sw
 - **Swagger/OpenAPI Tool & Resource Generator**: Automatically generate MCP tools or resources from any Swagger/OpenAPI specification
   - Supports both OpenAPI 3.x and Swagger 2.0 formats
   - **Choose generation type**: Generate as Tools (for actions) or Resources (for read-only data)
-  - Interactive endpoint selection with grouping options
+  - **Multiple grouping strategies** (v1.4.1): Organize by tags, paths, or flat structure
+  - **Interactive endpoint selection** with real-time preview of directory structure
   - Automatic authentication logic generation (API Key, Bearer Token, OAuth2)
   - Smart naming for readable class names (handles hash-based operationIds)
   - Built-in API testing before generation
@@ -48,11 +49,17 @@ Version 1.4.0 introduces powerful automatic tool and resource generation from Sw
 
 **Example Usage:**
 ```bash
-# Generate tools from OP.GG API
+# Generate tools from OP.GG API (interactive mode)
 php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
 
-# With options
+# With specific grouping
 php artisan make:swagger-mcp-tool ./api-spec.json --test-api --group-by=tag --prefix=MyApi
+
+# Group by path segments
+php artisan make:swagger-mcp-tool ./api-spec.json --group-by=path
+
+# No grouping (flat structure)
+php artisan make:swagger-mcp-tool ./api-spec.json --group-by=none
 ```
 
 This feature dramatically reduces the time needed to integrate external APIs into your MCP server!
@@ -353,6 +360,57 @@ php artisan make:swagger-mcp-tool https://api.example.com/swagger.json \
   --prefix=MyApi
 ```
 
+**Grouping Options (v1.4.1+):**
+
+The generator now supports multiple ways to organize your generated tools and resources into directories:
+
+```bash
+# Tag-based grouping (default) - organize by OpenAPI tags
+php artisan make:swagger-mcp-tool petstore.json --group-by=tag
+# Creates: Tools/Pet/, Tools/Store/, Tools/User/
+
+# Path-based grouping - organize by first path segment
+php artisan make:swagger-mcp-tool petstore.json --group-by=path
+# Creates: Tools/Api/, Tools/Users/, Tools/Orders/
+
+# No grouping - everything in General folder
+php artisan make:swagger-mcp-tool petstore.json --group-by=none
+# Creates: Tools/General/
+```
+
+**Interactive Grouping Selection:**
+
+When you don't specify the `--group-by` option, the command will interactively show you a preview of how your endpoints will be organized for each grouping method:
+
+```bash
+php artisan make:swagger-mcp-tool petstore.json
+
+🗂️ Choose how to organize your generated tools and resources:
+
+Tag-based grouping (organize by OpenAPI tags)
+  📁 Tools/Pet/FindPetTool.php
+  📁 Tools/Pet/UpdatePetTool.php
+  📁 Tools/Store/PlaceOrderTool.php
+  📁 Tools/User/CreateUserTool.php
+
+Path-based grouping (organize by API path)
+  📁 Tools/Api/PostApiTool.php
+  📁 Tools/Users/GetUsersTool.php
+  📁 Tools/Orders/GetOrdersResource.php
+
+No grouping (everything in General/ folder)
+  📁 Tools/General/YourEndpointTool.php
+  📁 Resources/General/YourEndpointResource.php
+
+Choose grouping method:
+  [0] Tag-based grouping
+  [1] Path-based grouping
+  [2] No grouping
+ > 0
+```
+
+The interactive preview shows actual file paths that will be generated from your specific swagger file, making it easy to choose the best organization strategy for your project.
+
 **Real-world Example with OP.GG API:**
 
 ```bash
@@ -419,10 +477,14 @@ Generating: LolRegionServerStatsResource
   - **Resources**: For read-only GET endpoints that provide data
 - **Smart naming**: Converts paths like `/lol/{region}/server-stats` to `LolRegionServerStatsTool` or `LolRegionServerStatsResource`
 - **Hash detection**: Automatically detects MD5-like operationIds and uses path-based naming instead
-- **Interactive mode**: Select which endpoints to convert
+- **Interactive mode**: Select which endpoints to convert with real-time preview
 - **API testing**: Test API connectivity before generating
 - **Authentication support**: Automatically generates authentication logic for API Key, Bearer Token, and OAuth2
-- **Smart grouping**: Group endpoints by tags or path prefixes
+- **Flexible organization strategies**:
+  - **Tag-based grouping**: Organize by OpenAPI tags (e.g., `Tools/Pet/`, `Tools/Store/`)
+  - **Path-based grouping**: Organize by API path segments (e.g., `Tools/Api/`, `Tools/Users/`)
+  - **Flat structure**: All tools in a single `General/` directory
+- **Interactive grouping preview**: See exactly how your files will be organized before generation
 - **Code generation**: Creates ready-to-use classes with Laravel HTTP client integration
 
 The generated tools include:
