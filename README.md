@@ -70,7 +70,7 @@ Version 1.3.0 introduces improvements to the `ToolInterface` for better communic
 - `messageType(): ProcessMessageType` method is now deprecated (will be removed in v2.0.0)
 - Use `isStreaming(): bool` instead for better clarity and simplicity
 
-### Breaking Changes in v1.1.0
+### Breaking Changes in v1.1.0 (May 2025)
 
 Version 1.1.0 introduced a significant and breaking change to the `ToolInterface`. If you are upgrading from v1.0.x, you **must** update your tool implementations to conform to the new interface.
 
