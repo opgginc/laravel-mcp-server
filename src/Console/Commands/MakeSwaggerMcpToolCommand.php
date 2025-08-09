@@ -255,7 +255,7 @@ class MakeSwaggerMcpToolCommand extends Command
                         $tagStats[$directory]['examples'][] = [
                             'className' => $className,
                             'method' => $endpoint['method'],
-                            'path' => $endpoint['path']
+                            'path' => $endpoint['path'],
                         ];
                     }
                 }
@@ -273,7 +273,7 @@ class MakeSwaggerMcpToolCommand extends Command
                     $tagStats['General']['examples'][] = [
                         'className' => $className,
                         'method' => $endpoint['method'],
-                        'path' => $endpoint['path']
+                        'path' => $endpoint['path'],
                     ];
                 }
             }
@@ -296,7 +296,7 @@ class MakeSwaggerMcpToolCommand extends Command
                 $pathStats[$directory]['examples'][] = [
                     'className' => $className,
                     'method' => $endpoint['method'],
-                    'path' => $endpoint['path']
+                    'path' => $endpoint['path'],
                 ];
             }
         }
@@ -304,7 +304,7 @@ class MakeSwaggerMcpToolCommand extends Command
         // Format tag-based preview
         $previews['tag'][] = "<comment>📊 Total: {$totalEndpoints} endpoints → {$totalTools} tools + {$totalResources} resources</comment>";
         $previews['tag'][] = '';
-        
+
         $tagCount = 0;
         foreach ($tagStats as $dir => $stats) {
             if ($tagCount >= 5) {
@@ -312,9 +312,9 @@ class MakeSwaggerMcpToolCommand extends Command
                 $previews['tag'][] = "  <fg=gray>... and {$remaining} more tag groups</>";
                 break;
             }
-            
+
             $label = $stats['original'] !== $dir ? "{$stats['original']} → {$dir}" : $dir;
-            
+
             if ($stats['tools'] > 0 && $stats['resources'] > 0) {
                 $previews['tag'][] = "  📁 <info>{$dir}/</info> <fg=gray>({$stats['tools']} tools, {$stats['resources']} resources)</>";
             } elseif ($stats['tools'] > 0) {
@@ -322,26 +322,26 @@ class MakeSwaggerMcpToolCommand extends Command
             } else {
                 $previews['tag'][] = "  📁 <info>Resources/{$dir}/</info> <fg=gray>({$stats['resources']} resources)</>";
             }
-            
+
             // Add examples for this tag
             foreach ($stats['examples'] as $idx => $example) {
                 $previews['tag'][] = "     └─ {$example['className']}.php <fg=gray>({$example['method']} {$example['path']})</>";
             }
-            
+
             // Show if there are more files in this group
             $totalInGroup = $stats['tools'] + $stats['resources'];
             if ($totalInGroup > count($stats['examples'])) {
                 $remaining = $totalInGroup - count($stats['examples']);
                 $previews['tag'][] = "     └─ <fg=gray>... and {$remaining} more files</>";
             }
-            
+
             $tagCount++;
         }
 
         // Format path-based preview
         $previews['path'][] = "<comment>📊 Total: {$totalEndpoints} endpoints → {$totalTools} tools + {$totalResources} resources</comment>";
         $previews['path'][] = '';
-        
+
         $pathCount = 0;
         foreach ($pathStats as $dir => $stats) {
             if ($pathCount >= 5) {
@@ -349,9 +349,9 @@ class MakeSwaggerMcpToolCommand extends Command
                 $previews['path'][] = "  <fg=gray>... and {$remaining} more path groups</>";
                 break;
             }
-            
+
             $label = "/{$stats['original']}";
-            
+
             if ($stats['tools'] > 0 && $stats['resources'] > 0) {
                 $previews['path'][] = "  📁 <info>{$dir}/</info> <fg=gray>({$stats['tools']} tools, {$stats['resources']} resources from {$label})</>";
             } elseif ($stats['tools'] > 0) {
@@ -359,29 +359,29 @@ class MakeSwaggerMcpToolCommand extends Command
             } else {
                 $previews['path'][] = "  📁 <info>Resources/{$dir}/</info> <fg=gray>({$stats['resources']} resources from {$label})</>";
             }
-            
+
             // Add examples for this path group
             foreach ($stats['examples'] as $idx => $example) {
                 $previews['path'][] = "     └─ {$example['className']}.php <fg=gray>({$example['method']} {$example['path']})</>";
             }
-            
+
             // Show if there are more files in this group
             $totalInGroup = $stats['tools'] + $stats['resources'];
             if ($totalInGroup > count($stats['examples'])) {
                 $remaining = $totalInGroup - count($stats['examples']);
                 $previews['path'][] = "     └─ <fg=gray>... and {$remaining} more files</>";
             }
-            
+
             $pathCount++;
         }
 
         // Format no-grouping preview
         $previews['none'][] = "<comment>📊 Total: {$totalEndpoints} endpoints → {$totalTools} tools + {$totalResources} resources</comment>";
         $previews['none'][] = '';
-        
+
         if ($totalTools > 0) {
             $previews['none'][] = "  📁 <info>Tools/</info> <fg=gray>({$totalTools} files directly in root)</>";
-            
+
             // Add tool examples
             $toolExampleCount = 0;
             foreach ($noneExamples as $example) {
@@ -395,10 +395,10 @@ class MakeSwaggerMcpToolCommand extends Command
                 $previews['none'][] = "     └─ <fg=gray>... and {$remaining} more files</>";
             }
         }
-        
+
         if ($totalResources > 0) {
             $previews['none'][] = "  📁 <info>Resources/</info> <fg=gray>({$totalResources} files directly in root)</>";
-            
+
             // Add resource examples
             $resourceExampleCount = 0;
             foreach ($noneExamples as $example) {
@@ -412,7 +412,7 @@ class MakeSwaggerMcpToolCommand extends Command
                 $previews['none'][] = "     └─ <fg=gray>... and {$remaining} more files</>";
             }
         }
-        
+
         return $previews;
     }
 
