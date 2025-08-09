@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 use OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser;
 use OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter;
 
-class MakeMcpToolsFromSwaggerCommand extends Command
+class MakeSwaggerMcpToolCommand extends Command
 {
     /**
      * The name and signature of the console command.
