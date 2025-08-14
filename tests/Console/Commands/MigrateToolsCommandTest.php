@@ -52,7 +52,7 @@ class {$className} implements ToolInterface
         return [];
     }
 
-    public function execute(array \$arguments): mixed
+    public function execute(array \\\$arguments): mixed
     {
         return 'executed old tool';
     }
@@ -93,7 +93,7 @@ class {$className} implements ToolInterface
         return [];
     }
 
-    public function execute(array \$arguments): mixed
+    public function execute(array \\\$arguments): mixed
     {
         return 'executed old tool';
     }
@@ -190,7 +190,7 @@ class {$className} implements ToolInterface
         return [];
     }
 
-    public function execute(array \$arguments): mixed
+    public function execute(array \\\$arguments): mixed
     {
         return 'executed v12 tool';
     }
@@ -263,7 +263,7 @@ class {$className} implements ToolInterface
         return [];
     }
 
-    public function execute(array \$arguments): mixed
+    public function execute(array \\\$arguments): mixed
     {
         return 'executed v11 tool';
     }
