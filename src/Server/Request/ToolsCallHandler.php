@@ -2,11 +2,13 @@
 
 namespace OPGG\LaravelMcpServer\Server\Request;
 
+use InvalidArgumentException;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Protocol\Handlers\RequestHandler;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
+use OPGG\LaravelMcpServer\Utils\JsonSchemaValidator;
 
 class ToolsCallHandler extends RequestHandler
 {
@@ -64,6 +66,30 @@ class ToolsCallHandler extends RequestHandler
         $result = $tool->execute($arguments);
 
         if ($method === 'tools/call') {
+            // Check if tool supports output schema for structured content
+            if (method_exists($tool, 'outputSchema') && $tool->outputSchema() !== null) {
+                // Validate output against schema
+                try {
+                    JsonSchemaValidator::validate($result, $tool->outputSchema());
+                } catch (InvalidArgumentException $e) {
+                    throw new JsonRpcErrorException(
+                        message: "Tool output validation failed: {$e->getMessage()}",
+                        code: JsonRpcErrorCode::INVALID_REQUEST
+                    );
+                }
+
+                // Return structured content
+                return [
+                    'content' => [
+                        [
+                            'type' => 'structured',
+                            'structuredContent' => $result,
+                        ],
+                    ],
+                ];
+            }
+
+            // Default text content for tools without output schema
             return [
                 'content' => [
                     [
