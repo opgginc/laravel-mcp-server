@@ -33,6 +33,7 @@ class StreamableHttpController
         // Check Accept header to determine response format
         if ($request->accepts('text/html')) {
             $html = $this->generateInfoHtml($serverInfo);
+
             return response($html, 200)->header('Content-Type', 'text/html');
         }
 
