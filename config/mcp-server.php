@@ -204,6 +204,44 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | GET Request Handler Override
+    |--------------------------------------------------------------------------
+    |
+    | Customize the response when making a GET request to the MCP endpoint.
+    | By default, a simple info page is returned showing server details.
+    |
+    | Options:
+    | - null: Use the default info page (recommended)
+    | - string: Fully qualified class name of a custom handler
+    |
+    | Custom Handler Requirements:
+    | - Must have a public 'handle(Request $request)' method
+    | - Should return a valid Laravel response
+    |
+    | Example:
+    | 'get_handler' => null,                                      // Default info page
+    | 'get_handler' => App\Http\Handlers\CustomMcpInfoHandler::class, // Custom handler
+    |
+    | Example Custom Handler:
+    | ```php
+    | namespace App\Http\Handlers;
+    |
+    | use Illuminate\Http\Request;
+    |
+    | class CustomMcpInfoHandler
+    | {
+    |     public function handle(Request $request)
+    |     {
+    |         return view('mcp.info', ['tools' => $this->getAvailableTools()]);
+    |     }
+    | }
+    | ```
+    |
+    */
+    'get_handler' => null,
+
+    /*
+    |--------------------------------------------------------------------------
     | SSE Adapter Configuration (Legacy Provider Only)
     |--------------------------------------------------------------------------
     |
