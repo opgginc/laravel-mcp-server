@@ -10,7 +10,7 @@ namespace OPGG\LaravelMcpServer\Data\Requests;
  *
  * @property string $method The name of the method to be invoked.
  * @property string $jsonRpc The JSON-RPC version string (e.g., "2.0").
- * @property int $id An identifier established by the Client.
+ * @property int|string|null $id An identifier established by the Client.
  * @property array<string, mixed> $params The parameters to be used during the invocation of the method.
  */
 class RequestData
@@ -22,7 +22,7 @@ class RequestData
     public string $jsonRpc;
 
     /** @var int An identifier established by the Client. */
-    public int $id;
+    public int|string|null $id;
 
     /** @var array<string, mixed> The parameters for the method invocation. */
     public array $params;
@@ -35,7 +35,7 @@ class RequestData
      * @param  int  $id  The request identifier.
      * @param  array<string, mixed>  $params  The request parameters.
      */
-    public function __construct(string $method, string $jsonRpc, int $id, array $params)
+    public function __construct(string $method, string $jsonRpc, int|string|null $id, array $params)
     {
         $this->method = $method;
         $this->jsonRpc = $jsonRpc;
