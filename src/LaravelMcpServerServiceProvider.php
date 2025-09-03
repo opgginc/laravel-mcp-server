@@ -121,6 +121,32 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
      */
     protected function registerRoutesForDomain(?string $domain, string $path, array $middlewares, string $provider): void
     {
+        if ($this->isLumen()) {
+            $this->registerLumenRoutes($domain, $path, $middlewares, $provider);
+        } else {
+            $this->registerLaravelRoutes($domain, $path, $middlewares, $provider);
+        }
+    }
+
+    /**
+     * Check if the application is running on Lumen
+     */
+    protected function isLumen(): bool
+    {
+        // Check if the application is a Lumen instance
+        if (class_exists('\Laravel\Lumen\Application') && $this->app instanceof \Laravel\Lumen\Application) {
+            return true;
+        }
+        
+        // Fallback: check version string
+        return str_contains($this->app->version(), 'Lumen');
+    }
+
+    /**
+     * Register routes for Laravel
+     */
+    protected function registerLaravelRoutes(?string $domain, string $path, array $middlewares, string $provider): void
+    {
         // Build route configuration
         $router = Route::middleware($middlewares);
 
@@ -139,6 +165,45 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
             case 'streamable_http':
                 $router->get($path, [StreamableHttpController::class, 'getHandle']);
                 $router->post($path, [StreamableHttpController::class, 'postHandle']);
+                break;
+        }
+    }
+
+    /**
+     * Register routes for Lumen
+     */
+    protected function registerLumenRoutes(?string $domain, string $path, array $middlewares, string $provider): void
+    {
+        $routeOptions = [];
+        
+        // Add middleware to route options
+        if (!empty($middlewares)) {
+            $routeOptions['middleware'] = $middlewares;
+        }
+
+        // Apply domain restriction if specified (Lumen supports domain routing)
+        if ($domain !== null) {
+            $routeOptions['domain'] = $domain;
+        }
+
+        // Register provider-specific routes
+        switch ($provider) {
+            case 'sse':
+                $this->app->get("{$path}/sse", array_merge($routeOptions, [
+                    'uses' => SseController::class.'@handle'
+                ]));
+                $this->app->post("{$path}/message", array_merge($routeOptions, [
+                    'uses' => MessageController::class.'@handle'
+                ]));
+                break;
+
+            case 'streamable_http':
+                $this->app->get($path, array_merge($routeOptions, [
+                    'uses' => StreamableHttpController::class.'@getHandle'
+                ]));
+                $this->app->post($path, array_merge($routeOptions, [
+                    'uses' => StreamableHttpController::class.'@postHandle'
+                ]));
                 break;
         }
     }

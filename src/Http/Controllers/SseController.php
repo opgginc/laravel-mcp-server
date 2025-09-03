@@ -3,11 +3,10 @@
 namespace OPGG\LaravelMcpServer\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 use OPGG\LaravelMcpServer\Server\MCPServer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class SseController extends Controller
+class SseController
 {
     public function handle(Request $request)
     {
