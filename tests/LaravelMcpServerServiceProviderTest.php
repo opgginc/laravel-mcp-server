@@ -162,3 +162,36 @@ it('applies middlewares to routes', function () {
         expect($middlewares)->toContain('throttle:60,1');
     }
 });
+
+it('detects Laravel application correctly', function () {
+    $provider = new LaravelMcpServerServiceProvider(app());
+    
+    // Use reflection to test the protected method
+    $reflection = new ReflectionClass($provider);
+    $method = $reflection->getMethod('isLumen');
+    $method->setAccessible(true);
+    
+    // In a Laravel test environment, this should return false
+    expect($method->invoke($provider))->toBeFalse();
+});
+
+it('handles routing when Lumen is not detected', function () {
+    Config::set('mcp-server.enabled', true);
+    Config::set('mcp-server.domain', null);
+    Config::set('mcp-server.default_path', '/mcp');
+    Config::set('mcp-server.middlewares', ['test-middleware']);
+    Config::set('mcp-server.server_provider', 'streamable_http');
+
+    registerProvider();
+
+    $routes = getRoutesByDomain();
+    $mcpRoutes = array_filter($routes, fn ($route) => str_contains($route->uri(), 'mcp'));
+
+    expect($mcpRoutes)->toHaveCount(2); // GET and POST routes
+    
+    // Verify that middleware is applied
+    foreach ($mcpRoutes as $route) {
+        $middlewares = $route->middleware();
+        expect($middlewares)->toContain('test-middleware');
+    }
+});
