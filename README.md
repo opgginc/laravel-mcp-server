@@ -444,6 +444,137 @@ class MyCustomTool implements ToolInterface
 }
 ```
 
+**Complete Example with Output Schema:**
+
+```php
+<?php
+
+namespace App\MCP\Tools;
+
+use Illuminate\Support\Facades\Validator;
+use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
+use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+
+class UserDetailsTool implements ToolInterface
+{
+    public function isStreaming(): bool
+    {
+        return false; // Standard HTTP request/response
+    }
+
+    public function name(): string
+    {
+        return 'get-user-details';
+    }
+
+    public function description(): string
+    {
+        return 'Retrieve detailed user information by ID';
+    }
+
+    public function inputSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'userId' => [
+                    'type' => 'integer',
+                    'description' => 'The unique user identifier',
+                ],
+                'includeRoles' => [
+                    'type' => 'boolean',
+                    'description' => 'Include user roles in response',
+                    'default' => false,
+                ],
+            ],
+            'required' => ['userId'],
+        ];
+    }
+
+    public function outputSchema(): ?array
+    {
+        // Define structured output format
+        return [
+            'type' => 'object',
+            'properties' => [
+                'user' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'id' => ['type' => 'integer'],
+                        'name' => ['type' => 'string'],
+                        'email' => ['type' => 'string', 'format' => 'email'],
+                        'createdAt' => ['type' => 'string', 'format' => 'date-time'],
+                        'roles' => [
+                            'type' => 'array',
+                            'items' => ['type' => 'string'],
+                        ],
+                    ],
+                    'required' => ['id', 'name', 'email'],
+                ],
+                'success' => ['type' => 'boolean'],
+            ],
+            'required' => ['user', 'success'],
+        ];
+    }
+
+    public function annotations(): array
+    {
+        return [
+            'title' => 'User Details Fetcher',
+            'readOnlyHint' => true,  // Only reads data
+            'destructiveHint' => false,
+            'idempotentHint' => true,
+            'openWorldHint' => false, // Only accesses local database
+        ];
+    }
+
+    public function execute(array $arguments): array
+    {
+        $validator = Validator::make($arguments, [
+            'userId' => ['required', 'integer', 'min:1'],
+            'includeRoles' => ['sometimes', 'boolean'],
+        ]);
+
+        if ($validator->fails()) {
+            throw new JsonRpcErrorException(
+                message: $validator->errors()->toJson(),
+                code: JsonRpcErrorCode::INVALID_REQUEST
+            );
+        }
+
+        // Fetch user from database (example)
+        $user = \App\Models\User::find($arguments['userId']);
+        
+        if (!$user) {
+            throw new JsonRpcErrorException(
+                message: 'User not found',
+                code: JsonRpcErrorCode::INVALID_REQUEST
+            );
+        }
+
+        $response = [
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'createdAt' => $user->created_at->toIso8601String(),
+            ],
+            'success' => true,
+        ];
+
+        // Include roles if requested
+        if ($arguments['includeRoles'] ?? false) {
+            $response['user']['roles'] = $user->roles->pluck('name')->toArray();
+        }
+
+        // The output will be automatically validated against outputSchema()
+        // and wrapped in 'structuredContent' field for MCP clients
+        return $response;
+    }
+}
+```
+
 ### Understanding Your Tool's Structure (ToolInterface)
 
 When you create a tool by implementing `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface`, you'll need to define several methods. Here's a breakdown of each method and its purpose:
@@ -473,6 +604,9 @@ interface ToolInterface
 
     // Defines the expected input parameters for your tool using a JSON Schema-like structure.
     public function inputSchema(): array;
+
+    // Optional: Defines the output schema for structured responses (MCP Output Schema Compliance)
+    public function outputSchema(): ?array;
 
     // Provides a way to add arbitrary metadata or annotations to your tool.
     public function annotations(): array;
@@ -563,6 +697,104 @@ if ($validator->fails()) {
 }
 // Proceed with validated $arguments['userId'] and $arguments['includeDetails']
 ```
+
+**`outputSchema(): ?array`**
+
+This optional method enables **MCP Output Schema Compliance**, allowing your tools to return structured, validated responses that MCP clients can reliably parse and use. When defined, the tool's output will be wrapped in a `structuredContent` field and validated against the schema.
+
+**Key benefits:**
+- **Type Safety**: Ensures tool outputs conform to expected structure
+- **Client Integration**: Enables better tooling and IDE support in MCP clients
+- **Documentation**: Self-documenting output format for API consumers
+- **Validation**: Automatic validation prevents malformed responses
+
+**Example `outputSchema()` implementation:**
+
+```php
+public function outputSchema(): ?array
+{
+    return [
+        'type' => 'object',
+        'properties' => [
+            'status' => [
+                'type' => 'string',
+                'enum' => ['success', 'error'],
+                'description' => 'Operation status',
+            ],
+            'data' => [
+                'type' => 'object',
+                'properties' => [
+                    'userId' => ['type' => 'integer'],
+                    'username' => ['type' => 'string'],
+                    'email' => ['type' => 'string', 'format' => 'email'],
+                    'roles' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'string']
+                    ],
+                ],
+                'required' => ['userId', 'username'],
+            ],
+            'timestamp' => [
+                'type' => 'string',
+                'format' => 'date-time',
+            ],
+        ],
+        'required' => ['status', 'data'],
+    ];
+}
+```
+
+**How it works:**
+
+1. **Without output schema** (traditional behavior):
+   ```php
+   // Tool returns data directly
+   public function execute(array $arguments): mixed
+   {
+       return ['userId' => 123, 'username' => 'john'];
+   }
+   // MCP response: {"content": [{"text": "{\"userId\":123,\"username\":\"john\"}"}]}
+   ```
+
+2. **With output schema** (structured content):
+   ```php
+   public function outputSchema(): ?array
+   {
+       return [
+           'type' => 'object',
+           'properties' => [
+               'userId' => ['type' => 'integer'],
+               'username' => ['type' => 'string'],
+           ],
+       ];
+   }
+   
+   public function execute(array $arguments): mixed
+   {
+       return ['userId' => 123, 'username' => 'john'];
+   }
+   // MCP response: {"structuredContent": {"userId": 123, "username": "john"}}
+   ```
+
+**Schema validation:**
+
+The package includes a built-in `JsonSchemaValidator` that validates tool outputs against the defined schema. If validation fails, an error is thrown with details about what went wrong:
+
+```php
+// If your tool returns data that doesn't match the schema:
+return ['userId' => 'not-a-number']; // Schema expects integer
+
+// Results in validation error:
+// "Property 'userId' type mismatch. Expected: integer, Got: string"
+```
+
+**Best practices:**
+
+- Return `null` from `outputSchema()` if you don't need structured output (maintains backward compatibility)
+- Keep schemas simple and focused on essential fields
+- Use `required` arrays to specify mandatory fields
+- Include descriptions for better documentation
+- Consider using format specifiers ('email', 'date-time', 'uri') for string validation
 
 **`annotations(): array`**
 
