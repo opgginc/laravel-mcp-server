@@ -19,7 +19,8 @@ test('tabular data can be converted to csv and markdown', function () {
 });
 
 test('trait metadata key is exposed through formatter constant', function () {
-    $trait = new class {
+    $trait = new class
+    {
         use OPGG\LaravelMcpServer\Services\ToolService\Concerns\ProvidesTabularResponses;
 
         public function meta(array $rows): array

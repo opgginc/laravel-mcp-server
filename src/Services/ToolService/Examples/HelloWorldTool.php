@@ -5,8 +5,8 @@ namespace OPGG\LaravelMcpServer\Services\ToolService\Examples;
 use Illuminate\Support\Facades\Validator;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
-use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use OPGG\LaravelMcpServer\Services\ToolService\Concerns\ProvidesTabularResponses;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
 class HelloWorldTool implements ToolInterface
 {
