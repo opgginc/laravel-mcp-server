@@ -2,6 +2,7 @@
 
 namespace OPGG\LaravelMcpServer\Server\Request;
 
+use OPGG\LaravelMcpServer\Concerns\FormatsTabularData;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
@@ -10,6 +11,8 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 
 class ToolsCallHandler extends RequestHandler
 {
+    use FormatsTabularData;
+
     protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
 
     protected const HANDLE_METHOD = ['tools/call', 'tools/execute'];
@@ -64,18 +67,36 @@ class ToolsCallHandler extends RequestHandler
         $result = $tool->execute($arguments);
 
         if ($method === 'tools/call') {
-            return [
-                'content' => [
-                    [
-                        'type' => 'text',
-                        'text' => is_string($result) ? $result : json_encode($result, JSON_UNESCAPED_UNICODE),
-                    ],
-                ],
+            $text = is_string($result) ? $result : json_encode($result, JSON_UNESCAPED_UNICODE);
+            if ($text === false) {
+                $text = '';
+            }
+
+            $primaryContent = [
+                'type' => 'text',
+                'text' => $text,
             ];
-        } else {
+
+            if (! is_string($result)) {
+                $primaryContent['mimeType'] = 'application/json';
+            } else {
+                $primaryContent['mimeType'] = 'text/plain';
+            }
+
+            $content = [$primaryContent];
+
+            $tabularContent = $this->buildTabularContent($result);
+            if ($tabularContent !== []) {
+                $content = array_merge($content, $tabularContent);
+            }
+
             return [
-                'result' => $result,
+                'content' => $content,
             ];
         }
+
+        return [
+            'result' => $result,
+        ];
     }
 }

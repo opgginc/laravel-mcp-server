@@ -1046,6 +1046,65 @@ public function annotations(): array
 }
 ```
 
+### Automatic CSV & Markdown outputs for flat tool responses
+
+When a tool returns a one-dimensional list of associative arrays (for example, the
+`lol_list_champions` style payload that contains champion metadata), the MCP server now
+automatically augments the `tools/call` response with CSV and Markdown table variants.
+This makes it effortless for LLM clients to consume tabular data without additional
+post-processing.
+
+The behaviour is powered by the new `OPGG\\LaravelMcpServer\\Concerns\\FormatsTabularData`
+trait. It normalises rows, guards against nested structures, and produces two extra
+entries in the `content` array:
+
+- `text/csv` containing the tabular export
+- `text/markdown` with a ready-to-render table
+
+For example, a tool that returns champion data like this:
+
+```php
+return [
+    ['champion_id' => 266, 'champion_key' => 'Aatrox', 'champion_name' => 'Aatrox'],
+    ['champion_id' => 103, 'champion_key' => 'Ahri', 'champion_name' => 'Ahri'],
+];
+```
+
+Will produce the following additional response fragments:
+
+- CSV header + rows (`champion_id,champion_key,champion_name,...`)
+- Markdown table:
+
+  ```markdown
+  | champion_id | champion_key | champion_name |
+  | --- | --- | --- |
+  | 266 | Aatrox | Aatrox |
+  | 103 | Ahri | Ahri |
+  ```
+
+Developers can also reuse the trait inside their own classes to customise behaviour or
+generate tabular strings on demand:
+
+```php
+use OPGG\LaravelMcpServer\Concerns\FormatsTabularData;
+
+class ChampionTool implements ToolInterface
+{
+    use FormatsTabularData;
+
+    public function execute(array $arguments): array
+    {
+        $rows = ...; // fetch champions
+
+        // Access helper methods/overrides like $this->tabularCsvDelimiter here
+        return $rows;
+    }
+}
+```
+
+You can override `$tabularCsvDelimiter`, `$tabularCsvEnclosure`, or even inspect
+`tabularContentFormats()` if you need to adjust MIME types.
+
 ### Working with Resources
 
 Resources expose data from your server that can be read by MCP clients. They are

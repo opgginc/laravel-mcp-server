@@ -1,5 +1,8 @@
 <?php
 
+use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\TabularTool;
+
 test('streamable http GET returns method not allowed', function () {
     $response = $this->get('/mcp');
 
@@ -49,4 +52,32 @@ test('notification returns HTTP 202 with no body', function () {
 
     $response->assertStatus(202);
     expect($response->getContent())->toBe('');
+});
+
+test('tabular tool responses include CSV and Markdown helpers', function () {
+    app(ToolRepository::class)->register(TabularTool::class);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 99,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'tabular-tool',
+            'arguments' => [],
+        ],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+
+    $response->assertStatus(200);
+    $content = $response->json('result.content');
+
+    expect($content)->toHaveCount(3);
+    expect($content[0]['mimeType'])->toBe('application/json');
+    expect($content[1]['mimeType'])->toBe('text/csv');
+    expect($content[1]['text'])
+        ->toContain("champion_id,champion_key,champion_name,release_date");
+    expect($content[2]['mimeType'])->toBe('text/markdown');
+    expect($content[2]['text'])
+        ->toContain('| champion_id | champion_key | champion_name | release_date |');
 });
