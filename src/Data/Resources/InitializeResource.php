@@ -38,7 +38,12 @@ class InitializeResource
      * @param  array  $capabilities  The capabilities supported by the server.
      * @param  string  $protocolVersion  The protocol version being used.
      */
-    public function __construct(string $name, string $version, array $capabilities, string $protocolVersion = '2024-11-05')
+    /**
+     * @param  string  $protocolVersion  Defaults to MCP revision 2025-06-18 per the upstream spec.
+     *                                   This ensures initialize echoes the negotiated version documented at
+     *                                   https://modelcontextprotocol.io/specification/2025-06-18#initialization.
+     */
+    public function __construct(string $name, string $version, array $capabilities, string $protocolVersion = '2025-06-18')
     {
         $this->serverInfo = [
             'name' => $name,

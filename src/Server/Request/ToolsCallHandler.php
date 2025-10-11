@@ -2,6 +2,7 @@
 
 namespace OPGG\LaravelMcpServer\Server\Request;
 
+use JsonException;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
@@ -73,15 +74,60 @@ class ToolsCallHandler extends RequestHandler
                 return $preparedResult;
             }
 
-            if (is_array($preparedResult) && array_key_exists('content', $preparedResult)) {
-                return $preparedResult;
+            if (is_array($preparedResult)) {
+                if (array_key_exists('content', $preparedResult)
+                    || array_key_exists('structuredContent', $preparedResult)
+                    || array_key_exists('isError', $preparedResult)) {
+                    return $preparedResult;
+                }
+
+                try {
+                    $json = json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                } catch (JsonException $exception) {
+                    throw new JsonRpcErrorException(
+                        message: 'Failed to encode tool result as JSON: '.$exception->getMessage(),
+                        code: JsonRpcErrorCode::INTERNAL_ERROR
+                    );
+                }
+
+                return [
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $json,
+                        ],
+                    ],
+                    // Provide structuredContent alongside text per MCP 2025-06-18 guidance.
+                    // @see https://modelcontextprotocol.io/specification/2025-06-18#structured-content
+                    'structuredContent' => $preparedResult,
+                ];
+            }
+
+            if (is_string($preparedResult)) {
+                return [
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $preparedResult,
+                        ],
+                    ],
+                ];
+            }
+
+            try {
+                $text = json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            } catch (JsonException $exception) {
+                throw new JsonRpcErrorException(
+                    message: 'Failed to encode tool result as JSON: '.$exception->getMessage(),
+                    code: JsonRpcErrorCode::INTERNAL_ERROR
+                );
             }
 
             return [
                 'content' => [
                     [
                         'type' => 'text',
-                        'text' => is_string($preparedResult) ? $preparedResult : json_encode($preparedResult, JSON_UNESCAPED_UNICODE),
+                        'text' => $text,
                     ],
                 ],
             ];

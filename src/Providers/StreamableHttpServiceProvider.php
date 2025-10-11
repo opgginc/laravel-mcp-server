@@ -58,7 +58,11 @@ final class StreamableHttpServiceProvider extends ServiceProvider
                 $capabilities = new ServerCapabilities;
 
                 $toolRepository = app(ToolRepository::class);
-                $capabilities->withTools(['schemas' => $toolRepository->getToolSchemas()]);
+                $capabilities->withTools([
+                    // Advertise pagination & change notifications support as required by MCP 2025-06-18.
+                    'listChanged' => (bool) Config::get('mcp-server.tool_capabilities.list_changed', false),
+                    'schemas' => $toolRepository->getToolSchemas(),
+                ]);
                 $resourceRepository = app(ResourceRepository::class);
                 $capabilities->withResources(['schemas' => [
                     'resources' => $resourceRepository->getResourceSchemas(),

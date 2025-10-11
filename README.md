@@ -47,6 +47,10 @@ Version 1.4.0 introduces powerful automatic tool and resource generation from Sw
   - Smart naming for readable class names (handles hash-based operationIds)
   - Built-in API testing before generation
   - Complete Laravel HTTP client integration with retry logic
+- **MCP 2025-06-18 compatibility**:
+  - Default protocol negotiation now targets the 2025-06-18 revision.
+  - `tools/list` returns cursor-based pages and advertises the `listChanged` capability flag.
+  - Tool responses automatically expose `structuredContent` alongside text blocks for structured payloads.
 
 **Example Usage:**
 ```bash

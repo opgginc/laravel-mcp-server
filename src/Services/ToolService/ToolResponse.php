@@ -3,6 +3,7 @@
 namespace OPGG\LaravelMcpServer\Services\ToolService;
 
 use InvalidArgumentException;
+use JsonException;
 
 /**
  * Value object describing a structured tool response.
@@ -56,6 +57,44 @@ final class ToolResponse
                 'text' => $text,
             ],
         ], $metadata);
+    }
+
+    /**
+     * Create a ToolResponse that includes structured content alongside serialised text.
+     *
+     * @param  array<int, array{type: string, text: string, source?: string}>|null  $content
+     * @param  array<string, mixed>  $metadata
+     *
+     * @throws JsonException
+     */
+    public static function structured(array $structuredContent, ?array $content = null, array $metadata = []): self
+    {
+        $json = json_encode($structuredContent, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+        $contentItems = $content !== null ? array_values($content) : [];
+
+        $hasSerialisedText = false;
+        foreach ($contentItems as $item) {
+            if (isset($item['type'], $item['text']) && $item['type'] === 'text' && $item['text'] === $json) {
+                $hasSerialisedText = true;
+                break;
+            }
+        }
+
+        if (! $hasSerialisedText) {
+            $contentItems[] = [
+                'type' => 'text',
+                'text' => $json,
+            ];
+        }
+
+        return new self($contentItems, [
+            ...$metadata,
+            // The MCP 2025-06-18 spec encourages servers to mirror structured payloads in the
+            // `structuredContent` field for reliable client parsing.
+            // @see https://modelcontextprotocol.io/specification/2025-06-18#structured-content
+            'structuredContent' => $structuredContent,
+        ]);
     }
 
     /**

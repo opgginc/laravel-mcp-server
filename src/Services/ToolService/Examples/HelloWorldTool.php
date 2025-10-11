@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Validator;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolResponse;
 
 class HelloWorldTool implements ToolInterface
 {
@@ -24,6 +25,11 @@ class HelloWorldTool implements ToolInterface
         return 'Say HelloWorld developer.';
     }
 
+    public function title(): string
+    {
+        return 'Hello World Greeting';
+    }
+
     public function inputSchema(): array
     {
         return [
@@ -38,12 +44,30 @@ class HelloWorldTool implements ToolInterface
         ];
     }
 
+    public function outputSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'name' => [
+                    'type' => 'string',
+                    'description' => 'Echoed developer name.',
+                ],
+                'message' => [
+                    'type' => 'string',
+                    'description' => 'Greeting message returned to the caller.',
+                ],
+            ],
+            'required' => ['name', 'message'],
+        ];
+    }
+
     public function annotations(): array
     {
         return [];
     }
 
-    public function execute(array $arguments): array
+    public function execute(array $arguments): ToolResponse
     {
         $validator = Validator::make($arguments, [
             'name' => ['required', 'string'],
@@ -54,9 +78,18 @@ class HelloWorldTool implements ToolInterface
 
         $name = $arguments['name'] ?? 'MCP';
 
-        return [
+        $payload = [
             'name' => $name,
             'message' => "Hello, HelloWorld `{$name}` developer.",
         ];
+
+        // Provide both human readable and structured payloads per MCP 2025-06-18 guidance.
+        // @see https://modelcontextprotocol.io/specification/2025-06-18#structured-content
+        return ToolResponse::structured($payload, [
+            [
+                'type' => 'text',
+                'text' => $payload['message'],
+            ],
+        ]);
     }
 }
