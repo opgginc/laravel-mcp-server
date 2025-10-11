@@ -76,7 +76,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
         }
 
         // Skip route registration if MCPServer instance doesn't exist
-        if (! app()->has(MCPServer::class)) {
+        if (! $this->app->bound(MCPServer::class)) {
             return;
         }
 
