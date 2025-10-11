@@ -31,6 +31,7 @@ jobs:
 
       - name: Determine next version
         id: bump
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -39,13 +40,7 @@ jobs:
           LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
           if [ -z "$LATEST_TAG" ]; then
             PREVIOUS_TAG=""
-            BASE_VERSION=$(python - <<'PY'
-import re
-from pathlib import Path
-match = re.search(r"'version'\s*=>\s*'([^']+)'", Path("config/mcp-server.php").read_text())
-print(match.group(1) if match else "")
-PY
-)
+            BASE_VERSION=$(grep -Po "'version'\s*=>\s*'\K[^']+" config/mcp-server.php | head -n 1)
             if [ -z "$BASE_VERSION" ]; then
               BASE_VERSION="0.1.0"
             fi
@@ -56,6 +51,9 @@ PY
           fi
 
           IFS='.' read -r MAJOR MINOR PATCH <<<"$VERSION"
+          MAJOR=${MAJOR:-0}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
 
           case "$RELEASE_TYPE" in
             minor)
@@ -75,25 +73,12 @@ PY
             echo "tag=$NEW_TAG"
             echo "previous_tag=$PREVIOUS_TAG"
           } >> "$GITHUB_OUTPUT"
-        shell: bash
 
       - name: Update configuration version
-        run: |
-          python - <<'PY'
-import os
-import re
-from pathlib import Path
-
-version = os.environ["NEW_VERSION"]
-path = Path("config/mcp-server.php")
-content = path.read_text()
-updated, count = re.subn(r"'version'\s*=>\s*'[^']*'", f"'version' => '{version}'", content, count=1)
-if count == 0:
-    raise SystemExit("Failed to update version in config/mcp-server.php")
-path.write_text(updated)
-PY
         env:
           NEW_VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          python -c "import os, re, pathlib, sys; path = pathlib.Path('config/mcp-server.php'); content = path.read_text(); pattern = r\"'version'\s*=>\s*'[^']*'\"; replacement = f\"'version' => '{os.environ['NEW_VERSION']}'\"; new, count = re.subn(pattern, replacement, content, count=1); (count != 0) or sys.exit('Failed to update version in config/mcp-server.php'); path.write_text(new)"
 
       - name: Commit version update
         run: |
