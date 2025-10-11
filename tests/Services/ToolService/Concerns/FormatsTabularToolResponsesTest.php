@@ -4,7 +4,8 @@ use OPGG\LaravelMcpServer\Services\ToolService\Concerns\FormatsTabularToolRespon
 use OPGG\LaravelMcpServer\Services\ToolService\ToolResponse;
 
 test('csv response creates text/csv payload', function () {
-    $helper = new class {
+    $helper = new class
+    {
         use FormatsTabularToolResponses;
 
         public function csv(array $rows, ?array $columns = null): ToolResponse
@@ -27,7 +28,8 @@ test('csv response creates text/csv payload', function () {
 });
 
 test('markdown response renders markdown table', function () {
-    $helper = new class {
+    $helper = new class
+    {
         use FormatsTabularToolResponses;
 
         public function markdown(array $rows): string
@@ -45,7 +47,8 @@ test('markdown response renders markdown table', function () {
 });
 
 test('throws when encountering nested arrays', function () {
-    $helper = new class {
+    $helper = new class
+    {
         use FormatsTabularToolResponses;
 
         public function csv(array $rows): ToolResponse
