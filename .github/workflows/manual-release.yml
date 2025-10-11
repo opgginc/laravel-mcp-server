@@ -1,0 +1,135 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Select the semantic version bump type"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine next version
+        id: bump
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+
+          LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
+          if [ -z "$LATEST_TAG" ]; then
+            PREVIOUS_TAG=""
+            BASE_VERSION=$(grep -Po "'version'\s*=>\s*'\K[^']+" config/mcp-server.php | head -n 1)
+            if [ -z "$BASE_VERSION" ]; then
+              BASE_VERSION="0.1.0"
+            fi
+            VERSION="$BASE_VERSION"
+          else
+            PREVIOUS_TAG="$LATEST_TAG"
+            VERSION="${LATEST_TAG#v}"
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<<"$VERSION"
+          MAJOR=${MAJOR:-0}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
+
+          case "$RELEASE_TYPE" in
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch|*)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          NEW_TAG="v$NEW_VERSION"
+
+          {
+            echo "version=$NEW_VERSION"
+            echo "tag=$NEW_TAG"
+            echo "previous_tag=$PREVIOUS_TAG"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update configuration version
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          python -c "import os, re, pathlib, sys; path = pathlib.Path('config/mcp-server.php'); content = path.read_text(); pattern = r\"'version'\s*=>\s*'[^']*'\"; replacement = f\"'version' => '{os.environ['NEW_VERSION']}'\"; new, count = re.subn(pattern, replacement, content, count=1); (count != 0) or sys.exit('Failed to update version in config/mcp-server.php'); path.write_text(new)"
+
+      - name: Commit version update
+        run: |
+          git add config/mcp-server.php
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: release ${{ steps.bump.outputs.tag }}"
+          fi
+
+      - name: Push changes and tag
+        env:
+          NEW_TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          git push origin "$BRANCH"
+          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+            git tag -d "$NEW_TAG"
+          fi
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
+
+      - name: Generate release notes
+        id: notes
+        env:
+          PREVIOUS_TAG: ${{ steps.bump.outputs.previous_tag }}
+          NEW_TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          if [ -z "$PREVIOUS_TAG" ]; then
+            NOTES=$(git log --pretty=format:"- %s")
+          else
+            NOTES=$(git log "$PREVIOUS_TAG"..HEAD --pretty=format:"- %s")
+          fi
+
+          if [ -z "$NOTES" ]; then
+            NOTES="- Release $NEW_TAG"
+          fi
+
+          {
+            echo "notes<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.bump.outputs.tag }}
+          release_name: ${{ steps.bump.outputs.tag }}
+          body: ${{ steps.notes.outputs.notes }}
+          draft: false
+          prerelease: false
