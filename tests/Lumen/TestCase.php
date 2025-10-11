@@ -18,7 +18,7 @@ abstract class TestCase extends BaseTestCase
 
         $this->app = new TestingApplication($this->basePath());
         $this->app->instance('path.config', $this->basePath('config'));
-        $this->app->instance('config', new ConfigRepository());
+        $this->app->instance('config', new ConfigRepository);
         $this->app->alias('config', \Illuminate\Contracts\Config\Repository::class);
 
         $this->app->withFacades();
