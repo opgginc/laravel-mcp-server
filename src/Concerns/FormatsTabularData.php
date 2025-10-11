@@ -47,7 +47,6 @@ trait FormatsTabularData
      * Builds additional content payload entries (CSV + Markdown) when a result
      * contains a 1-depth list of associative rows.
      *
-     * @param  mixed  $data
      * @return array<int, array{type: string, text: string, mimeType: string}>
      */
     protected function buildTabularContent(mixed $data): array
@@ -75,7 +74,6 @@ trait FormatsTabularData
     /**
      * Detects and normalises a flat list of tabular rows.
      *
-     * @param  mixed  $data
      * @return array<int, array<string, scalar|null>>|null
      */
     protected function resolveTabularRows(mixed $data): ?array
@@ -131,7 +129,6 @@ trait FormatsTabularData
     /**
      * Converts an individual row into an associative array.
      *
-     * @param  mixed  $row
      * @return array<string, mixed>|null
      */
     protected function convertRowToArray(mixed $row): ?array

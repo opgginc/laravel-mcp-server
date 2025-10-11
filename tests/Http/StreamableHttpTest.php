@@ -76,7 +76,7 @@ test('tabular tool responses include CSV and Markdown helpers', function () {
     expect($content[0]['mimeType'])->toBe('application/json');
     expect($content[1]['mimeType'])->toBe('text/csv');
     expect($content[1]['text'])
-        ->toContain("champion_id,champion_key,champion_name,release_date");
+        ->toContain('champion_id,champion_key,champion_name,release_date');
     expect($content[2]['mimeType'])->toBe('text/markdown');
     expect($content[2]['text'])
         ->toContain('| champion_id | champion_key | champion_name | release_date |');
