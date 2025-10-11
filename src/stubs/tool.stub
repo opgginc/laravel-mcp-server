@@ -73,6 +73,18 @@ class {{ className }} implements ToolInterface
     }
 
     /**
+     * Optional user-facing title introduced in MCP 2025-06-18. Use this when the
+     * raw tool name is too terse for UI presentation. Returning null falls back
+     * to the tool name.
+     *
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool
+     */
+    public function title(): ?string
+    {
+        return '{{ toolTitle }}';
+    }
+
+    /**
      * Very important -- The unique, callable name of your tool.
      *
      * This identifier is used by MCP clients to request your tool,
@@ -190,6 +202,18 @@ class {{ className }} implements ToolInterface
             ],
             'required' => ['param1'], // Specify which parameters are mandatory
         ];
+    }
+
+    /**
+     * Describe the structured output shape so clients can validate
+     * `structuredContent` results, as recommended by MCP 2025-06-18. Return an
+     * empty array if your tool only emits unstructured text.
+     *
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool-result
+     */
+    public function outputSchema(): array
+    {
+        return [];
     }
 
     /**

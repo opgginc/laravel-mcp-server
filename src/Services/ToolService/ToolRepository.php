@@ -102,31 +102,58 @@ class ToolRepository
      * Generates an array of schemas for all registered tools, suitable for the MCP capabilities response.
      * Includes name, description, inputSchema, and optional annotations for each tool.
      *
-     * @return array<int, array{name: string, description: string, inputSchema: array<string, mixed>, annotations?: array<string, mixed>}> An array of tool schemas.
+     * @return array<int, array{
+     *     name: string,
+     *     description: string,
+     *     inputSchema: array<string, mixed>,
+     *     title?: string,
+     *     outputSchema?: array<string, mixed>,
+     *     annotations?: array<string, mixed>
+     * }> An array of tool schemas.
      */
     public function getToolSchemas(): array
     {
         $schemas = [];
         foreach ($this->tools as $tool) {
-            $injectArray = [];
-            if (empty($tool->inputSchema())) {
+            $inputSchema = $tool->inputSchema();
+            if (empty($inputSchema)) {
                 // inputSchema cannot be empty, set a default value.
-                $injectArray['inputSchema'] = [
+                $inputSchema = [
                     'type' => 'object',
                     'properties' => new stdClass,
                     'required' => [],
                 ];
             }
-            if (! empty($tool->annotations())) {
-                $injectArray['annotations'] = $tool->annotations();
-            }
 
-            $schemas[] = [
+            $schema = [
                 'name' => $tool->name(),
                 'description' => $tool->description(),
-                'inputSchema' => $tool->inputSchema(),
-                ...$injectArray,
+                'inputSchema' => $inputSchema,
             ];
+
+            $title = $tool->title();
+            if ($title !== null && $title !== '') {
+                $schema['title'] = $title;
+            }
+
+            $outputSchema = $tool->outputSchema();
+            if (! empty($outputSchema)) {
+                /**
+                 * MCP 2025-06-18 encourages servers to surface structured output
+                 * schemas so clients can validate tool responses. Including the
+                 * schema here lets Initialize and tools/list share the same
+                 * metadata payload.
+                 *
+                 * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool
+                 */
+                $schema['outputSchema'] = $outputSchema;
+            }
+
+            if (! empty($tool->annotations())) {
+                $schema['annotations'] = $tool->annotations();
+            }
+
+            $schemas[] = $schema;
         }
 
         return $schemas;

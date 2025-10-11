@@ -61,6 +61,19 @@ final class ServerCapabilities
     public function withTools(?array $config = []): self
     {
         $this->supportsTools = true;
+        $config = $config ?? [];
+
+        if (! array_key_exists('listChanged', $config)) {
+            /**
+             * MCP 2025-06-18 mandates advertising whether the server emits
+             * tools/list_changed notifications. Default to false to reflect the
+             * package's current behaviour while remaining standards compliant.
+             *
+             * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#capabilities
+             */
+            $config['listChanged'] = false;
+        }
+
         $this->toolsConfig = $config;
 
         return $this;

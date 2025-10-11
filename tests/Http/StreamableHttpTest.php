@@ -33,9 +33,61 @@ test('tool can be called via streamable http', function () {
     expect($data['result']['content'][0]['type'])->toBe('text');
     expect($data['result']['content'][0]['text'])
         ->toContain('HelloWorld `Tester` developer');
+    expect($data['result']['isError'])->toBeFalse();
+    expect($data['result']['structuredContent']['message'])
+        ->toBe('Hello, HelloWorld `Tester` developer.');
 
     $decoded = json_decode($data['result']['content'][0]['text'], true);
     expect($decoded['name'])->toBe('Tester');
+});
+
+test('tools list returns pagination metadata and schema fields', function () {
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/list',
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+
+    $response->assertStatus(200);
+    $data = $response->json();
+
+    expect($data['jsonrpc'])->toBe('2.0');
+    expect($data['result']['nextCursor'])->toBeNull();
+    expect($data['result']['tools'])->toBeArray();
+
+    $firstTool = $data['result']['tools'][0];
+    expect($firstTool)->toHaveKey('title');
+    expect($firstTool)->toHaveKey('outputSchema');
+    expect($firstTool)->toHaveKey('inputSchema');
+});
+
+test('initialize advertises MCP 2025 capabilities', function () {
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 3,
+        'method' => 'initialize',
+        'params' => [
+            'protocolVersion' => '2025-06-18',
+            'capabilities' => [
+                'tools' => [],
+            ],
+            'clientInfo' => [
+                'name' => 'http-test-client',
+                'version' => '1.0.0',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+
+    $response->assertStatus(200);
+    $data = $response->json();
+
+    expect($data['result']['protocolVersion'])->toBe('2025-06-18');
+    expect($data['result']['capabilities']['tools']['listChanged'])->toBeFalse();
+    expect($data['result']['capabilities']['tools']['schemas'])->toBeArray();
 });
 
 test('notification returns HTTP 202 with no body', function () {

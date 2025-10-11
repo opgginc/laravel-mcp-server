@@ -13,6 +13,11 @@ class VersionCheckTool implements ToolInterface
         return false;
     }
 
+    public function title(): ?string
+    {
+        return 'Laravel Version Check';
+    }
+
     public function name(): string
     {
         return 'check-version';
@@ -29,6 +34,20 @@ class VersionCheckTool implements ToolInterface
             'type' => 'object',
             'properties' => new stdClass,
             'required' => [],
+        ];
+    }
+
+    /**
+     * Communicates the scalar string response format so MCP 2025-06-18 clients
+     * can validate tool executions before exposing them to an end user.
+     *
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool-result
+     */
+    public function outputSchema(): array
+    {
+        return [
+            'type' => 'string',
+            'description' => 'Plain-text summary of the current Laravel version and timestamp.',
         ];
     }
 

@@ -24,8 +24,17 @@ use OPGG\LaravelMcpServer\Utils\DataUtil;
  */
 final class MCPProtocol
 {
-    // This was supposed to be 2025-03-26, but I set this to 2024-11-05 because Vercel ai-sdk doesn't support it
-    public const PROTOCOL_VERSION = '2024-11-05';
+    /**
+     * Protocol version advertised by the server.
+     *
+     * The revision date reflects the upstream MCP specification that introduced
+     * structured tool results and paginated tool discovery.
+     * Keeping this in sync with the spec ensures clients can safely enable the
+     * newly required behaviour introduced in the 2025-06-18 revision.
+     *
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+     */
+    public const PROTOCOL_VERSION = '2025-06-18';
 
     private TransportInterface $transport;
 

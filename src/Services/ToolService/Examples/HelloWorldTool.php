@@ -14,6 +14,11 @@ class HelloWorldTool implements ToolInterface
         return false;
     }
 
+    public function title(): ?string
+    {
+        return 'Hello World Greeting';
+    }
+
     public function name(): string
     {
         return 'hello-world';
@@ -35,6 +40,31 @@ class HelloWorldTool implements ToolInterface
                 ],
             ],
             'required' => ['name'],
+        ];
+    }
+
+    /**
+     * Structured output schema mandated by MCP 2025-06-18 to help clients
+     * validate `structuredContent` payloads returned by tools. The schema mirrors
+     * the example given in the specification's "Tool" data type table.
+     *
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool
+     */
+    public function outputSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'name' => [
+                    'type' => 'string',
+                    'description' => 'Echoes the provided developer name.',
+                ],
+                'message' => [
+                    'type' => 'string',
+                    'description' => 'Friendly greeting that includes the developer name.',
+                ],
+            ],
+            'required' => ['name', 'message'],
         ];
     }
 

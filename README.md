@@ -173,9 +173,11 @@ use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 interface ToolInterface
 {
     public function messageType(): ProcessMessageType; // New method
+    public function title(): ?string;                  // Added in MCP 2025-06-18
     public function name(): string;                     // Renamed
     public function description(): string;              // Renamed
     public function inputSchema(): array;               // Renamed
+    public function outputSchema(): array;              // Added in MCP 2025-06-18
     public function annotations(): array;               // Renamed
     public function execute(array $arguments): mixed;   // No change
 }
@@ -219,9 +221,11 @@ class MyNewTool implements ToolInterface
         return false; // Most tools should return false
     }
 
+    public function title(): ?string { return 'MyNewTool'; }
     public function name(): string { return 'MyNewTool'; }
     public function description(): string { return 'This is my new tool.'; }
     public function inputSchema(): array { return []; }
+    public function outputSchema(): array { return []; }
     public function annotations(): array { return []; }
     public function execute(array $arguments): mixed { /* ... */ }
 }
@@ -255,6 +259,8 @@ Key benefits:
 
 - Real-time communication support through Streamable HTTP with SSE integration
 - Implementation of tools and resources compliant with Model Context Protocol specifications
+- Support for the 2025-06-18 MCP revision, including paginated `tools/list`,
+  structured tool results, and capability metadata for tool list change notifications
 - Adapter-based design architecture with Pub/Sub messaging pattern (starting with Redis, more adapters planned)
 - Simple routing and middleware configuration
 
@@ -857,6 +863,9 @@ interface ToolInterface
     // NEW in v1.3.0: Determines if this tool requires streaming (SSE) instead of standard HTTP.
     public function isStreaming(): bool;
 
+    // Optional user-facing title introduced in MCP 2025-06-18.
+    public function title(): ?string;
+
     // The unique, callable name of your tool (e.g., 'get-user-details').
     public function name(): string;
 
@@ -865,6 +874,9 @@ interface ToolInterface
 
     // Defines the expected input parameters for your tool using a JSON Schema-like structure.
     public function inputSchema(): array;
+
+    // Optional JSON Schema describing structured output for MCP 2025-06-18 clients.
+    public function outputSchema(): array;
 
     // Provides a way to add arbitrary metadata or annotations to your tool.
     public function annotations(): array;
@@ -898,6 +910,20 @@ Most tools should return `false` unless you specifically need real-time streamin
 - Real-time progress updates for long-running operations
 - Live data feeds or monitoring tools
 - Interactive tools requiring bidirectional communication
+
+**`title(): ?string` (New in MCP 2025-06-18)**
+
+Return a short, human-friendly label for your tool. Clients display this label
+to users while still relying on `name()` for invocation. Returning `null`
+defaults to the `name()` value. This method was added to align with the
+"Tool" data type definition in the 2025-06-18 specification.
+
+**`outputSchema(): array` (New in MCP 2025-06-18)**
+
+Provide a JSON Schema describing your structured responses. When populated,
+the server will emit the schema alongside each tool definition and return
+`structuredContent` blocks from executions, helping clients validate outputs.
+Return an empty array if your tool only emits unstructured text.
 
 **`name(): string`**
 

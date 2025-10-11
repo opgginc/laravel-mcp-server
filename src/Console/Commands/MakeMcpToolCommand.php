@@ -221,7 +221,9 @@ class MakeMcpToolCommand extends Command
         // Extract parameters
         $toolName = $params['toolName'] ?? Str::kebab(preg_replace('/Tool$/', '', $className));
         $description = $params['description'] ?? 'Auto-generated MCP tool';
+        $title = $params['title'] ?? Str::headline(str_replace('-', ' ', $toolName));
         $inputSchema = $params['inputSchema'] ?? [];
+        $outputSchema = $params['outputSchema'] ?? [];
         $annotations = $params['annotations'] ?? [];
         $executeLogic = $params['executeLogic'] ?? '        return ["result" => "success"];';
         $imports = $params['imports'] ?? [];
@@ -234,6 +236,9 @@ class MakeMcpToolCommand extends Command
 
         // Build input schema
         $inputSchemaString = $this->arrayToPhpString($inputSchema, 2);
+
+        // Build output schema
+        $outputSchemaString = $this->arrayToPhpString($outputSchema, 2);
 
         // Build annotations
         $annotationsString = $this->arrayToPhpString($annotations, 2);
@@ -251,7 +256,9 @@ class MakeMcpToolCommand extends Command
             '{{ className }}' => $className,
             '{{ toolName }}' => $toolName,
             '{{ description }}' => addslashes($description),
+            '{{ title }}' => addslashes($title),
             '{{ inputSchema }}' => $inputSchemaString,
+            '{{ outputSchema }}' => $outputSchemaString,
             '{{ annotations }}' => $annotationsString,
             '{{ executeLogic }}' => $executeLogic,
             '{{ imports }}' => $importsString,
@@ -317,9 +324,11 @@ class MakeMcpToolCommand extends Command
             $namespace .= '\\'.$tagDirectory;
         }
 
+        $toolTitle = Str::headline(str_replace('-', ' ', $toolName));
+
         return str_replace(
-            ['{{ className }}', '{{ namespace }}', '{{ toolName }}'],
-            [$className, $namespace, $toolName],
+            ['{{ className }}', '{{ namespace }}', '{{ toolName }}', '{{ toolTitle }}'],
+            [$className, $namespace, $toolName, addslashes($toolTitle)],
             $stub
         );
     }

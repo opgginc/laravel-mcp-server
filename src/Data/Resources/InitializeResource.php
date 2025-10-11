@@ -38,7 +38,7 @@ class InitializeResource
      * @param  array  $capabilities  The capabilities supported by the server.
      * @param  string  $protocolVersion  The protocol version being used.
      */
-    public function __construct(string $name, string $version, array $capabilities, string $protocolVersion = '2024-11-05')
+    public function __construct(string $name, string $version, array $capabilities, string $protocolVersion = MCPProtocol::PROTOCOL_VERSION)
     {
         $this->serverInfo = [
             'name' => $name,

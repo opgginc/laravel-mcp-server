@@ -27,6 +27,16 @@ class {{ className }} implements ToolInterface
     }
 
     /**
+     * Human-readable tool title surfaced to MCP clients (2025-06-18 revision).
+     *
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool
+     */
+    public function title(): ?string
+    {
+        return '{{ title }}';
+    }
+
+    /**
      * The unique identifier for this tool
      *
      * @return string The tool name used in MCP requests
@@ -57,8 +67,18 @@ class {{ className }} implements ToolInterface
     }
 
     /**
+     * Structured output schema advertised for the 2025-06-18 MCP revision.
+     *
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool-result
+     */
+    public function outputSchema(): array
+    {
+        return {{ outputSchema }};
+    }
+
+    /**
      * Provide metadata about this tool's behavior
-     * 
+     *
      * @return array Tool annotations following MCP specification
      */
     public function annotations(): array

@@ -2,6 +2,8 @@
 
 namespace OPGG\LaravelMcpServer\Server\Request;
 
+use Illuminate\Contracts\Support\Arrayable;
+use JsonSerializable;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
@@ -64,18 +66,111 @@ class ToolsCallHandler extends RequestHandler
         $result = $tool->execute($arguments);
 
         if ($method === 'tools/call') {
+            $structuredContent = $this->normalizeStructuredContent($result);
+            $content = [];
+
+            if ($structuredContent !== null) {
+                $serialized = json_encode($structuredContent, JSON_UNESCAPED_UNICODE);
+                if ($serialized === false) {
+                    throw new JsonRpcErrorException(
+                        message: 'Failed to encode structured tool response',
+                        code: JsonRpcErrorCode::INTERNAL_ERROR
+                    );
+                }
+
+                $content[] = [
+                    'type' => 'text',
+                    'text' => $serialized,
+                ];
+
+                /**
+                 * MCP 2025-06-18 expects servers to populate both `content` and
+                 * `structuredContent` when a tool produces JSON data. This keeps
+                 * older clients functional while enabling schema validation.
+                 *
+                 * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool-result
+                 */
+                return [
+                    'content' => $content,
+                    'structuredContent' => $structuredContent,
+                    'isError' => false,
+                ];
+            }
+
+            $content[] = [
+                'type' => 'text',
+                'text' => $this->stringifyResult($result),
+            ];
+
             return [
-                'content' => [
-                    [
-                        'type' => 'text',
-                        'text' => is_string($result) ? $result : json_encode($result, JSON_UNESCAPED_UNICODE),
-                    ],
-                ],
+                'content' => $content,
+                'isError' => false,
             ];
         } else {
             return [
                 'result' => $result,
             ];
         }
+    }
+
+    private function normalizeStructuredContent(mixed $result): array|null
+    {
+        if ($result instanceof Arrayable) {
+            return $result->toArray();
+        }
+
+        if ($result instanceof JsonSerializable) {
+            $serialized = $result->jsonSerialize();
+
+            return is_array($serialized)
+                ? $serialized
+                : (is_object($serialized) ? (array) $serialized : null);
+        }
+
+        if (is_array($result)) {
+            return $result;
+        }
+
+        if (is_object($result)) {
+            $encoded = json_encode($result, JSON_UNESCAPED_UNICODE);
+            if ($encoded === false) {
+                return null;
+            }
+
+            $decoded = json_decode($encoded, true);
+
+            return is_array($decoded) ? $decoded : null;
+        }
+
+        return null;
+    }
+
+    private function stringifyResult(mixed $result): string
+    {
+        if (is_string($result)) {
+            return $result;
+        }
+
+        if (is_scalar($result) || $result === null) {
+            $encoded = json_encode($result, JSON_UNESCAPED_UNICODE);
+            if ($encoded === false) {
+                throw new JsonRpcErrorException(
+                    message: 'Failed to encode scalar tool response',
+                    code: JsonRpcErrorCode::INTERNAL_ERROR
+                );
+            }
+
+            return $encoded;
+        }
+
+        $encoded = json_encode($result, JSON_UNESCAPED_UNICODE);
+        if ($encoded === false) {
+            throw new JsonRpcErrorException(
+                message: 'Failed to encode complex tool response',
+                code: JsonRpcErrorCode::INTERNAL_ERROR
+            );
+        }
+
+        return $encoded;
     }
 }
