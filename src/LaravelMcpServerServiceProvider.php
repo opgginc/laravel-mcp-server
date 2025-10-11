@@ -2,7 +2,6 @@
 
 namespace OPGG\LaravelMcpServer;
 
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpNotificationCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpPromptCommand;
@@ -49,7 +48,9 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
     {
         parent::register();
 
-        $provider = match (Config::get('mcp-server.server_provider')) {
+        $this->registerConfiguration();
+
+        $provider = match ($this->getConfig('mcp-server.server_provider')) {
             'streamable_http' => StreamableHttpServiceProvider::class,
             default => SseServiceProvider::class,
         };
@@ -70,7 +71,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
     protected function registerRoutes(): void
     {
         // Skip route registration if the server is disabled
-        if (! Config::get('mcp-server.enabled', true)) {
+        if (! $this->getConfig('mcp-server.enabled', true)) {
             return;
         }
 
@@ -79,10 +80,10 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
             return;
         }
 
-        $path = Config::get('mcp-server.default_path');
-        $middlewares = Config::get('mcp-server.middlewares', []);
-        $domain = Config::get('mcp-server.domain');
-        $provider = Config::get('mcp-server.server_provider');
+        $path = $this->getConfig('mcp-server.default_path');
+        $middlewares = $this->getConfig('mcp-server.middlewares', []);
+        $domain = $this->getConfig('mcp-server.domain');
+        $provider = $this->getConfig('mcp-server.server_provider');
 
         // Handle multiple domains support
         $domains = $this->normalizeDomains($domain);
@@ -121,25 +122,89 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
      */
     protected function registerRoutesForDomain(?string $domain, string $path, array $middlewares, string $provider): void
     {
+        $router = $this->app->make('router');
+
+        if ($this->isLumenRouter($router)) {
+            $this->registerLumenRoutes($router, $domain, $path, $middlewares, $provider);
+
+            return;
+        }
+
         // Build route configuration
-        $router = Route::middleware($middlewares);
+        $routeRegistrar = Route::middleware($middlewares);
 
         // Apply domain restriction if specified
         if ($domain !== null) {
-            $router = $router->domain($domain);
+            $routeRegistrar = $routeRegistrar->domain($domain);
         }
 
         // Register provider-specific routes
         switch ($provider) {
             case 'sse':
-                $router->get("{$path}/sse", [SseController::class, 'handle']);
-                $router->post("{$path}/message", [MessageController::class, 'handle']);
+                $routeRegistrar->get("{$path}/sse", [SseController::class, 'handle']);
+                $routeRegistrar->post("{$path}/message", [MessageController::class, 'handle']);
                 break;
 
             case 'streamable_http':
-                $router->get($path, [StreamableHttpController::class, 'getHandle']);
-                $router->post($path, [StreamableHttpController::class, 'postHandle']);
+                $routeRegistrar->get($path, [StreamableHttpController::class, 'getHandle']);
+                $routeRegistrar->post($path, [StreamableHttpController::class, 'postHandle']);
                 break;
         }
+    }
+
+    protected function registerConfiguration(): void
+    {
+        if ($this->isLumenApplication() && ! $this->app['config']->has('mcp-server')) {
+            $this->app->configure('mcp-server');
+        }
+
+        $this->mergeConfigFrom(__DIR__.'/../config/mcp-server.php', 'mcp-server');
+    }
+
+    protected function getConfig(string $key, $default = null)
+    {
+        if ($this->app->bound('config')) {
+            return $this->app['config']->get($key, $default);
+        }
+
+        return $default;
+    }
+
+    protected function isLumenApplication(): bool
+    {
+        return class_exists(\Laravel\Lumen\Application::class) && $this->app instanceof \Laravel\Lumen\Application;
+    }
+
+    protected function isLumenRouter($router): bool
+    {
+        return class_exists(\Laravel\Lumen\Routing\Router::class) && $router instanceof \Laravel\Lumen\Routing\Router;
+    }
+
+    protected function registerLumenRoutes($router, ?string $domain, string $path, array $middlewares, string $provider): void
+    {
+        $groupAttributes = [];
+
+        if (! empty($middlewares)) {
+            $groupAttributes['middleware'] = $middlewares;
+        }
+
+        if ($domain !== null) {
+            $groupAttributes['domain'] = $domain;
+        }
+
+        $router->group($groupAttributes, function ($router) use ($path, $provider) {
+            switch ($provider) {
+                case 'sse':
+                    $router->get("{$path}/sse", [SseController::class, 'handle']);
+                    $router->post("{$path}/message", [MessageController::class, 'handle']);
+                    break;
+
+                case 'streamable_http':
+                default:
+                    $router->get($path, [StreamableHttpController::class, 'getHandle']);
+                    $router->post($path, [StreamableHttpController::class, 'postHandle']);
+                    break;
+            }
+        });
     }
 }
