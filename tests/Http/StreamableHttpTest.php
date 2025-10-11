@@ -1,5 +1,9 @@
 <?php
 
+use OPGG\LaravelMcpServer\Server\MCPServer;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\TabularChampionsTool;
+
 test('streamable http GET returns method not allowed', function () {
     $response = $this->get('/mcp');
 
@@ -49,4 +53,66 @@ test('notification returns HTTP 202 with no body', function () {
 
     $response->assertStatus(202);
     expect($response->getContent())->toBe('');
+});
+
+test('tool can respond with csv content when using the tabular helpers', function () {
+    $tools = config('mcp-server.tools');
+    $tools[] = TabularChampionsTool::class;
+    config()->set('mcp-server.tools', array_values(array_unique($tools)));
+
+    app()->forgetInstance(ToolRepository::class);
+    app()->forgetInstance(MCPServer::class);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'tabular-champions',
+            'arguments' => [
+                'format' => 'csv',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+
+    $response->assertStatus(200);
+    $data = $response->json();
+
+    expect($data['result']['content'][0]['type'])->toBe('text/csv');
+    expect($data['result']['content'][0]['text'])
+        ->toContain('champion_id,key,name')
+        ->toContain('1,Annie,Annie');
+});
+
+test('tool can respond with markdown table content', function () {
+    $tools = config('mcp-server.tools');
+    $tools[] = TabularChampionsTool::class;
+    config()->set('mcp-server.tools', array_values(array_unique($tools)));
+
+    app()->forgetInstance(ToolRepository::class);
+    app()->forgetInstance(MCPServer::class);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 3,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'tabular-champions',
+            'arguments' => [
+                'format' => 'markdown',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+
+    $response->assertStatus(200);
+    $data = $response->json();
+
+    expect($data['result']['content'][0]['type'])->toBe('text/markdown');
+    expect($data['result']['content'][0]['text'])
+        ->toContain('| champion_id | key | name |')
+        ->toContain('| 1 | Annie | Annie |');
 });
