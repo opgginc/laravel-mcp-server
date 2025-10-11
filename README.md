@@ -1046,6 +1046,45 @@ public function annotations(): array
 }
 ```
 
+### Returning Tabular Tool Output as CSV and Markdown
+
+Some MCP tools naturally return flat tabular data (e.g. `lol_list_champions`).
+From v1.x you can attach lightweight metadata to your tool response and the
+server will automatically add CSV and Markdown table representations for the
+client. This works out-of-the-box via the
+`OPGG\LaravelMcpServer\Services\ToolService\Concerns\ProvidesTabularResponses`
+trait.
+
+```php
+use OPGG\LaravelMcpServer\Services\ToolService\Concerns\ProvidesTabularResponses;
+
+class ChampionListTool implements ToolInterface
+{
+    use ProvidesTabularResponses;
+
+    public function execute(array $arguments): array
+    {
+        $rows = [
+            ['id' => 1, 'name' => 'Garen', 'role' => 'Fighter'],
+            ['id' => 2, 'name' => 'Ahri', 'role' => 'Mage'],
+        ];
+
+        $payload = ['items' => $rows];
+
+        // Adds __mcp_tabular metadata so the MCP response includes:
+        // 1. JSON (original payload)
+        // 2. CSV (with mimeType text/csv)
+        // 3. Markdown table (with mimeType text/markdown)
+        return $this->withTabularResponse($payload, $rows);
+    }
+}
+```
+
+The trait also offers helpers like `tabularToCsv()` and `tabularToMarkdown()` in
+case you need direct access to the generated strings. For advanced scenarios you
+can customise the delimiter (`$tabularCsvDelimiter`) or disable Markdown output
+(`$tabularIncludeMarkdownTable = false`).
+
 ### Working with Resources
 
 Resources expose data from your server that can be read by MCP clients. They are

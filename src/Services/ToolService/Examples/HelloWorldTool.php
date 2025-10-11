@@ -6,9 +6,12 @@ use Illuminate\Support\Facades\Validator;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+use OPGG\LaravelMcpServer\Services\ToolService\Concerns\ProvidesTabularResponses;
 
 class HelloWorldTool implements ToolInterface
 {
+    use ProvidesTabularResponses;
+
     public function isStreaming(): bool
     {
         return false;
@@ -54,9 +57,11 @@ class HelloWorldTool implements ToolInterface
 
         $name = $arguments['name'] ?? 'MCP';
 
-        return [
+        $payload = [
             'name' => $name,
             'message' => "Hello, HelloWorld `{$name}` developer.",
         ];
+
+        return $this->withTabularResponse($payload, [$payload]);
     }
 }

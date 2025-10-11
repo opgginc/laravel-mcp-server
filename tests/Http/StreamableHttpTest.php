@@ -36,6 +36,14 @@ test('tool can be called via streamable http', function () {
 
     $decoded = json_decode($data['result']['content'][0]['text'], true);
     expect($decoded['name'])->toBe('Tester');
+
+    expect($data['result']['content'][1]['annotations']['mimeType'])->toBe('text/csv');
+    expect($data['result']['content'][1]['text'])
+        ->toContain("name,message\nTester,\"Hello, HelloWorld `Tester` developer.\"");
+
+    expect($data['result']['content'][2]['annotations']['mimeType'])->toBe('text/markdown');
+    expect($data['result']['content'][2]['text'])
+        ->toContain('| name | message |');
 });
 
 test('notification returns HTTP 202 with no body', function () {
