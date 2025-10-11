@@ -113,7 +113,7 @@ class ToolsCallHandler extends RequestHandler
         }
     }
 
-    private function normalizeStructuredContent(mixed $result): array|null
+    private function normalizeStructuredContent(mixed $result): ?array
     {
         if ($result instanceof Arrayable) {
             return $result->toArray();
