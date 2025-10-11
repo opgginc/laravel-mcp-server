@@ -270,7 +270,7 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
 ## Requirements
 
 - PHP >=8.2
-- Laravel >=10.x
+- Laravel >=10.x or Lumen >=11.x
 
 ## Installation
 
@@ -284,6 +284,34 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
    ```bash
    php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider"
    ```
+
+### Lumen Setup
+
+The package also supports Lumen 11.x applications. After installing the dependency via Composer:
+
+1. Enable the optional helpers you need inside `bootstrap/app.php`:
+   ```php
+   $app->withFacades();
+   $app->withEloquent();
+   ```
+
+2. Register the service provider:
+   ```php
+   $app->register(OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider::class);
+   ```
+
+3. Copy the configuration file (Lumen does not ship with `vendor:publish` by default):
+   ```bash
+   cp vendor/opgginc/laravel-mcp-server/config/mcp-server.php config/mcp-server.php
+   ```
+
+4. Tell Lumen to load the configuration:
+   ```php
+   $app->configure('mcp-server');
+   ```
+
+   (If you skip steps 3-4 the package will still run with the default configuration. Creating the file simply allows you to override the defaults.)
+
 
 ## Basic Usage
 
