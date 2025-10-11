@@ -40,8 +40,8 @@ class InitializeResource
      */
     /**
      * @param  string  $protocolVersion  Defaults to MCP revision 2025-06-18 per the upstream spec.
-     *                                    This ensures initialize echoes the negotiated version documented at
-     *                                    https://modelcontextprotocol.io/specification/2025-06-18#initialization.
+     *                                   This ensures initialize echoes the negotiated version documented at
+     *                                   https://modelcontextprotocol.io/specification/2025-06-18#initialization.
      */
     public function __construct(string $name, string $version, array $capabilities, string $protocolVersion = '2025-06-18')
     {
