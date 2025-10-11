@@ -121,12 +121,30 @@ class ToolRepository
                 $injectArray['annotations'] = $tool->annotations();
             }
 
-            $schemas[] = [
+            $schema = [
                 'name' => $tool->name(),
                 'description' => $tool->description(),
                 'inputSchema' => $tool->inputSchema(),
                 ...$injectArray,
             ];
+
+            // Optional metadata introduced in MCP 2025-06-18 for richer discovery payloads.
+            // @see https://modelcontextprotocol.io/specification/2025-06-18#tool
+            if (method_exists($tool, 'title')) {
+                $title = $tool->title();
+                if (is_string($title) && $title !== '') {
+                    $schema['title'] = $title;
+                }
+            }
+
+            if (method_exists($tool, 'outputSchema')) {
+                $outputSchema = $tool->outputSchema();
+                if (is_array($outputSchema) && $outputSchema !== []) {
+                    $schema['outputSchema'] = $outputSchema;
+                }
+            }
+
+            $schemas[] = $schema;
         }
 
         return $schemas;

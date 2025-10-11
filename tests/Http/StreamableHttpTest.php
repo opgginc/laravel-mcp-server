@@ -38,8 +38,11 @@ test('tool can be called via streamable http', function () {
     expect($data['result']['content'][0]['text'])
         ->toContain('HelloWorld `Tester` developer');
 
-    $decoded = json_decode($data['result']['content'][0]['text'], true);
+    expect($data['result']['content'][1]['type'])->toBe('text');
+    $decoded = json_decode($data['result']['content'][1]['text'], true);
     expect($decoded['name'])->toBe('Tester');
+    expect($data['result']['structuredContent']['message'])
+        ->toContain('HelloWorld `Tester` developer');
 });
 
 test('notification returns HTTP 202 with no body', function () {
@@ -115,4 +118,42 @@ test('tool can respond with markdown table content', function () {
     expect($data['result']['content'][0]['text'])
         ->toContain('| champion_id | key | name |')
         ->toContain('| 1 | Annie | Annie |');
+});
+
+test('tools list endpoint supports cursor pagination', function () {
+    config()->set('mcp-server.tools_list.page_size', 1);
+
+    app()->forgetInstance(ToolRepository::class);
+    app()->forgetInstance(MCPServer::class);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 10,
+        'method' => 'tools/list',
+        'params' => [],
+    ];
+
+    $firstResponse = $this->postJson('/mcp', $payload);
+    $firstResponse->assertStatus(200);
+    $firstData = $firstResponse->json('result');
+
+    expect($firstData['tools'])->toHaveCount(1);
+    expect($firstData['tools'][0]['title'])->toBe('Hello World Greeting');
+    expect($firstData)->toHaveKey('nextCursor');
+
+    $secondPayload = $payload;
+    $secondPayload['id'] = 11;
+    $secondPayload['params']['cursor'] = $firstData['nextCursor'];
+
+    $secondResponse = $this->postJson('/mcp', $secondPayload);
+    $secondResponse->assertStatus(200);
+    $secondData = $secondResponse->json('result');
+
+    expect($secondData['tools'])->toHaveCount(1);
+    expect($secondData)->not->toHaveKey('nextCursor');
+
+    // Restore defaults for other tests.
+    config()->set('mcp-server.tools_list.page_size', 50);
+    app()->forgetInstance(ToolRepository::class);
+    app()->forgetInstance(MCPServer::class);
 });

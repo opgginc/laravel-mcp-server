@@ -274,6 +274,37 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Tools Capability Flags
+    |--------------------------------------------------------------------------
+    |
+    | The MCP 2025-06-18 revision requires servers to declare whether they emit
+    | `notifications/tools/list_changed` via the `listChanged` capability flag.
+    | You can opt-in through the `MCP_TOOLS_LIST_CHANGED` environment variable.
+    | @see https://modelcontextprotocol.io/specification/2025-06-18#capabilities
+    |
+    */
+    'tool_capabilities' => [
+        'list_changed' => env('MCP_TOOLS_LIST_CHANGED', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tools List Pagination
+    |--------------------------------------------------------------------------
+    |
+    | `tools/list` now supports cursor-based pagination per the 2025-06-18 spec.
+    | Configure the maximum number of tool definitions returned per page here.
+    | Clients can request subsequent pages by passing the `nextCursor` value as
+    | the `cursor` parameter. @see
+    | https://modelcontextprotocol.io/specification/2025-06-18#listing-tools
+    |
+    */
+    'tools_list' => [
+        'page_size' => env('MCP_TOOLS_PAGE_SIZE', 50),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | MCP Resources Registry
     |--------------------------------------------------------------------------
     |

@@ -6,7 +6,7 @@ namespace OPGG\LaravelMcpServer\Data\Requests;
  * JSON-RPC Request Notification Data
  * Represents the data structure for a JSON-RPC notification according to the MCP specification.
  *
- * @see https://modelcontextprotocol.io/specification/2024-11-05/basic/index#notifications
+ * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/index#notifications
  */
 class NotificationData
 {

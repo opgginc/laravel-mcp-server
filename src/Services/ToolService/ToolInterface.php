@@ -26,4 +26,10 @@ interface ToolInterface
      * @return bool
      */
     // public function isStreaming(): bool;
+
+    /*
+     * Optional helpers recognised by ToolRepository when present:
+     * - title(): string|null                -> Human readable tool title per MCP 2025-06-18.
+     * - outputSchema(): array               -> JSON schema describing structuredContent responses.
+     */
 }
