@@ -956,6 +956,41 @@ if ($validator->fails()) {
 // Proceed with validated $arguments['userId'] and $arguments['includeDetails']
 ```
 
+#### Formatting flat tool results as CSV or Markdown (v1.5.0+)
+
+When your tool needs to return structured tabular data—like the `lol_list_champions` example—you can opt into richer response formats by returning a `ToolResponse`. The new helper trait `OPGG\LaravelMcpServer\Services\ToolService\Concerns\FormatsTabularToolResponses` provides convenience methods to turn flat arrays into CSV strings or Markdown tables. Nothing is automatic: simply `use` the trait in tools that need it.
+
+```php
+use OPGG\LaravelMcpServer\Services\ToolService\Concerns\FormatsTabularToolResponses;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolResponse;
+
+class ChampionDirectoryTool implements ToolInterface
+{
+    use FormatsTabularToolResponses;
+
+    public function name(): string { return 'champion-directory'; }
+    public function description(): string { return 'Return champion metadata as tabular data.'; }
+    public function inputSchema(): array { return []; }
+    public function annotations(): array { return []; }
+
+    public function execute(array $arguments): ToolResponse
+    {
+        $rows = [
+            ['champion_id' => '1', 'key' => 'Annie', 'name' => 'Annie'],
+            ['champion_id' => '2', 'key' => 'Olaf', 'name' => 'Olaf'],
+        ];
+
+        return match ($arguments['format'] ?? 'csv') {
+            'markdown' => $this->toolMarkdownTableResponse($rows),
+            default => $this->toolCsvResponse($rows),
+        };
+    }
+}
+```
+
+Under the hood, `ToolResponse::text($string, $mime)` builds the response payload and sets the correct MIME type for `tools/call` responses (`text/csv`, `text/markdown`, etc.). The trait also exposes `toCsv()` and `toMarkdownTable()` helper methods if you prefer to work with raw strings or need to attach custom metadata via `toolTextResponse()`.
+
 **`annotations(): array`**
 
 This method provides metadata about your tool's behavior and characteristics, following the official [MCP Tool Annotations specification](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations). Annotations help MCP clients categorize tools, make informed decisions about tool approval, and provide appropriate user interfaces.

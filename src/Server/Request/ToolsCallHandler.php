@@ -7,6 +7,7 @@ use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Protocol\Handlers\RequestHandler;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolResponse;
 
 class ToolsCallHandler extends RequestHandler
 {
@@ -63,18 +64,30 @@ class ToolsCallHandler extends RequestHandler
         $arguments = $params['arguments'] ?? [];
         $result = $tool->execute($arguments);
 
+        $preparedResult = $result instanceof ToolResponse
+            ? $result->toArray()
+            : $result;
+
         if ($method === 'tools/call') {
+            if ($result instanceof ToolResponse) {
+                return $preparedResult;
+            }
+
+            if (is_array($preparedResult) && array_key_exists('content', $preparedResult)) {
+                return $preparedResult;
+            }
+
             return [
                 'content' => [
                     [
                         'type' => 'text',
-                        'text' => is_string($result) ? $result : json_encode($result, JSON_UNESCAPED_UNICODE),
+                        'text' => is_string($preparedResult) ? $preparedResult : json_encode($preparedResult, JSON_UNESCAPED_UNICODE),
                     ],
                 ],
             ];
         } else {
             return [
-                'result' => $result,
+                'result' => $preparedResult,
             ];
         }
     }
