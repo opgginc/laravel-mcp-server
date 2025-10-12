@@ -274,7 +274,7 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
 ## Requirements
 
 - PHP >=8.2
-- Laravel >=10.x or Lumen >=11.x
+- Laravel >=10.x or Lumen >=9.x
 
 ## Installation
 
@@ -291,7 +291,7 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
 
 ### Lumen Setup
 
-The package also supports Lumen 11.x applications. After installing the dependency via Composer:
+The package also supports Lumen 9.x and newer applications. After installing the dependency via Composer:
 
 1. Enable the optional helpers you need inside `bootstrap/app.php`:
    ```php

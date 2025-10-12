@@ -16,6 +16,10 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        if (! class_exists(\Laravel\Lumen\Application::class)) {
+            $this->markTestSkipped('Laravel Lumen is not installed.');
+        }
+
         $this->app = new TestingApplication($this->basePath());
         $this->app->instance('path.config', $this->basePath('config'));
         $this->app->instance('config', new ConfigRepository);
