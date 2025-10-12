@@ -30,29 +30,16 @@
   <img src="docs/watch.gif" alt="Laravel MCP Server Demo" height="200">
 </p>
 
-## ⚠️ Version Information & Breaking Changes
+## ✅ Version Information & Breaking Changes
 
-### v1.5.0 Highlights (Latest) ✅
+### v1.5.0 Highlights (Oct 2025) ✅
 
 Version 1.5.0 focuses on structured tool output, richer prompt support, and improved discoverability across the MCP protocol:
 
-- ✅ **Structured tool responses** – Use `ToolResponse::structured()` to emit plain text and JSON payloads simultaneously. The server automatically publishes `structuredContent`, and `tools/call` now attaches structured metadata when returning arrays to satisfy the MCP 2025-06-18 specification. Tool interfaces optionally expose `title()` and `outputSchema()` so schema-aware clients can display richer results.
-- ✅ **Tabular response helpers** – The new `FormatsTabularToolResponses` trait converts array data into CSV or Markdown tables with consistent MIME typing. Example tools and Pest tests demonstrate column normalization, validation, and multi-format output generation for data-heavy workflows.
-- ✅ **Enhanced tool pagination & metadata** – Cursor-based pagination for `tools/list` scales to large catalogs, configurable via the `MCP_TOOLS_PAGE_SIZE` environment variable. The server advertises schema awareness and `listChanged` hints during capability negotiation, with integration tests covering `nextCursor` behavior.
-- ✅ **Prompt registry & generator** – A full prompt registry backed by configuration files powers the new `prompts/list` and `prompts/get` handlers. Developers can scaffold prompts using `php artisan make:mcp-prompt`, while the service provider surfaces prompt schemas inside the MCP handshake for immediate client discovery.
-
-### v1.3.0 Changes
-
-Version 1.3.0 introduces improvements to the `ToolInterface` for better communication control:
-
-**New Features:**
-- Added `isStreaming(): bool` method for clearer communication pattern selection
-- Improved migration tools supporting upgrades from v1.1.x, v1.2.x to v1.3.0
-- Enhanced stub files with comprehensive v1.3.0 documentation
-
-**Deprecated Features:**
-- `messageType(): ProcessMessageType` method is now deprecated (will be removed in v2.0.0)
-- Use `isStreaming(): bool` instead for better clarity and simplicity
+- **Structured tool responses** – Use `ToolResponse::structured()` to emit plain text and JSON payloads simultaneously. The server automatically publishes `structuredContent`, and `tools/call` now attaches structured metadata when returning arrays to satisfy the MCP 2025-06-18 specification. Tool interfaces optionally expose `title()` and `outputSchema()` so schema-aware clients can display richer results.
+- **Tabular response helpers** – The new `FormatsTabularToolResponses` trait converts array data into CSV or Markdown tables with consistent MIME typing. Example tools and Pest tests demonstrate column normalization, validation, and multi-format output generation for data-heavy workflows.
+- **Enhanced tool pagination & metadata** – Cursor-based pagination for `tools/list` scales to large catalogs, configurable via the `MCP_TOOLS_PAGE_SIZE` environment variable. The server advertises schema awareness and `listChanged` hints during capability negotiation, with integration tests covering `nextCursor` behavior.
+- **Prompt registry & generator** – A full prompt registry backed by configuration files powers the new `prompts/list` and `prompts/get` handlers. Developers can scaffold prompts using `php artisan make:mcp-prompt`, while the service provider surfaces prompt schemas inside the MCP handshake for immediate client discovery.
 
 ### Breaking Changes in v1.1.0 (May 2025)
 
