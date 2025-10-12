@@ -52,7 +52,7 @@ return [
     */
     'server' => [
         'name' => 'OP.GG MCP Server',
-        'version' => '0.1.0',
+        'version' => '1.5.0',
     ],
 
     /*
