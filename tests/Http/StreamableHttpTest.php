@@ -38,9 +38,7 @@ test('tool can be called via streamable http', function () {
     expect($data['result']['content'][0]['text'])
         ->toContain('HelloWorld `Tester` developer');
 
-    expect($data['result']['content'][1]['type'])->toBe('text');
-    $decoded = json_decode($data['result']['content'][1]['text'], true);
-    expect($decoded['name'])->toBe('Tester');
+    expect($data['result']['content'])->toHaveCount(1);
     expect($data['result']['structuredContent']['message'])
         ->toContain('HelloWorld `Tester` developer');
 });
