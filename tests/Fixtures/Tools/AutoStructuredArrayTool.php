@@ -8,8 +8,6 @@ class AutoStructuredArrayTool implements ToolInterface
 {
     /**
      * Opt into automatic structuredContent detection for array payloads.
-     *
-     * @var bool
      */
     protected bool $autoStructuredOutput = true;
 
