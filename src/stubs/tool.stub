@@ -44,6 +44,21 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 class {{ className }} implements ToolInterface
 {
     /**
+     * Opt into automatic structuredContent conversion for array responses.
+     *
+     * HISTORY:
+     * - Introduced in v1.5.0 alongside the MCP 2025-06-18 structured payload spec.
+     * - Tools created before v1.5 omitted this property and kept legacy JSON-string outputs.
+     *
+     * BEHAVIOR:
+     * - true (stub default): associative arrays returned from execute() are emitted via `structuredContent`-key.
+     * - false: arrays are JSON-encoded and wrapped under the text-based `content`-key list for backwards compatibility.
+     *
+     * Returning a ToolResponse bypasses the flag entirely, so you can mix structured payloads with rich text manually.
+     */
+    protected bool $autoStructuredOutput = true;
+
+    /**
      * OPTIONAL: Determines if this tool requires streaming (SSE) instead of standard HTTP.
      *
      * This method is optional and only needed if you want to use streaming.

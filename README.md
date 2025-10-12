@@ -36,7 +36,7 @@
 
 Version 1.5.0 focuses on structured tool output, richer prompt support, and improved discoverability across the MCP protocol:
 
-- **Structured tool responses** – Use `ToolResponse::structured()` to emit plain text and JSON payloads simultaneously. The server automatically publishes `structuredContent`, and `tools/call` now attaches structured metadata when returning arrays to satisfy the MCP 2025-06-18 specification. Tool interfaces optionally expose `title()` and `outputSchema()` so schema-aware clients can display richer results.
+- **Structured tool responses** – Use `ToolResponse::structured()` to emit plain text and JSON payloads simultaneously. Existing tools keep returning JSON strings inside the `content` array for backwards compatibility, while new stubs expose a `$autoStructuredOutput = true` flag so array responses automatically populate `structuredContent` per the MCP 2025-06-18 specification. Tool interfaces optionally expose `title()` and `outputSchema()` so schema-aware clients can display richer results.
 - **Tabular response helpers** – The new `FormatsTabularToolResponses` trait converts array data into CSV or Markdown tables with consistent MIME typing. Example tools and Pest tests demonstrate column normalization, validation, and multi-format output generation for data-heavy workflows.
 - **Enhanced tool pagination & metadata** – Cursor-based pagination for `tools/list` scales to large catalogs, configurable via the `MCP_TOOLS_PAGE_SIZE` environment variable. The server advertises schema awareness and `listChanged` hints during capability negotiation, with integration tests covering `nextCursor` behavior.
 - **Prompt registry & generator** – A full prompt registry backed by configuration files powers the new `prompts/list` and `prompts/get` handlers. Developers can scaffold prompts using `php artisan make:mcp-prompt`, while the service provider surfaces prompt schemas inside the MCP handshake for immediate client discovery.
@@ -801,6 +801,30 @@ if ($validator->fails()) {
 }
 // Proceed with validated $arguments['userId'] and $arguments['includeDetails']
 ```
+
+#### Automatic structuredContent opt-in for array responses (v1.5+)
+
+Laravel MCP Server 1.5 keeps backwards compatibility with legacy tools by leaving associative-array results as JSON strings under the `content` field. New installations created from the `make:mcp-tool` stub expose a `$autoStructuredOutput = true` property so array payloads are promoted into the `structuredContent` field automatically.
+
+To enable the new behaviour on an existing tool, declare the property on your class:
+
+```php
+class OrderLookupTool implements ToolInterface
+{
+    protected bool $autoStructuredOutput = true;
+
+    public function execute(array $arguments): array
+    {
+        // Returning an array now fills the `structuredContent` field automatically.
+        return [
+            'orderId' => $arguments['id'],
+            'status' => 'shipped',
+        ];
+    }
+}
+```
+
+You can always bypass the flag by returning a `ToolResponse` instance directly—use `ToolResponse::structured()` when you need full control over both human-readable text and machine-readable metadata.
 
 #### Formatting flat tool results as CSV or Markdown (v1.5.0+)
 
