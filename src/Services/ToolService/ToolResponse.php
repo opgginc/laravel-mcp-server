@@ -3,7 +3,6 @@
 namespace OPGG\LaravelMcpServer\Services\ToolService;
 
 use InvalidArgumentException;
-use JsonException;
 
 /**
  * Value object describing a structured tool response.
@@ -11,16 +10,30 @@ use JsonException;
 final class ToolResponse
 {
     /**
+     * @var array<int, array{type: string, text: string, source?: string}>
+     */
+    private array $content;
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $metadata;
+
+    /**
      * @param  array<int, array{type: string, text: string, source?: string}>  $content
      * @param  array<string, mixed>  $metadata
      */
-    private function __construct(private array $content, private array $metadata = [])
+    private bool $includeContent;
+
+    private function __construct(array $content, array $metadata = [], bool $includeContent = true)
     {
         if (array_key_exists('content', $metadata)) {
             throw new InvalidArgumentException('Metadata must not contain a content key.');
         }
 
         $this->content = array_values($content);
+        $this->metadata = $metadata;
+        $this->includeContent = $includeContent && $this->content !== [];
 
         foreach ($this->content as $index => $item) {
             if (! is_array($item) || ! isset($item['type'], $item['text'])) {
@@ -60,41 +73,26 @@ final class ToolResponse
     }
 
     /**
-     * Create a ToolResponse that includes structured content alongside serialised text.
+     * Create a ToolResponse that includes structured content alongside optional serialised text.
      *
      * @param  array<int, array{type: string, text: string, source?: string}>|null  $content
      * @param  array<string, mixed>  $metadata
-     *
-     * @throws JsonException
      */
     public static function structured(array $structuredContent, ?array $content = null, array $metadata = []): self
     {
-        $json = json_encode($structuredContent, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-
         $contentItems = $content !== null ? array_values($content) : [];
 
-        $hasSerialisedText = false;
-        foreach ($contentItems as $item) {
-            if (isset($item['type'], $item['text']) && $item['type'] === 'text' && $item['text'] === $json) {
-                $hasSerialisedText = true;
-                break;
-            }
-        }
-
-        if (! $hasSerialisedText) {
-            $contentItems[] = [
-                'type' => 'text',
-                'text' => $json,
-            ];
-        }
-
-        return new self($contentItems, [
-            ...$metadata,
-            // The MCP 2025-06-18 spec encourages servers to mirror structured payloads in the
-            // `structuredContent` field for reliable client parsing.
-            // @see https://modelcontextprotocol.io/specification/2025-06-18#structured-content
-            'structuredContent' => $structuredContent,
-        ]);
+        return new self(
+            $contentItems,
+            [
+                ...$metadata,
+                // The MCP 2025-06-18 spec encourages servers to mirror structured payloads in the
+                // `structuredContent` field for reliable client parsing.
+                // @see https://modelcontextprotocol.io/specification/2025-06-18#structured-content
+                'structuredContent' => $structuredContent,
+            ],
+            $contentItems !== []
+        );
     }
 
     /**
@@ -124,9 +122,14 @@ final class ToolResponse
      */
     public function toArray(): array
     {
-        return [
+        $payload = [
             ...$this->metadata,
-            'content' => $this->content,
         ];
+
+        if ($this->includeContent) {
+            $payload['content'] = $this->content;
+        }
+
+        return $payload;
     }
 }

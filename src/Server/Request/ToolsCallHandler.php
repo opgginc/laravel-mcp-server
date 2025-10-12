@@ -82,7 +82,7 @@ class ToolsCallHandler extends RequestHandler
                 }
 
                 try {
-                    $json = json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                    json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
                 } catch (JsonException $exception) {
                     throw new JsonRpcErrorException(
                         message: 'Failed to encode tool result as JSON: '.$exception->getMessage(),
@@ -91,14 +91,6 @@ class ToolsCallHandler extends RequestHandler
                 }
 
                 return [
-                    'content' => [
-                        [
-                            'type' => 'text',
-                            'text' => $json,
-                        ],
-                    ],
-                    // Provide structuredContent alongside text per MCP 2025-06-18 guidance.
-                    // @see https://modelcontextprotocol.io/specification/2025-06-18#structured-content
                     'structuredContent' => $preparedResult,
                 ];
             }
