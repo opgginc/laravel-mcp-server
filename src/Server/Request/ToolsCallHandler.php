@@ -89,28 +89,14 @@ class ToolsCallHandler extends RequestHandler
                 }
 
                 if ($autoStructuredOutput) {
-                    try {
-                        json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-                    } catch (JsonException $exception) {
-                        throw new JsonRpcErrorException(
-                            message: 'Failed to encode tool result as JSON: '.$exception->getMessage(),
-                            code: JsonRpcErrorCode::INTERNAL_ERROR
-                        );
-                    }
+                    $this->encodeJson($preparedResult);
 
                     return [
                         'structuredContent' => $preparedResult,
                     ];
                 }
 
-                try {
-                    $text = json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-                } catch (JsonException $exception) {
-                    throw new JsonRpcErrorException(
-                        message: 'Failed to encode tool result as JSON: '.$exception->getMessage(),
-                        code: JsonRpcErrorCode::INTERNAL_ERROR
-                    );
-                }
+                $text = $this->encodeJson($preparedResult);
 
                 return [
                     'content' => [
@@ -133,14 +119,7 @@ class ToolsCallHandler extends RequestHandler
                 ];
             }
 
-            try {
-                $text = json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-            } catch (JsonException $exception) {
-                throw new JsonRpcErrorException(
-                    message: 'Failed to encode tool result as JSON: '.$exception->getMessage(),
-                    code: JsonRpcErrorCode::INTERNAL_ERROR
-                );
-            }
+            $text = $this->encodeJson($preparedResult);
 
             return [
                 'content' => [
@@ -154,6 +133,21 @@ class ToolsCallHandler extends RequestHandler
             return [
                 'result' => $preparedResult,
             ];
+        }
+    }
+
+    /**
+     * Ensure results remain JSON serializable while providing consistent error handling.
+     */
+    private function encodeJson(mixed $value): string
+    {
+        try {
+            return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        } catch (JsonException $exception) {
+            throw new JsonRpcErrorException(
+                message: 'Failed to encode tool result as JSON: '.$exception->getMessage(),
+                code: JsonRpcErrorCode::INTERNAL_ERROR
+            );
         }
     }
 }
