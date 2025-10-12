@@ -32,42 +32,14 @@
 
 ## ⚠️ Version Information & Breaking Changes
 
-### v1.4.0 Changes (Latest) 🚀
+### v1.5.0 Highlights (Latest) ✅
 
-Version 1.4.0 introduces powerful automatic tool and resource generation from Swagger/OpenAPI specifications:
+Version 1.5.0 focuses on structured tool output, richer prompt support, and improved discoverability across the MCP protocol:
 
-**New Features:**
-- **Swagger/OpenAPI Tool & Resource Generator**: Automatically generate MCP tools or resources from any Swagger/OpenAPI specification
-  - Supports both OpenAPI 3.x and Swagger 2.0 formats
-  - **Choose generation type**: Generate as Tools (for actions) or Resources (for read-only data)
-  - **Multiple grouping strategies** (v1.4.1): Organize by tags, paths, or root directory
-  - **Enhanced interactive preview** (v1.4.2): Shows directory structure with file counts and examples
-  - **Interactive endpoint selection** with real-time preview of directory structure
-  - Automatic authentication logic generation (API Key, Bearer Token, OAuth2)
-  - Smart naming for readable class names (handles hash-based operationIds)
-  - Built-in API testing before generation
-  - Complete Laravel HTTP client integration with retry logic
-- **MCP 2025-06-18 compatibility**:
-  - Default protocol negotiation now targets the 2025-06-18 revision.
-  - `tools/list` returns cursor-based pages and advertises the `listChanged` capability flag.
-  - Tool responses automatically expose `structuredContent` alongside text blocks for structured payloads.
-
-**Example Usage:**
-```bash
-# Generate tools from OP.GG API (interactive mode)
-php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
-
-# With specific grouping
-php artisan make:swagger-mcp-tool ./api-spec.json --test-api --group-by=tag --prefix=MyApi
-
-# Group by path segments
-php artisan make:swagger-mcp-tool ./api-spec.json --group-by=path
-
-# No grouping (flat structure)
-php artisan make:swagger-mcp-tool ./api-spec.json --group-by=none
-```
-
-This feature dramatically reduces the time needed to integrate external APIs into your MCP server!
+- ✅ **Structured tool responses** – Use `ToolResponse::structured()` to emit plain text and JSON payloads simultaneously. The server automatically publishes `structuredContent`, and `tools/call` now attaches structured metadata when returning arrays to satisfy the MCP 2025-06-18 specification. Tool interfaces optionally expose `title()` and `outputSchema()` so schema-aware clients can display richer results.
+- ✅ **Tabular response helpers** – The new `FormatsTabularToolResponses` trait converts array data into CSV or Markdown tables with consistent MIME typing. Example tools and Pest tests demonstrate column normalization, validation, and multi-format output generation for data-heavy workflows.
+- ✅ **Enhanced tool pagination & metadata** – Cursor-based pagination for `tools/list` scales to large catalogs, configurable via the `MCP_TOOLS_PAGE_SIZE` environment variable. The server advertises schema awareness and `listChanged` hints during capability negotiation, with integration tests covering `nextCursor` behavior.
+- ✅ **Prompt registry & generator** – A full prompt registry backed by configuration files powers the new `prompts/list` and `prompts/get` handlers. Developers can scaffold prompts using `php artisan make:mcp-prompt`, while the service provider surfaces prompt schemas inside the MCP handshake for immediate client discovery.
 
 ### v1.3.0 Changes
 
