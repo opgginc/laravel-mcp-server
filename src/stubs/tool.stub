@@ -44,6 +44,11 @@ use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 class {{ className }} implements ToolInterface
 {
     /**
+     * Opt into automatic structuredContent conversion for array responses (v1.5+ default).
+     */
+    protected bool $autoStructuredOutput = true;
+
+    /**
      * OPTIONAL: Determines if this tool requires streaming (SSE) instead of standard HTTP.
      *
      * This method is optional and only needed if you want to use streaming.

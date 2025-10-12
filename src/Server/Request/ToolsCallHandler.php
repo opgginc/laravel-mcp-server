@@ -65,6 +65,13 @@ class ToolsCallHandler extends RequestHandler
         $arguments = $params['arguments'] ?? [];
         $result = $tool->execute($arguments);
 
+        $autoStructuredOutput = false;
+        if (property_exists($tool, 'autoStructuredOutput')) {
+            $autoStructuredOutput = (bool) (function () {
+                return $this->autoStructuredOutput;
+            })->call($tool);
+        }
+
         $preparedResult = $result instanceof ToolResponse
             ? $result->toArray()
             : $result;
@@ -81,8 +88,23 @@ class ToolsCallHandler extends RequestHandler
                     return $preparedResult;
                 }
 
+                if ($autoStructuredOutput) {
+                    try {
+                        json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                    } catch (JsonException $exception) {
+                        throw new JsonRpcErrorException(
+                            message: 'Failed to encode tool result as JSON: '.$exception->getMessage(),
+                            code: JsonRpcErrorCode::INTERNAL_ERROR
+                        );
+                    }
+
+                    return [
+                        'structuredContent' => $preparedResult,
+                    ];
+                }
+
                 try {
-                    json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                    $text = json_encode($preparedResult, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
                 } catch (JsonException $exception) {
                     throw new JsonRpcErrorException(
                         message: 'Failed to encode tool result as JSON: '.$exception->getMessage(),
@@ -91,7 +113,12 @@ class ToolsCallHandler extends RequestHandler
                 }
 
                 return [
-                    'structuredContent' => $preparedResult,
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $text,
+                        ],
+                    ],
                 ];
             }
 
