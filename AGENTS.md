@@ -1,11 +1,3 @@
-## Rules
-
-- Read CLAUDE.md for code generation instructions.
-
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Common Commands
 
 ### Testing and Quality Assurance
