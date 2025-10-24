@@ -3,6 +3,7 @@
 namespace OPGG\LaravelMcpServer\Protocol;
 
 use Exception;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 use OPGG\LaravelMcpServer\Data\ProcessMessageData;
 use OPGG\LaravelMcpServer\Data\Requests\NotificationData;
@@ -138,7 +139,7 @@ final class MCPProtocol
 
             $jsonErrorResource = new JsonRpcErrorResource(
                 exception: new JsonRpcErrorException(
-                    message: 'INTERNAL_ERROR',
+                    message: App::isProduction() ? 'INTERNAL_ERROR' : $e->getMessage(),
                     code: JsonRpcErrorCode::INTERNAL_ERROR,
                     data: [
                         'exception' => $e::class,
