@@ -138,7 +138,7 @@ final class MCPProtocol
 
             $jsonErrorResource = new JsonRpcErrorResource(
                 exception: new JsonRpcErrorException(
-                    message: $e->getMessage() ?: 'INTERNAL_ERROR',
+                    message: 'INTERNAL_ERROR',
                     code: JsonRpcErrorCode::INTERNAL_ERROR,
                     data: [
                         'exception' => $e::class,
