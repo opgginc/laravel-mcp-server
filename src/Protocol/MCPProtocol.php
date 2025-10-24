@@ -4,7 +4,6 @@ namespace OPGG\LaravelMcpServer\Protocol;
 
 use Exception;
 use Illuminate\Support\Facades\Log;
-use Throwable;
 use OPGG\LaravelMcpServer\Data\ProcessMessageData;
 use OPGG\LaravelMcpServer\Data\Requests\NotificationData;
 use OPGG\LaravelMcpServer\Data\Requests\RequestData;
@@ -17,6 +16,7 @@ use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
 use OPGG\LaravelMcpServer\Protocol\Handlers\RequestHandler;
 use OPGG\LaravelMcpServer\Transports\TransportInterface;
 use OPGG\LaravelMcpServer\Utils\DataUtil;
+use Throwable;
 
 /**
  * MCPProtocol
