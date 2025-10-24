@@ -4,6 +4,7 @@ namespace OPGG\LaravelMcpServer\Protocol;
 
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 use OPGG\LaravelMcpServer\Data\ProcessMessageData;
 use OPGG\LaravelMcpServer\Data\Requests\NotificationData;
 use OPGG\LaravelMcpServer\Data\Requests\RequestData;
@@ -127,13 +128,22 @@ final class MCPProtocol
 
             throw new JsonRpcErrorException(message: 'Invalid Request: Message format not recognized', code: JsonRpcErrorCode::INVALID_REQUEST);
         } catch (JsonRpcErrorException $e) {
+            report($e);
             $jsonErrorResource = new JsonRpcErrorResource(exception: $e, id: $messageId);
             $this->sendSSEMessage(clientId: $clientId, message: $jsonErrorResource);
 
             return new ProcessMessageData(messageType: ProcessMessageType::HTTP, resource: $jsonErrorResource, isNotification: false);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            report($e);
+
             $jsonErrorResource = new JsonRpcErrorResource(
-                exception: new JsonRpcErrorException(message: 'INTERNAL_ERROR', code: JsonRpcErrorCode::INTERNAL_ERROR),
+                exception: new JsonRpcErrorException(
+                    message: $e->getMessage() ?: 'INTERNAL_ERROR',
+                    code: JsonRpcErrorCode::INTERNAL_ERROR,
+                    data: [
+                        'exception' => $e::class,
+                    ]
+                ),
                 id: $messageId
             );
             $this->sendSSEMessage(clientId: $clientId, message: $jsonErrorResource);
