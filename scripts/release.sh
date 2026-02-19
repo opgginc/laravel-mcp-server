@@ -60,10 +60,10 @@ if ! git diff-index --quiet HEAD --; then
     exit 1
 fi
 
-# Check if we're on a release branch (master or main)
+# Check if we're on the release branch (main)
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [[ "$CURRENT_BRANCH" != "master" && "$CURRENT_BRANCH" != "main" ]]; then
-    print_warning "You are on branch '$CURRENT_BRANCH'. Releases are typically done from 'master' or 'main'."
+if [[ "$CURRENT_BRANCH" != "main" ]]; then
+    print_warning "You are on branch '$CURRENT_BRANCH'. Releases are typically done from 'main'."
     read -p "Do you want to continue? (y/N) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
