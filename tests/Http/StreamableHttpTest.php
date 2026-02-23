@@ -469,6 +469,33 @@ test('initialize responds with server protocol version even when client requests
     expect($response->json('result.protocolVersion'))->toBe('2025-11-25');
 });
 
+test('initialize accepts legacy version alias when protocolVersion is missing', function () {
+    registerMcpEndpoint(defaultTools());
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 101,
+        'method' => 'initialize',
+        'params' => [
+            'version' => '2025-11-25',
+            'capabilities' => [
+                'roots' => [
+                    'listChanged' => true,
+                ],
+            ],
+            'clientInfo' => [
+                'name' => 'legacy-client',
+                'version' => '1.0.0',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+    $response->assertStatus(200);
+    $response->assertJsonMissingPath('error');
+    expect($response->json('result.protocolVersion'))->toBe('2025-11-25');
+});
+
 test('initialize returns invalid params when required initialize fields are missing', function () {
     registerMcpEndpoint(defaultTools());
 

@@ -47,7 +47,7 @@ class InitializeHandler extends RequestHandler
             throw new JsonRpcErrorException(message: 'initialize params are required.', code: JsonRpcErrorCode::INVALID_PARAMS);
         }
 
-        $protocolVersion = $params['protocolVersion'] ?? null;
+        $protocolVersion = $params['protocolVersion'] ?? $params['version'] ?? null;
         if (! is_string($protocolVersion) || trim($protocolVersion) === '') {
             throw new JsonRpcErrorException(message: 'initialize params.protocolVersion is required.', code: JsonRpcErrorCode::INVALID_PARAMS);
         }
