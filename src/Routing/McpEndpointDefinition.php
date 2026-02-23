@@ -2,6 +2,8 @@
 
 namespace OPGG\LaravelMcpServer\Routing;
 
+use OPGG\LaravelMcpServer\Enums\ProtocolVersion;
+
 final class McpEndpointDefinition
 {
     public const DEFAULT_NAME = 'OP.GG MCP Server';
@@ -23,6 +25,7 @@ final class McpEndpointDefinition
         public readonly string $path,
         public readonly string $name = self::DEFAULT_NAME,
         public readonly string $version = self::DEFAULT_VERSION,
+        public readonly string $protocolVersion = ProtocolVersion::V2025_11_25->value,
         public readonly ?string $title = null,
         public readonly ?string $description = null,
         public readonly ?string $websiteUrl = null,
@@ -53,6 +56,11 @@ final class McpEndpointDefinition
     public function withVersion(string $version): self
     {
         return $this->copy(['version' => $version]);
+    }
+
+    public function withProtocolVersion(string $protocolVersion): self
+    {
+        return $this->copy(['protocolVersion' => self::normalizeProtocolVersion($protocolVersion)]);
     }
 
     public function withTitle(?string $title): self
@@ -154,6 +162,7 @@ final class McpEndpointDefinition
      *   path: string,
      *   name: string,
      *   version: string,
+     *   protocolVersion: string,
      *   title: ?string,
      *   description: ?string,
      *   websiteUrl: ?string,
@@ -193,6 +202,7 @@ final class McpEndpointDefinition
             path: self::normalizePath(is_string($path) ? $path : '/'),
             name: self::stringOrDefault($state['name'] ?? null, self::DEFAULT_NAME),
             version: self::stringOrDefault($state['version'] ?? null, self::DEFAULT_VERSION),
+            protocolVersion: self::normalizeProtocolVersion($state['protocolVersion'] ?? null),
             title: self::nullableString($state['title'] ?? null),
             description: self::nullableString($state['description'] ?? null),
             websiteUrl: self::nullableString($state['websiteUrl'] ?? null),
@@ -227,6 +237,7 @@ final class McpEndpointDefinition
      *   path?: string,
      *   name?: string,
      *   version?: string,
+     *   protocolVersion?: string,
      *   title?: ?string,
      *   description?: ?string,
      *   websiteUrl?: ?string,
@@ -253,6 +264,7 @@ final class McpEndpointDefinition
             path: $state['path'],
             name: $state['name'],
             version: $state['version'],
+            protocolVersion: $state['protocolVersion'],
             title: $state['title'],
             description: $state['description'],
             websiteUrl: $state['websiteUrl'],
@@ -277,6 +289,7 @@ final class McpEndpointDefinition
      *   path: string,
      *   name: string,
      *   version: string,
+     *   protocolVersion: string,
      *   title: ?string,
      *   description: ?string,
      *   websiteUrl: ?string,
@@ -301,6 +314,7 @@ final class McpEndpointDefinition
             'path' => $this->path,
             'name' => $this->name,
             'version' => $this->version,
+            'protocolVersion' => $this->protocolVersion,
             'title' => $this->title,
             'description' => $this->description,
             'websiteUrl' => $this->websiteUrl,
@@ -345,5 +359,14 @@ final class McpEndpointDefinition
     private static function intOrDefault(mixed $value, int $default): int
     {
         return is_int($value) ? $value : $default;
+    }
+
+    private static function normalizeProtocolVersion(mixed $value): string
+    {
+        if (is_string($value) && in_array($value, array_column(ProtocolVersion::cases(), 'value'), true)) {
+            return $value;
+        }
+
+        return ProtocolVersion::latest()->value;
     }
 }

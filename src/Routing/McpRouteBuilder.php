@@ -3,6 +3,7 @@
 namespace OPGG\LaravelMcpServer\Routing;
 
 use InvalidArgumentException;
+use OPGG\LaravelMcpServer\Enums\ProtocolVersion;
 use OPGG\LaravelMcpServer\Server\McpServerFactory;
 use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
 
@@ -153,6 +154,15 @@ final class McpRouteBuilder
     public function toolsPageSize(int $pageSize): self
     {
         $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withToolsPageSize($pageSize));
+
+        return $this;
+    }
+
+    public function setProtocolVersion(ProtocolVersion $protocolVersion): self
+    {
+        $this->mutate(
+            fn (McpEndpointDefinition $definition) => $definition->withProtocolVersion($protocolVersion->value),
+        );
 
         return $this;
     }

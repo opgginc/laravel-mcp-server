@@ -11,6 +11,7 @@ use OPGG\LaravelMcpServer\Data\Requests\RequestData;
 use OPGG\LaravelMcpServer\Data\Resources\JsonRpc\JsonRpcErrorResource;
 use OPGG\LaravelMcpServer\Data\Resources\JsonRpc\JsonRpcResultResource;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
+use OPGG\LaravelMcpServer\Enums\ProtocolVersion;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Protocol\Handlers\NotificationHandler;
@@ -28,7 +29,9 @@ final class MCPProtocol
 {
     // MCP specification (2025-11-25) requires advertising this protocol version during initialize.
     // @see https://modelcontextprotocol.io/specification/2025-11-25 for the authoritative definition.
-    public const PROTOCOL_VERSION = '2025-11-25';
+    public const LATEST_PROTOCOL_VERSION = ProtocolVersion::V2025_11_25->value;
+
+    public const PROTOCOL_VERSION = self::LATEST_PROTOCOL_VERSION;
 
     private TransportInterface $transport;
 

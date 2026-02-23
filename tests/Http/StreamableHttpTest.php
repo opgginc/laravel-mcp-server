@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use OPGG\LaravelMcpServer\Enums\ProtocolVersion;
 use OPGG\LaravelMcpServer\Http\Controllers\StreamableHttpController;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
@@ -488,6 +489,39 @@ test('initialize responds with server protocol version even when client requests
     $response->assertStatus(200);
 
     expect($response->json('result.protocolVersion'))->toBe('2025-11-25');
+});
+
+test('initialize responds with route configured protocol version', function () {
+    Route::mcp('/mcp')
+        ->setServerInfo(
+            name: 'HTTP Test MCP',
+            version: '1.0.0',
+        )
+        ->setProtocolVersion(ProtocolVersion::V2025_06_18)
+        ->tools(defaultTools());
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 100,
+        'method' => 'initialize',
+        'params' => [
+            'protocolVersion' => '2025-11-25',
+            'capabilities' => [
+                'roots' => [
+                    'listChanged' => true,
+                ],
+            ],
+            'clientInfo' => [
+                'name' => 'pest-client',
+                'version' => '1.0.0',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+    $response->assertStatus(200);
+
+    expect($response->json('result.protocolVersion'))->toBe('2025-06-18');
 });
 
 test('initialize accepts legacy version alias when protocolVersion is missing', function () {
