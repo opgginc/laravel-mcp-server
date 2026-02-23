@@ -1,14 +1,14 @@
-<h1 align="center">Laravel MCP Server by OP.GG</h1>
+<h1align="center">OP.GG 的 Laravel MCP 服务器</h1>
 
 <p align="center">
-  一个强大的 Laravel 扩展包，用于无缝构建模型上下文协议服务器
+  在 Laravel 和 Lumen 中构建路由优先的 MCP 服务器
 </p>
 
 <p align="center">
-<a href="https://github.com/opgginc/laravel-mcp-server/actions"><img src="https://github.com/opgginc/laravel-mcp-server/actions/workflows/tests.yml/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/opgginc/laravel-mcp-server"><img src="https://img.shields.io/packagist/dt/opgginc/laravel-mcp-server" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/opgginc/laravel-mcp-server"><img src="https://img.shields.io/packagist/v/opgginc/laravel-mcp-server" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/opgginc/laravel-mcp-server"><img src="https://img.shields.io/packagist/l/opgginc/laravel-mcp-server" alt="License"></a>
+<a href="https://github.com/opgginc/laravel-mcp-server/actions"><img src="https://github.com/opgginc/laravel-mcp-server/actions/workflows/tests.yml/badge.svg" alt="构建状态"></a>
+<a href="https://packagist.org/packages/opgginc/laravel-mcp-server"><img src="https://img.shields.io/packagist/dt/opgginc/laravel-mcp-server" alt="总下载量"></a>
+<a href="https://packagist.org/packages/opgginc/laravel-mcp-server"><img src="https://img.shields.io/packagist/v/opgginc/laravel-mcp-server" alt="最新稳定版本"></a>
+<a href="https://packagist.org/packages/opgginc/laravel-mcp-server"><img src="https://img.shields.io/packagist/l/opgginc/laravel-mcp-server" alt="许可证"></a>
 </p>
 
 <p align="center">
@@ -16,1008 +16,365 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> |
-  <a href="README.pt-BR.md">Português do Brasil</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.ru.md">Русский</a> |
+  <a href="README.md">简体中文</a> |
+  <a href="README.pt-BR.md">巴西葡萄牙语</a> |
+  <a href="README.ko.md">韩语</a> |
+  <a href="README.ru.md">英语</a> |
   <a href="README.zh-CN.md">简体中文</a> |
-  <a href="README.zh-TW.md">繁體中文</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.es.md">Español</a>
+  <a href="README.zh-TW.md">繁体中文</a> |
+  <a href="README.pl.md">波兰</a> |
+  <a href="README.es.md">西班牙语</a>
 </p>
 
 <p align="center">
   <img src="docs/watch.gif" alt="Laravel MCP Server Demo" height="200">
 </p>
 
-## ⚠️ 版本信息与重大变更
+## 重大变更 2.0.0
 
-### v2.0.0 变更（当前版本）✅
+- 端点设置从配置驱动的注册转移到路由驱动的注册。
+- Streamable HTTP 是唯一受支持的传输。
+- 服务器元数据变异器被合并到“setServerInfo(...)”中。
+- 旧工具传输方法已从运行时删除（`messageType()`、`ProcessMessageType::SSE`）。
 
-v2.0.0 采用了 route-first 架构，并移除了旧版传输/配置路径：
+完整迁移指南：[docs/migrations/v2.0.0-migration.md](docs/migrations/v2.0.0-migration.md)
 
-- **显式端点注册**：Laravel 使用 `Route::mcp('/mcp')`，Lumen 使用 `McpRoute::register('/mcp')`。
-- **仅支持 Streamable HTTP**：旧版 SSE 端点/适配器已移除。
-- **移除 config 驱动启动方式**：不再使用 `config/mcp-server.php` 与自动路由注册。
-- **移除工具的旧版传输方法**：`messageType()` 已移除，`isStreaming()` 运行时不再使用。
-- **基于路由的工具发现**：`mcp:test-tool` 现在从已注册 MCP 端点发现工具。
+＃＃ 概述
 
-完整步骤请参考：[v2.0.0 迁移指南](docs/migrations/v2.0.0-migration.md)。
+Laravel MCP Server 为 Laravel 和 Lumen 提供基于路由的 MCP 端点注册。
 
-### v1.1.0 中的重大变更
+要点：
+- 可流式 HTTP 传输
+- 路由优先配置（`Route::mcp(...)` / `McpRoute::register(...)`）
+- 每个端点的工具、资源、资源模板和提示注册
+- 路由缓存兼容端点元数据
 
-版本 1.1.0 对 `ToolInterface` 引入了重大且破坏性的变更。如果您从 v1.0.x 升级，**必须**更新您的工具实现以符合新接口。
+＃＃ 要求
 
-**`ToolInterface` 的关键变更：**
+- PHP >= 8.2
+- Laravel（照亮）>= 9.x
+- 流明 >= 9.x（可选）
 
-`OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` 已更新如下：
+## 快速入门
 
-1.  **新增方法：**
-
-    - `messageType(): ProcessMessageType`
-      - 此方法对于新的 HTTP 流支持至关重要，用于确定正在处理的消息类型。
-
-2.  **方法重命名：**
-    - `getName()` 现在是 `name()`
-    - `getDescription()` 现在是 `description()`
-    - `getInputSchema()` 现在是 `inputSchema()`
-    - `getAnnotations()` 现在是 `annotations()`
-
-**如何更新您的工具：**
-
-### v1.1.0 自动化工具迁移
-
-为了帮助过渡到 v1.1.0 中引入的新 `ToolInterface`，我们提供了一个 Artisan 命令来自动化重构现有工具：
+### 1) 安装
 
 ```bash
-php artisan mcp:migrate-tools {path?}
+composer require opgginc/laravel-mcp-server
 ```
 
-**功能说明：**
+### 2) 注册端点 (Laravel)
 
-此命令将扫描指定目录中的 PHP 文件（默认为 `app/MCP/Tools/`）并尝试：
+```php
+use Illuminate\Support\Facades\Route;
+use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
+use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 
-1.  **识别旧工具：** 查找实现了旧方法签名的 `ToolInterface` 类。
-2.  **创建备份：** 在进行任何更改之前，会创建原始工具文件的备份，扩展名为 `.backup`（例如 `YourTool.php.backup`）。如果备份文件已存在，将跳过原始文件以防止意外数据丢失。
-3.  **重构工具：**
-    - 重命名方法：
-      - `getName()` 改为 `name()`
-      - `getDescription()` 改为 `description()`
-      - `getInputSchema()` 改为 `inputSchema()`
-      - `getAnnotations()` 改为 `annotations()`
-    - 添加新的 `messageType()` 方法，默认返回 `ProcessMessageType::SSE`。
-    - 确保存在 `use OPGG\LaravelMcpServer\Enums\ProcessMessageType;` 语句。
+Route::mcp('/mcp')
+    ->setServerInfo(
+        name: 'OP.GG MCP Server',
+        version: '2.0.0',
+    )
+    ->tools([
+        HelloWorldTool::class,
+        VersionCheckTool::class,
+    ]);
+```
 
-**使用方法：**
+### 3) 验证
 
-将 `opgginc/laravel-mcp-server` 包更新到 v1.1.0 或更高版本后，如果您有为 v1.0.x 编写的现有工具，强烈建议运行此命令：
+```bash
+php artisan route:list | grep mcp
+php artisan mcp:test-tool --list --endpoint=/mcp
+```
+
+快速 JSON-RPC 检查：
+
+```bash
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+## 流明设置
+
+```php
+// bootstrap/app.php
+$app->withFacades();
+$app->withEloquent();
+$app->register(OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider::class);
+```
+
+```php
+use OPGG\LaravelMcpServer\Routing\McpRoute;
+use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
+
+McpRoute::register('/mcp')
+    ->setServerInfo(
+        name: 'OP.GG MCP Server',
+        version: '2.0.0',
+    )
+    ->tools([
+        HelloWorldTool::class,
+    ]);
+```
+
+## 最低安全性（生产）
+
+在 MCP 路由组上使用 Laravel 中间件。
+
+```php
+use Illuminate\Support\Facades\Route;
+
+Route::middleware([
+    'auth:sanctum',
+    'throttle:100,1',
+])->group(function (): void {
+    Route::mcp('/mcp')
+        ->setServerInfo(
+            name: 'Secure MCP',
+            version: '2.0.0',
+        )
+        ->tools([
+            \App\MCP\Tools\MyCustomTool::class,
+        ]);
+});
+```
+
+## v2.0.0 迁移说明（从 v1.0.0 开始）
+
+- MCP 端点设置从配置移至路由注册。
+- Streamable HTTP 是唯一的传输方式。
+- 服务器元数据变异器被合并到“setServerInfo(...)”中。
+- 工具迁移命令可用于旧签名：
 
 ```bash
 php artisan mcp:migrate-tools
 ```
 
-如果您的工具位于 `app/MCP/Tools/` 以外的目录，可以指定路径：
+完整指南：[docs/migrations/v2.0.0-migration.md](docs/migrations/v2.0.0-migration.md)
+
+## 高级功能（快速链接）
+
+- 创建工具：`php artisan make:mcp-tool ToolName`
+- 创建资源：`php artisan make:mcp-resource ResourceName`
+- 创建资源模板：`php artisan make:mcp-resource-template TemplateName`
+- 创建提示：`php artisan make:mcp-prompt PromptName`
+- 创建通知：`php artisan make:mcp-notification HandlerName --method=notifications/method`
+- 从 OpenAPI 生成：`php artisan make:swagger-mcp-tool <spec-url-or-file>`
+
+代码参考：
+- 工具示例：`src/Services/ToolService/Examples/`
+- 资源示例：`src/Services/ResourceService/Examples/`
+- 提示服务：`src/Services/PromptService/`
+- 通知处理程序：`src/Server/Notification/`
+- 路由构建器：`src/Routing/McpRouteBuilder.php`
+
+## Swagger/OpenAPI -> MCP 工具
+
+从 Swagger/OpenAPI 规范生成 MCP 工具：
 
 ```bash
-php artisan mcp:migrate-tools path/to/your/tools
+# From URL
+php artisan make:swagger-mcp-tool https://api.example.com/openapi.json
+
+# From local file
+php artisan make:swagger-mcp-tool ./specs/openapi.json
 ```
 
-命令会输出进度，指示正在处理、备份和迁移哪些文件。请务必检查工具所做的更改。虽然它力求准确，但复杂或格式异常的工具文件可能需要手动调整。
-
-此工具应该能显著简化迁移过程，帮助您快速适应新的接口结构。
-
-### 手动迁移
-
-如果您更喜欢手动迁移工具，以下是帮助您适应现有工具的对比：
-
-**v1.0.x `ToolInterface`：**
-
-```php
-<?php
-
-namespace OPGG\LaravelMcpServer\Services\ToolService;
-
-interface ToolInterface
-{
-    public function getName(): string;
-    public function getDescription(): string;
-    public function getInputSchema(): array;
-    public function getAnnotations(): array;
-    public function execute(array $arguments): mixed;
-}
-```
-
-**v1.1.0 `ToolInterface`（新版）：**
-
-```php
-<?php
-
-namespace OPGG\LaravelMcpServer\Services\ToolService;
-
-use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
-
-interface ToolInterface
-{
-    public function messageType(): ProcessMessageType; // 新方法
-    public function name(): string;                     // 已重命名
-    public function description(): string;              // 已重命名
-    public function inputSchema(): array;               // 已重命名
-    public function annotations(): array;               // 已重命名
-    public function execute(array $arguments): mixed;   // 无变化
-}
-```
-
-**更新后工具的示例：**
-
-如果您的 v1.0.x 工具是这样的：
-
-```php
-use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
-
-class MyOldTool implements ToolInterface
-{
-    public function getName(): string { return 'MyOldTool'; }
-    public function getDescription(): string { return 'This is my old tool.'; }
-    public function getInputSchema(): array { return []; }
-    public function getAnnotations(): array { return []; }
-    public function execute(array $arguments): mixed { /* ... */ }
-}
-```
-
-您需要为 v1.1.0 更新如下：
-
-```php
-use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
-use OPGG\LaravelMcpServer\Enums\ProcessMessageType; // 导入枚举
-
-class MyNewTool implements ToolInterface
-{
-    /**
-     * @deprecated since v1.3.0, use isStreaming() instead. Will be removed in v2.0.0
-     */
-    public function messageType(): ProcessMessageType
-    {
-        return ProcessMessageType::HTTP;
-    }
-
-    public function isStreaming(): bool
-    {
-        return false; // 大多数工具应该返回 false
-    }
-
-    public function name(): string { return 'MyNewTool'; }
-    public function description(): string { return 'This is my new tool.'; }
-    public function inputSchema(): array { return []; }
-    public function annotations(): array { return []; }
-    public function execute(array $arguments): mixed { /* ... */ }
-}
-```
-
-## Laravel MCP Server 概述
-
-Laravel MCP Server 是一个强大的扩展包，旨在简化在 Laravel 应用程序中实现模型上下文协议（MCP）服务器。**与大多数使用标准输入/输出（stdio）传输的 Laravel MCP 包不同**，此包专注于**可流式 HTTP** 传输，并仍包含**传统 SSE 提供程序**以实现向后兼容，提供安全且受控的集成方法。
-
-### 为什么选择可流式 HTTP 而不是 STDIO？
-
-虽然 stdio 简单直接且在 MCP 实现中广泛使用，但它对企业环境存在重大安全隐患：
-
-- **安全风险**：STDIO 传输可能暴露内部系统详细信息和 API 规范
-- **数据保护**：组织需要保护专有 API 端点和内部系统架构
-- **控制性**：可流式 HTTP 在 LLM 客户端和您的应用程序之间提供更好的通信通道控制
-
-通过使用可流式 HTTP 传输实现 MCP 服务器，企业可以：
-
-- 仅暴露必要的工具和资源，同时保持专有 API 详细信息的私密性
-- 保持对身份验证和授权过程的控制
-
-主要优势：
-
-- 在现有 Laravel 项目中无缝快速实现可流式 HTTP
-- 支持最新的 Laravel 和 PHP 版本
-- 高效的服务器通信和实时数据处理
-- 为企业环境提供增强的安全性
-
-## 主要功能
-
-- 通过可流式 HTTP 与 SSE 集成支持实时通信
-- 实现符合模型上下文协议规范的工具和资源
-- 基于适配器的设计架构，采用发布/订阅消息模式（从 Redis 开始，计划更多适配器）
-- 简单的路由和中间件配置
-
-### 传输提供程序
-
-配置选项 `server_provider` 控制使用哪种传输。可用的提供程序有：
-
-1. **streamable_http** – 推荐的默认选项。使用标准 HTTP 请求，避免在约一分钟后关闭 SSE 连接的平台上出现问题（例如许多无服务器环境）。
-2. **sse** – 为向后兼容保留的传统提供程序。它依赖长连接的 SSE 连接，在 HTTP 超时较短的平台上可能无法工作。
-
-MCP 协议还定义了"可流式 HTTP SSE"模式，但此包未实现该模式，也没有实现计划。
-
-## 系统要求
-
-- PHP >=8.2
-- Laravel >=10.x
-
-## 安装
-
-1. 通过 Composer 安装包：
-
-   ```bash
-   composer require opgginc/laravel-mcp-server
-   ```
-
-2. 发布配置文件：
-   ```bash
-   php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider"
-   ```
-
-## 基本用法
-
-
-### 创建和添加自定义工具
-
-包提供了便捷的 Artisan 命令来生成新工具：
+有用的选项：
 
 ```bash
-php artisan make:mcp-tool MyCustomTool
+php artisan make:swagger-mcp-tool ./specs/openapi.json \
+  --group-by=tag \
+  --prefix=Billing \
+  --test-api
 ```
 
-此命令：
+- `--group-by`：`标签`、`路径`或`无`
+- `--prefix`：生成的工具/资源的类名前缀
+- `--test-api`：在生成之前测试端点连接
 
-- 处理各种输入格式（空格、连字符、混合大小写）
-- 自动将名称转换为正确的大小写格式
-- 在 `app/MCP/Tools` 中创建结构正确的工具类
-- 提供在配置中自动注册工具的选项
+生成行为：
+- 在交互模式下，您可以为每个端点选择工具或资源。
+- 在非交互模式下，“GET”端点生成为资源，其他方法生成为工具。
 
-您也可以在 `config/mcp-server.php` 中手动创建和注册工具：
+### 增强的交互式预览
+
+如果运行不带“--group-by”的命令，生成器会在创建之前显示文件夹结构和文件计数的交互式预览。
+
+```bash
+php artisan make:swagger-mcp-tool ./specs/openapi.json
+```
+
+预览输出示例：
+
+```text
+Choose how to organize your generated tools and resources:
+
+Tag-based grouping (organize by OpenAPI tags)
+  Total: 25 endpoints -> 15 tools + 10 resources
+  Examples: Tools/Pet, Tools/Store, Tools/User
+
+Path-based grouping (organize by API path)
+  Total: 25 endpoints -> 15 tools + 10 resources
+  Examples: Tools/Api, Tools/Users, Tools/Orders
+
+No grouping (everything in root folder)
+  Total: 25 endpoints -> 15 tools + 10 resources
+  Examples: Tools/, Resources/
+```
+
+生成后，在 MCP 端点上注册生成的工具类：
 
 ```php
-use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+use Illuminate\Support\Facades\Route;
 
-class MyCustomTool implements ToolInterface
-{
-    // 工具实现
-}
+Route::mcp('/mcp')
+    ->setServerInfo(
+        name: 'Generated MCP Server',
+        version: '2.0.0',
+    )
+    ->tools([
+        \App\MCP\Tools\Billing\CreateInvoiceTool::class,
+        \App\MCP\Tools\Billing\UpdateInvoiceTool::class,
+    ]);
 ```
 
-### 理解您的工具结构（ToolInterface）
-
-当您通过实现 `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface` 创建工具时，需要定义几个方法。以下是每个方法及其用途的详细说明：
+## 示例工具类
 
 ```php
 <?php
 
-namespace OPGG\LaravelMcpServer\Services\ToolService;
+namespace App\MCP\Tools;
 
-use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
-interface ToolInterface
+class GreetingTool implements ToolInterface
 {
-    /**
-     * @deprecated since v1.3.0, use isStreaming() instead. Will be removed in v2.0.0
-     */
-    public function messageType(): ProcessMessageType;
+    public function name(): string
+    {
+        return 'greeting-tool';
+    }
 
-    // v1.3.0 新增：确定此工具是否需要流式传输（SSE）而不是标准 HTTP。
-    public function isStreaming(): bool;
+    public function description(): string
+    {
+        return 'Return a greeting message.';
+    }
 
-    // 您工具的唯一可调用名称（例如 'get-user-details'）。
-    public function name(): string;
-
-    // 您工具功能的人类可读描述。
-    public function description(): string;
-
-    // 使用类似 JSON Schema 的结构定义工具的预期输入参数。
-    public function inputSchema(): array;
-
-    // 提供向工具添加任意元数据或注释的方法。
-    public function annotations(): array;
-
-    // 工具的核心逻辑。接收验证过的参数并返回结果。
-    public function execute(array $arguments): mixed;
-}
-```
-
-让我们深入了解其中一些方法：
-
-**`messageType(): ProcessMessageType`（v1.3.0 中已弃用）**
-
-⚠️ **此方法自 v1.3.0 起已弃用。** 请使用 `isStreaming(): bool` 替代，更加清晰。
-
-此方法指定工具的消息处理类型。它返回一个 `ProcessMessageType` 枚举值。可用类型有：
-
-- `ProcessMessageType::HTTP`：用于通过标准 HTTP 请求/响应交互的工具。新工具最常用。
-- `ProcessMessageType::SSE`：专为与服务器发送事件配合工作而设计的工具。
-
-对于大多数工具，特别是为主要 `streamable_http` 提供程序设计的工具，您将返回 `ProcessMessageType::HTTP`。
-
-**`isStreaming(): bool`（v1.3.0 新增）**
-
-这是用于控制通信模式的新的、更直观的方法：
-
-- `return false`：使用标准 HTTP 请求/响应（推荐用于大多数工具）
-- `return true`：使用服务器发送事件进行实时流式传输
-
-大多数工具应该返回 `false`，除非您特别需要实时流式传输功能，如：
-- 长时间运行操作的实时进度更新
-- 实时数据源或监控工具
-- 需要双向通信的交互式工具
-
-**`name(): string`**
-
-这是您工具的标识符。它应该是唯一的。客户端将使用此名称请求您的工具。例如：`get-weather`、`calculate-sum`。
-
-**`description(): string`**
-
-对您工具功能的清晰、简洁描述。这用于文档，MCP 客户端 UI（如 MCP Inspector）可能会向用户显示它。
-
-**`inputSchema(): array`**
-
-此方法对于定义工具的预期输入参数至关重要。它应该返回一个遵循类似 JSON Schema 结构的数组。此模式用于：
-
-- 客户端了解要发送什么数据。
-- 服务器或客户端可能用于输入验证。
-- MCP Inspector 等工具生成测试表单。
-
-**`inputSchema()` 示例：**
-
-```php
-public function inputSchema(): array
-{
-    return [
-        'type' => 'object',
-        'properties' => [
-            'userId' => [
-                'type' => 'integer',
-                'description' => 'The unique identifier for the user.',
+    public function inputSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'name' => ['type' => 'string'],
             ],
-            'includeDetails' => [
-                'type' => 'boolean',
-                'description' => 'Whether to include extended details in the response.',
-                'default' => false, // 您可以指定默认值
-            ],
-        ],
-        'required' => ['userId'], // 指定哪些属性是必需的
-    ];
-}
-```
-
-在您的 `execute` 方法中，您可以验证传入的参数。`HelloWorldTool` 示例使用 `Illuminate\Support\Facades\Validator` 来实现：
-
-```php
-// 在您的 execute() 方法内：
-$validator = Validator::make($arguments, [
-    'userId' => ['required', 'integer'],
-    'includeDetails' => ['sometimes', 'boolean'],
-]);
-
-if ($validator->fails()) {
-    throw new JsonRpcErrorException(
-        message: $validator->errors()->toJson(),
-        code: JsonRpcErrorCode::INVALID_REQUEST
-    );
-}
-// 使用验证过的 $arguments['userId'] 和 $arguments['includeDetails'] 继续
-```
-
-**`annotations(): array`**
-
-此方法提供关于工具行为和特征的元数据，遵循官方 [MCP 工具注释规范](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations)。注释帮助 MCP 客户端对工具进行分类，对工具批准做出明智决策，并提供适当的用户界面。
-
-**标准 MCP 注释：**
-
-模型上下文协议定义了几个客户端理解的标准注释：
-
-- **`title`**（字符串）：工具的人类可读标题，显示在客户端 UI 中
-- **`readOnlyHint`**（布尔值）：指示工具是否只读取数据而不修改环境（默认：false）
-- **`destructiveHint`**（布尔值）：建议工具是否可能执行破坏性操作，如删除数据（默认：true）
-- **`idempotentHint`**（布尔值）：指示使用相同参数重复调用是否没有额外效果（默认：false）
-- **`openWorldHint`**（布尔值）：表示工具是否与本地环境之外的外部实体交互（默认：true）
-
-**重要：** 这些是提示，不是保证。它们帮助客户端提供更好的用户体验，但不应用于安全关键决策。
-
-**标准 MCP 注释示例：**
-
-```php
-public function annotations(): array
-{
-    return [
-        'title' => 'User Profile Fetcher',
-        'readOnlyHint' => true,        // 工具只读取用户数据
-        'destructiveHint' => false,    // 工具不删除或修改数据
-        'idempotentHint' => true,      // 多次调用是安全的
-        'openWorldHint' => false,      // 工具只访问本地数据库
-    ];
-}
-```
-
-**按工具类型的实际示例：**
-
-```php
-// 数据库查询工具
-public function annotations(): array
-{
-    return [
-        'title' => 'Database Query Tool',
-        'readOnlyHint' => true,
-        'destructiveHint' => false,
-        'idempotentHint' => true,
-        'openWorldHint' => false,
-    ];
-}
-
-// 文章删除工具
-public function annotations(): array
-{
-    return [
-        'title' => 'Blog Post Deletion Tool',
-        'readOnlyHint' => false,
-        'destructiveHint' => true,     // 可以删除文章
-        'idempotentHint' => false,     // 删除两次有不同效果
-        'openWorldHint' => false,
-    ];
-}
-
-// API 集成工具
-public function annotations(): array
-{
-    return [
-        'title' => 'Weather API',
-        'readOnlyHint' => true,
-        'destructiveHint' => false,
-        'idempotentHint' => true,
-        'openWorldHint' => true,       // 访问外部天气 API
-    ];
-}
-```
-
-**自定义注释**也可以为您的特定应用需求添加：
-
-```php
-public function annotations(): array
-{
-    return [
-        // 标准 MCP 注释
-        'title' => 'Custom Tool',
-        'readOnlyHint' => true,
-
-        // 您应用程序的自定义注释
-        'category' => 'data-analysis',
-        'version' => '2.1.0',
-        'author' => 'Data Team',
-        'requires_permission' => 'analytics.read',
-    ];
-}
-```
-
-### 使用资源
-
-资源暴露服务器中可被 MCP 客户端读取的数据。它们是**应用程序控制的**，意味着客户端决定何时以及如何使用它们。在 `app/MCP/Resources` 和 `app/MCP/ResourceTemplates` 中创建具体资源或 URI 模板，使用 Artisan 助手：
-
-```bash
-php artisan make:mcp-resource SystemLogResource
-php artisan make:mcp-resource-template UserLogTemplate
-```
-
-在 `config/mcp-server.php` 的 `resources` 和 `resource_templates` 数组中注册生成的类。每个资源类扩展基础 `Resource` 类并实现返回 `text` 或 `blob` 内容的 `read()` 方法。模板扩展 `ResourceTemplate` 并描述客户端可以使用的动态 URI 模式。资源由 URI 标识，如 `file:///logs/app.log`，并可选择定义 `mimeType` 或 `size` 等元数据。
-
-**带动态列表的资源模板**：模板可以选择实现 `list()` 方法，提供匹配模板模式的具体资源实例。这允许客户端动态发现可用资源。`list()` 方法使 ResourceTemplate 实例能够生成可通过模板的 `read()` 方法读取的特定资源列表。
-
-使用 `resources/list` 端点列出可用资源，使用 `resources/read` 读取其内容。`resources/list` 端点返回具体资源数组，包括静态资源和从实现 `list()` 方法的模板动态生成的资源：
-
-```json
-{
-  "resources": [
-    {
-      "uri": "file:///logs/app.log",
-      "name": "Application Log",
-      "mimeType": "text/plain"
-    },
-    {
-      "uri": "database://users/123",
-      "name": "User: John Doe",
-      "description": "Profile data for John Doe",
-      "mimeType": "application/json"
+            'required' => ['name'],
+        ];
     }
-  ]
-}
-```
 
-**动态资源读取**：资源模板支持 URI 模板模式（RFC 6570），允许客户端构造动态资源标识符。当客户端请求匹配模板模式的资源 URI 时，会调用模板的 `read()` 方法并传入提取的参数来生成资源内容。
-
-示例工作流程：
-1. 模板定义模式：`"database://users/{userId}/profile"`
-2. 客户端请求：`"database://users/123/profile"`
-3. 模板提取 `{userId: "123"}` 并调用 `read()` 方法
-4. 模板返回用户 ID 123 的用户配置文件数据
-
-您也可以使用 `resources/templates/list` 端点单独列出模板：
-
-```bash
-# 仅列出资源模板
-curl -X POST https://your-server.com/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"resources/templates/list"}'
-```
-
-当远程运行您的 Laravel MCP 服务器时，HTTP 传输使用标准 JSON-RPC 请求。以下是使用 `curl` 列出和读取资源的简单示例：
-
-```bash
-# 列出资源
-curl -X POST https://your-server.com/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"resources/list"}'
-
-# 读取特定资源
-curl -X POST https://your-server.com/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"file:///logs/app.log"}}'
-```
-
-服务器通过 HTTP 连接流式传输 JSON 消息响应，因此如果您想看到增量输出，可以使用 `curl --no-buffer`。
-
-### 使用提示
-
-提示提供可重用的文本片段，支持参数，您的工具或用户可以请求。在 `app/MCP/Prompts` 中创建提示类：
-
-```bash
-php artisan make:mcp-prompt WelcomePrompt
-```
-
-在 `config/mcp-server.php` 的 `prompts` 下注册它们。每个提示类扩展 `Prompt` 基类并定义：
-- `name`：唯一标识符（例如 "welcome-user"）
-- `description`：可选的人类可读描述  
-- `arguments`：参数定义数组，包含名称、描述和必需字段
-- `text`：带有占位符（如 `{username}`）的提示模板
-
-通过 `prompts/list` 端点列出提示，使用 `prompts/get` 带参数获取：
-
-```bash
-# 获取带参数的欢迎提示
-curl -X POST https://your-server.com/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"welcome-user","arguments":{"username":"Alice","role":"admin"}}}'
-```
-
-### MCP 提示
-
-在制作引用您的工具或资源的提示时，请参考[官方提示指南](https://modelcontextprotocol.io/docs/concepts/prompts)。提示是可重用的模板，可以接受参数，包含资源上下文，甚至描述多步骤工作流程。
-
-**提示结构**
-
-```json
-{
-  "name": "string",
-  "description": "string",
-  "arguments": [
+    public function annotations(): array
     {
-      "name": "string",
-      "description": "string",
-      "required": true
+        return [
+            'readOnlyHint' => true,
+            'destructiveHint' => false,
+        ];
     }
-  ]
+
+    public function execute(array $arguments): mixed
+    {
+        return [
+            'message' => 'Hello '.$arguments['name'],
+        ];
+    }
 }
 ```
 
-客户端通过 `prompts/list` 发现提示，通过 `prompts/get` 请求特定提示：
-
-```json
-{
-  "method": "prompts/get",
-  "params": {
-    "name": "analyze-code",
-    "arguments": {
-      "language": "php"
-    }
-  }
-}
-```
-
-**提示类示例**
+## 提示类示例
 
 ```php
+<?php
+
+namespace App\MCP\Prompts;
+
 use OPGG\LaravelMcpServer\Services\PromptService\Prompt;
 
 class WelcomePrompt extends Prompt
 {
     public string $name = 'welcome-user';
-    
-    public ?string $description = 'A customizable welcome message for users';
-    
+
+    public ?string $description = 'Generate a welcome message.';
+
     public array $arguments = [
         [
             'name' => 'username',
-            'description' => 'The name of the user to welcome',
+            'description' => 'User name',
             'required' => true,
         ],
-        [
-            'name' => 'role',
-            'description' => 'The role of the user (optional)',
-            'required' => false,
-        ],
     ];
-    
-    public string $text = 'Welcome, {username}! You are logged in as {role}.';
+
+    public string $text = 'Welcome, {username}!';
 }
 ```
 
-提示可以嵌入资源并返回消息序列来指导 LLM。有关高级示例和最佳实践，请参阅官方文档。
-
-### 使用通知
-
-通知是来自 MCP 客户端的 fire-and-forget 消息，它们总是返回 HTTP 202 Accepted 而没有响应正文。它们非常适合日志记录、进度跟踪、事件处理和触发后台进程，而不会阻塞客户端。
-
-#### 创建通知处理器
-
-**基本命令用法：**
-
-```bash
-php artisan make:mcp-notification ProgressHandler --method=notifications/progress
-```
-
-**高级命令功能：**
-
-```bash
-# 交互模式 - 如果未指定方法则提示输入
-php artisan make:mcp-notification MyHandler
-
-# 自动方法前缀处理
-php artisan make:mcp-notification StatusHandler --method=status  # 变成 notifications/status
-
-# 类名标准化 
-php artisan make:mcp-notification "user activity"  # 变成 UserActivityHandler
-```
-
-该命令提供：
-- 当未指定 `--method` 时**交互式方法提示**
-- 带有复制粘贴就绪代码的**自动注册指南**
-- 带有 curl 命令的**内置测试示例** 
-- **全面的使用说明**和常见用例
-
-#### 通知处理器架构
-
-每个通知处理器必须实现抽象类 `NotificationHandler`：
+## 示例资源类
 
 ```php
-abstract class NotificationHandler
+<?php
+
+namespace App\MCP\Resources;
+
+use OPGG\LaravelMcpServer\Services\ResourceService\Resource;
+
+class BuildInfoResource extends Resource
 {
-    // 必需：消息类型（通常是 ProcessMessageType::HTTP）
-    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
-    
-    // 必需：要处理的通知方法  
-    protected const HANDLE_METHOD = 'notifications/your_method';
-    
-    // 必需：执行通知逻辑
-    abstract public function execute(?array $params = null): void;
-}
-```
+    public string $uri = 'app://build-info';
 
-**关键架构组件：**
+    public string $name = 'Build Info';
 
-- **`MESSAGE_TYPE`**：标准通知通常使用 `ProcessMessageType::HTTP`
-- **`HANDLE_METHOD`**：此处理器处理的 JSON-RPC 方法（必须以 `notifications/` 开头）
-- **`execute()`**：包含您的通知逻辑 - 返回 void（不发送响应）
-- **构造函数验证**：自动验证必需常量是否已定义
+    public ?string $mimeType = 'application/json';
 
-#### 内置通知处理器
-
-包包含四个为常见 MCP 场景预构建的处理器：
-
-**1. InitializedHandler (`notifications/initialized`)**
-- **目的**：在成功握手后处理客户端初始化确认
-- **参数**：客户端信息和能力
-- **用法**：会话跟踪、客户端日志记录、初始化事件
-
-**2. ProgressHandler (`notifications/progress`)**
-- **目的**：处理长时间运行操作的进度更新
-- **参数**： 
-  - `progressToken` (string)：操作的唯一标识符
-  - `progress` (number)：当前进度值
-  - `total` (number，可选)：用于百分比计算的总进度值
-- **用法**：实时进度跟踪、上传监控、任务完成
-
-**3. CancelledHandler (`notifications/cancelled`)**
-- **目的**：处理请求取消通知
-- **参数**：
-  - `requestId` (string)：要取消的请求 ID
-  - `reason` (string，可选)：取消原因
-- **用法**：后台作业终止、资源清理、操作中止
-
-**4. MessageHandler (`notifications/message`)**
-- **目的**：处理一般日志记录和通信消息
-- **参数**：
-  - `level` (string)：日志级别（info、warning、error、debug）
-  - `message` (string)：消息内容
-  - `logger` (string，可选)：记录器名称
-- **用法**：客户端日志记录、调试、一般通信
-
-#### 常见场景的处理器示例
-
-```php
-// 文件上传进度跟踪
-class UploadProgressHandler extends NotificationHandler
-{
-    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
-    protected const HANDLE_METHOD = 'notifications/upload_progress';
-
-    public function execute(?array $params = null): void
+    public function read(): array
     {
-        $token = $params['progressToken'] ?? null;
-        $progress = $params['progress'] ?? 0;
-        $total = $params['total'] ?? 100;
-        
-        if ($token) {
-            Cache::put("upload_progress_{$token}", [
-                'progress' => $progress,
-                'total' => $total,
-                'percentage' => $total ? round(($progress / $total) * 100, 2) : 0,
-                'updated_at' => now()
-            ], 3600);
-            
-            // 广播实时更新
-            broadcast(new UploadProgressUpdated($token, $progress, $total));
-        }
-    }
-}
-
-// 用户活动和审计日志记录
-class UserActivityHandler extends NotificationHandler
-{
-    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
-    protected const HANDLE_METHOD = 'notifications/user_activity';
-
-    public function execute(?array $params = null): void
-    {
-        UserActivity::create([
-            'user_id' => $params['userId'] ?? null,
-            'action' => $params['action'] ?? 'unknown',
-            'resource' => $params['resource'] ?? null,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'metadata' => $params['metadata'] ?? [],
-            'created_at' => now()
-        ]);
-        
-        // 为敏感操作触发安全警报
-        if (in_array($params['action'] ?? '', ['delete', 'export', 'admin_access'])) {
-            SecurityAlert::dispatch($params);
-        }
-    }
-}
-
-// 后台任务触发
-class TaskTriggerHandler extends NotificationHandler
-{
-    protected const MESSAGE_TYPE = ProcessMessageType::HTTP;
-    protected const HANDLE_METHOD = 'notifications/trigger_task';
-
-    public function execute(?array $params = null): void
-    {
-        $taskType = $params['taskType'] ?? null;
-        $taskData = $params['data'] ?? [];
-        
-        match ($taskType) {
-            'send_email' => SendEmailJob::dispatch($taskData),
-            'generate_report' => GenerateReportJob::dispatch($taskData),
-            'sync_data' => DataSyncJob::dispatch($taskData),
-            'cleanup' => CleanupJob::dispatch($taskData),
-            default => Log::warning("Unknown task type: {$taskType}")
-        };
+        return [
+            'uri' => $this->uri,
+            'mimeType' => $this->mimeType,
+            'text' => json_encode([
+                'version' => '2.0.0',
+                'environment' => app()->environment(),
+            ], JSON_THROW_ON_ERROR),
+        ];
     }
 }
 ```
 
-#### 注册通知处理器
-
-**在您的服务提供者中：**
+## 在路由上注册示例
 
 ```php
-// 在 AppServiceProvider 或专用的 MCP 服务提供者中
-public function boot()
-{
-    $server = app(MCPServer::class);
-    
-    // 注册内置处理器（可选 - 默认注册）
-    $server->registerNotificationHandler(new InitializedHandler());
-    $server->registerNotificationHandler(new ProgressHandler());
-    $server->registerNotificationHandler(new CancelledHandler());
-    $server->registerNotificationHandler(new MessageHandler());
-    
-    // 注册自定义处理器
-    $server->registerNotificationHandler(new UploadProgressHandler());
-    $server->registerNotificationHandler(new UserActivityHandler());
-    $server->registerNotificationHandler(new TaskTriggerHandler());
-}
+use App\MCP\Prompts\WelcomePrompt;
+use App\MCP\Resources\BuildInfoResource;
+use App\MCP\Tools\GreetingTool;
+use Illuminate\Support\Facades\Route;
+
+Route::mcp('/mcp')
+    ->setServerInfo(
+        name: 'Example MCP Server',
+        version: '2.0.0',
+    )
+    ->tools([GreetingTool::class])
+    ->resources([BuildInfoResource::class])
+    ->prompts([WelcomePrompt::class]);
 ```
 
-#### 测试通知
-
-**使用 curl 测试通知处理器：**
+## 测试和质量命令
 
 ```bash
-# 测试进度通知
-curl -X POST http://localhost:8000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "notifications/progress",
-    "params": {
-      "progressToken": "upload_123",
-      "progress": 75,
-      "total": 100
-    }
-  }'
-# 预期：HTTP 202 且正文为空
-
-# 测试用户活动通知  
-curl -X POST http://localhost:8000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0", 
-    "method": "notifications/user_activity",
-    "params": {
-      "userId": 123,
-      "action": "file_download",
-      "resource": "document.pdf"
-    }
-  }'
-# 预期：HTTP 202 且正文为空
-
-# 测试取消通知
-curl -X POST http://localhost:8000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "notifications/cancelled", 
-    "params": {
-      "requestId": "req_abc123",
-      "reason": "User requested cancellation"
-    }
-  }'
-# 预期：HTTP 202 且正文为空
+vendor/bin/pest
+vendor/bin/phpstan analyse
+vendor/bin/pint
 ```
 
-**重要测试注意事项：**
-- 通知返回 **HTTP 202**（从不返回 200）
-- 响应正文**总是空的**
-- 不发送 JSON-RPC 响应消息
-- 检查服务器日志以验证通知处理
-
-#### 错误处理和验证
-
-**常见验证模式：**
-
-```php
-public function execute(?array $params = null): void
-{
-    // 验证必需参数
-    if (!isset($params['userId'])) {
-        Log::error('UserActivityHandler: Missing required userId parameter', $params);
-        return; // 不要抛出异常 - 通知应该容错
-    }
-    
-    // 验证参数类型
-    if (!is_numeric($params['userId'])) {
-        Log::warning('UserActivityHandler: userId must be numeric', $params);
-        return;
-    }
-    
-    // 使用默认值安全提取参数
-    $userId = (int) $params['userId'];
-    $action = $params['action'] ?? 'unknown';
-    $metadata = $params['metadata'] ?? [];
-    
-    // 处理通知...
-}
-```
-
-**错误处理最佳实践：**
-- **记录错误**而不是抛出异常
-- **使用防御性编程**，进行空值检查和默认值
-- **优雅失败** - 不要破坏客户端的工作流
-- **验证输入**但在可能时继续处理
-- 通过日志记录和指标**监控通知**
-
-### 测试 MCP 工具
-
-包包含一个特殊命令，用于测试您的 MCP 工具，无需真正的 MCP 客户端：
-
-```bash
-# 交互式测试特定工具
-php artisan mcp:test-tool MyCustomTool
-
-# 列出所有可用工具
-php artisan mcp:test-tool --list
-
-# 使用特定 JSON 输入测试
-php artisan mcp:test-tool MyCustomTool --input='{"param":"value"}'
-```
-
-这通过以下方式帮助您快速开发和调试工具：
-
-- 显示工具的输入模式并验证输入
-- 使用您提供的输入执行工具
-- 显示格式化结果或详细错误信息
-- 支持复杂输入类型，包括对象和数组
-
-### 使用 Inspector 可视化 MCP 工具
-
-您也可以使用模型上下文协议 Inspector 来可视化和测试您的 MCP 工具：
-
-```bash
-# 无需安装即可运行 MCP Inspector
-npx @modelcontextprotocol/inspector node build/index.js
-```
-
-这通常会在 `localhost:6274` 打开一个 Web 界面。要测试您的 MCP 服务器：
-
-1. **警告**：`php artisan serve` 无法与此包一起使用，因为它无法同时处理多个 PHP 连接。由于 MCP SSE 需要并发处理多个连接，您必须使用以下替代方案之一：
-
-   - **Laravel Octane**（最简单的选项）：
-
-     ```bash
-     # 安装并设置 Laravel Octane 与 FrankenPHP（推荐）
-     composer require laravel/octane
-     php artisan octane:install --server=frankenphp
-
-     # 启动 Octane 服务器
-     php artisan octane:start
-     ```
-
-     > **重要**：安装 Laravel Octane 时，确保使用 FrankenPHP 作为服务器。由于与 SSE 连接的兼容性问题，包可能无法与 RoadRunner 正常工作。如果您能帮助修复此 RoadRunner 兼容性问题，请提交 Pull Request - 您的贡献将非常受欢迎！
-
-     详情请参阅 [Laravel Octane 文档](https://laravel.com/docs/12.x/octane)
-
-   - **生产级选项**：
-     - Nginx + PHP-FPM
-     - Apache + PHP-FPM
-     - 自定义 Docker 设置
-
-   * 任何正确支持 SSE 流式传输的 Web 服务器（仅传统 SSE 提供程序需要）
-
-2. 在 Inspector 界面中，输入您的 Laravel 服务器的 MCP 端点 URL（例如 `http://localhost:8000/mcp`）。如果您使用传统 SSE 提供程序，请改用 SSE URL（`http://localhost:8000/mcp/sse`）。
-3. 连接并可视化探索可用工具
-
-MCP 端点遵循模式：`http://[your-laravel-server]/[default_path]`，其中 `default_path` 在您的 `config/mcp-server.php` 文件中定义。
-
-## 高级功能
-
-### 使用 SSE 适配器的发布/订阅架构（传统提供程序）
-
-包通过其适配器系统实现发布/订阅（pub/sub）消息模式：
-
-1. **发布者（服务器）**：当客户端向 `/message` 端点发送请求时，服务器处理这些请求并通过配置的适配器发布响应。
-
-2. **消息代理（适配器）**：适配器（例如 Redis）为每个客户端维护消息队列，通过唯一的客户端 ID 标识。这提供了可靠的异步通信层。
-
-3. **订阅者（SSE 连接）**：长连接的 SSE 连接订阅各自客户端的消息并实时传递。这仅适用于使用传统 SSE 提供程序时。
-
-此架构实现：
-
-- 可扩展的实时通信
-- 即使在临时断开连接期间也能可靠传递消息
-- 高效处理多个并发客户端连接
-- 分布式服务器部署的潜力
-
-### Redis 适配器配置
-
-默认 Redis 适配器可以如下配置：
-
-```php
-'sse_adapter' => 'redis',
-'adapters' => [
-    'redis' => [
-        'prefix' => 'mcp_sse_',    // Redis 键前缀
-        'connection' => 'default', // 来自 database.php 的 Redis 连接
-        'ttl' => 100,              // 消息 TTL（秒）
-    ],
-],
-```
-
-
-## 翻译 README.md
-
-使用 Claude API 将此 README 翻译为其他语言（并行处理）：
+＃＃ 翻译
 
 ```bash
 pip install -r scripts/requirements.txt
@@ -1025,41 +382,12 @@ export ANTHROPIC_API_KEY='your-api-key'
 python scripts/translate_readme.py
 ```
 
-您也可以翻译特定语言：
+翻译所选语言：
 
 ```bash
 python scripts/translate_readme.py es ko
 ```
 
-## v2.0.0 迁移说明
+＃＃ 执照
 
-v2.0.0 已正式发布。如果你从 v1.x 升级，请应用以下变更。
-
-### v2.0.0 的主要变化
-
-- `messageType(): ProcessMessageType` 已移除。
-- `isStreaming(): bool` 运行时不再使用（可选清理）。
-- `ProcessMessageType::SSE` 已移除。
-- 仅支持 Streamable HTTP（`/sse` 与 `/message` 已移除）。
-- config 方式的 MCP 配置键（`server_provider`、`sse_adapter`、`adapters`、`enabled`）已移除。
-
-### 迁移方式
-
-- 通过 `Route::mcp(...)`（Laravel）或 `McpRoute::register(...)`（Lumen）在路由中直接注册 MCP 端点。
-- 将 server info/tools/resources/templates/prompts 从 config 迁移到 route builder 链式配置。
-- 运行 `php artisan mcp:migrate-tools` 清理旧版工具签名。
-- 将 MCP 客户端端点更新为实际路由路径（例如 `/mcp`）。
-- 完整步骤请参考：[v2.0.0 迁移指南](docs/migrations/v2.0.0-migration.md)。
-
-### 迁移后验证
-
-```bash
-php artisan route:list | grep mcp
-php artisan mcp:test-tool --list --endpoint=/mcp
-vendor/bin/pest
-vendor/bin/phpstan analyse
-```
-
-## 许可证
-
-此项目在 MIT 许可证下分发。
+该项目是根据 MIT 许可证分发的。
