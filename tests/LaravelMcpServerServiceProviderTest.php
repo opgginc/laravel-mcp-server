@@ -5,6 +5,7 @@ use OPGG\LaravelMcpServer\LaravelMcpServer;
 use OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Handlers\CustomToolsCallHandler;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 
@@ -94,6 +95,30 @@ it('stores endpoint definitions from fluent route builder', function () {
     expect($definitions[0]->resourcesListChanged)->toBeTrue();
     expect($definitions[0]->promptsListChanged)->toBeTrue();
     expect($definitions[0]->toolsPageSize)->toBe(7);
+});
+
+it('stores custom tools/call handler class from fluent route builder', function () {
+    bootProvider();
+
+    Route::mcp('/tracked-tools')
+        ->setName('Tracked Tools')
+        ->setVersion('2.0.0')
+        ->tools([LegacyArrayTool::class])
+        ->toolsCallHandler(CustomToolsCallHandler::class);
+
+    /** @var McpEndpointRegistry $registry */
+    $registry = app(McpEndpointRegistry::class);
+    $definitions = array_values($registry->all());
+
+    expect($definitions)->toHaveCount(1);
+    expect($definitions[0]->toolsCallHandler)->toBe(CustomToolsCallHandler::class);
+});
+
+it('rejects non tools/call handler classes', function () {
+    bootProvider();
+
+    expect(fn () => Route::mcp('/invalid-tools-handler')->toolsCallHandler(\stdClass::class))
+        ->toThrow(\InvalidArgumentException::class);
 });
 
 it('keeps existing name and version when setServerInfo is partially applied', function () {

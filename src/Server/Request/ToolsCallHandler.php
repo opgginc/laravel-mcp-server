@@ -151,7 +151,7 @@ class ToolsCallHandler extends RequestHandler
      */
     private function resolveAutoStructuredOutput(object $tool): bool
     {
-        if (method_exists($tool, 'autoStructuredOutput')) {
+        if (is_callable([$tool, 'autoStructuredOutput'])) {
             return (bool) $tool->autoStructuredOutput();
         }
 

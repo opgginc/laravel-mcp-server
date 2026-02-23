@@ -16,6 +16,7 @@ final class McpEndpointDefinition
      * @param  array<int, class-string>  $resourceTemplates
      * @param  array<int, class-string>  $prompts
      * @param  array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>  $icons
+     * @param  class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null  $toolsCallHandler
      */
     public function __construct(
         public readonly string $id,
@@ -31,6 +32,7 @@ final class McpEndpointDefinition
         public readonly array $resources = [],
         public readonly array $resourceTemplates = [],
         public readonly array $prompts = [],
+        public readonly ?string $toolsCallHandler = null,
         public readonly bool $toolListChanged = false,
         public readonly bool $resourcesSubscribe = false,
         public readonly bool $resourcesListChanged = false,
@@ -113,6 +115,14 @@ final class McpEndpointDefinition
         return $this->copy(['prompts' => array_values($prompts)]);
     }
 
+    /**
+     * @param  class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null  $handlerClass
+     */
+    public function withToolsCallHandler(?string $handlerClass): self
+    {
+        return $this->copy(['toolsCallHandler' => $handlerClass]);
+    }
+
     public function withToolListChanged(bool $enabled): self
     {
         return $this->copy(['toolListChanged' => $enabled]);
@@ -163,6 +173,7 @@ final class McpEndpointDefinition
      *   resources?: array<int, class-string>,
      *   resourceTemplates?: array<int, class-string>,
      *   prompts?: array<int, class-string>,
+     *   toolsCallHandler?: class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null,
      *   toolListChanged?: bool,
      *   resourcesSubscribe?: bool,
      *   resourcesListChanged?: bool,
@@ -188,6 +199,7 @@ final class McpEndpointDefinition
             resources: $state['resources'],
             resourceTemplates: $state['resourceTemplates'],
             prompts: $state['prompts'],
+            toolsCallHandler: $state['toolsCallHandler'],
             toolListChanged: $state['toolListChanged'],
             resourcesSubscribe: $state['resourcesSubscribe'],
             resourcesListChanged: $state['resourcesListChanged'],
@@ -211,6 +223,7 @@ final class McpEndpointDefinition
      *   resources: array<int, class-string>,
      *   resourceTemplates: array<int, class-string>,
      *   prompts: array<int, class-string>,
+     *   toolsCallHandler: class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null,
      *   toolListChanged: bool,
      *   resourcesSubscribe: bool,
      *   resourcesListChanged: bool,
@@ -234,6 +247,7 @@ final class McpEndpointDefinition
             'resources' => $this->resources,
             'resourceTemplates' => $this->resourceTemplates,
             'prompts' => $this->prompts,
+            'toolsCallHandler' => $this->toolsCallHandler,
             'toolListChanged' => $this->toolListChanged,
             'resourcesSubscribe' => $this->resourcesSubscribe,
             'resourcesListChanged' => $this->resourcesListChanged,

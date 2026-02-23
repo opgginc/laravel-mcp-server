@@ -2,7 +2,9 @@
 
 namespace OPGG\LaravelMcpServer\Routing;
 
+use InvalidArgumentException;
 use OPGG\LaravelMcpServer\Server\McpServerFactory;
+use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
 
 final class McpRouteBuilder
 {
@@ -150,6 +152,24 @@ final class McpRouteBuilder
     public function prompts(array $prompts): self
     {
         $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withPrompts($prompts));
+
+        return $this;
+    }
+
+    /**
+     * @param  class-string  $handlerClass
+     */
+    public function toolsCallHandler(string $handlerClass): self
+    {
+        if (! is_a(object_or_class: $handlerClass, class: ToolsCallHandler::class, allow_string: true)) {
+            throw new InvalidArgumentException(sprintf(
+                'The tools/call handler [%s] must extend %s.',
+                $handlerClass,
+                ToolsCallHandler::class,
+            ));
+        }
+
+        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withToolsCallHandler($handlerClass));
 
         return $this;
     }

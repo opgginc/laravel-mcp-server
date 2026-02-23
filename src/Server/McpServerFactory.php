@@ -6,6 +6,8 @@ use Illuminate\Container\Container;
 use InvalidArgumentException;
 use OPGG\LaravelMcpServer\Protocol\MCPProtocol;
 use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
+use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
+use OPGG\LaravelMcpServer\Server\Request\ToolsListHandler;
 use OPGG\LaravelMcpServer\Services\PromptService\PromptRepository;
 use OPGG\LaravelMcpServer\Services\ResourceService\ResourceRepository;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
@@ -98,7 +100,45 @@ final class McpServerFactory
                 $toolRepository->registerMany($endpoint->tools);
             }
 
-            $server->registerToolRepository($toolRepository, $endpoint->toolsPageSize);
+            if ($endpoint->toolsCallHandler === null) {
+                $server->registerToolRepository($toolRepository, $endpoint->toolsPageSize);
+            } else {
+                if ($this->isToolsListMethod($requestedMethod)) {
+                    $server->registerRequestHandler(new ToolsListHandler(
+                        toolRepository: $toolRepository,
+                        pageSize: $endpoint->toolsPageSize,
+                    ));
+                }
+
+                if ($this->isToolCallMethod($requestedMethod)) {
+                    if (! is_a(
+                        object_or_class: $endpoint->toolsCallHandler,
+                        class: ToolsCallHandler::class,
+                        allow_string: true
+                    )) {
+                        throw new InvalidArgumentException(sprintf(
+                            'The tools/call handler [%s] must extend %s.',
+                            $endpoint->toolsCallHandler,
+                            ToolsCallHandler::class,
+                        ));
+                    }
+
+                    $toolsCallHandler = $this->container->make(
+                        abstract: $endpoint->toolsCallHandler,
+                        parameters: ['toolRepository' => $toolRepository],
+                    );
+
+                    if (! $toolsCallHandler instanceof ToolsCallHandler) {
+                        throw new InvalidArgumentException(sprintf(
+                            'The resolved tools/call handler [%s] must extend %s.',
+                            $endpoint->toolsCallHandler,
+                            ToolsCallHandler::class,
+                        ));
+                    }
+
+                    $server->registerRequestHandler($toolsCallHandler);
+                }
+            }
         }
 
         if ($this->supportsResourcesMethod($requestedMethod)) {

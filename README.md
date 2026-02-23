@@ -669,6 +669,45 @@ Route::mcp('/mcp')->tools([
 ]);
 ```
 
+You can also customize `tools/call` handling per endpoint without rebinding the controller:
+
+```php
+use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
+
+class TrackedToolsCallHandler extends ToolsCallHandler
+{
+    public function __construct(ToolRepository $toolRepository)
+    {
+        parent::__construct(toolRepository: $toolRepository);
+    }
+
+    public function execute(string $method, ?array $params = null): array
+    {
+        $result = parent::execute(method: $method, params: $params);
+
+        if ($method !== 'tools/call') {
+            return $result;
+        }
+
+        return [
+            ...$result,
+            '_meta' => [
+                'handler' => 'tracked-tools-call-handler',
+            ],
+        ];
+    }
+}
+
+Route::mcp('/tracked-mcp')
+    ->tools([
+        MyCustomTool::class,
+    ])
+    ->toolsCallHandler(TrackedToolsCallHandler::class);
+```
+
+`toolsCallHandler(...)` accepts classes that extend `ToolsCallHandler`. The package resolves the class through Laravel's container and injects `ToolRepository` automatically (along with your own container-resolvable dependencies).
+
 ### Understanding Your Tool's Structure (ToolInterface)
 
 When you create a tool by implementing `OPGG\LaravelMcpServer\Services\ToolService\ToolInterface`, you'll need to define several methods. Here's a breakdown of each method and its purpose:

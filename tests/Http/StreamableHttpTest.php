@@ -5,11 +5,13 @@ use OPGG\LaravelMcpServer\Http\Controllers\StreamableHttpController;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Handlers\CustomToolsCallHandler;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\ConstructionCounterTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\MetadataAwareTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\MethodStructuredArrayTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\NonPublicMethodStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\SecondaryConstructionCounterTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\StructuredOnlyTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\TabularChampionsTool;
@@ -69,6 +71,58 @@ test('tool can be called via streamable http', function () {
     expect($data['result']['content'])->toHaveCount(1);
     expect($data['result']['structuredContent']['message'])
         ->toContain('HelloWorld `Tester` developer');
+});
+
+test('tools/call uses custom handler when configured on route builder', function () {
+    Route::mcp('/tracked-mcp')
+        ->setName('Tracked HTTP Test MCP')
+        ->setVersion('1.0.0')
+        ->tools(defaultTools())
+        ->toolsCallHandler(CustomToolsCallHandler::class);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 1001,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'hello-world',
+            'arguments' => [
+                'name' => 'TrackedTester',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson(uri: '/tracked-mcp', data: $payload);
+
+    $response->assertStatus(200);
+
+    $result = $response->json('result');
+    expect($result['_meta']['handler'])->toBe('custom-tools-call-handler');
+    expect($result['content'][0]['type'])->toBe('text');
+    expect($result['content'][0]['text'])->toContain('HelloWorld `TrackedTester` developer');
+});
+
+test('tools/list still works when custom tools/call handler is configured', function () {
+    Route::mcp('/tracked-list-mcp')
+        ->setName('Tracked List HTTP Test MCP')
+        ->setVersion('1.0.0')
+        ->tools(defaultTools())
+        ->toolsCallHandler(CustomToolsCallHandler::class);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 1002,
+        'method' => 'tools/list',
+        'params' => [],
+    ];
+
+    $response = $this->postJson(uri: '/tracked-list-mcp', data: $payload);
+
+    $response->assertStatus(200);
+
+    $tools = $response->json('result.tools');
+    expect($tools)->toBeArray();
+    expect(collect($tools)->pluck('name')->all())->toContain('hello-world', 'check-version');
 });
 
 test('initialize does not instantiate tool classes for non-tool requests', function () {
@@ -585,6 +639,37 @@ test('tools can opt into automatic structuredContent detection via method', func
     expect(json_decode($result['content'][0]['text'], true, 512, JSON_THROW_ON_ERROR))->toBe([
         'status' => 'ok',
         'source' => 'method',
+        'echo' => [
+            'region' => 'KR',
+        ],
+    ]);
+});
+
+test('tools/call ignores non-public autoStructuredOutput methods', function () {
+    registerMcpEndpoint(array_merge(defaultTools(), [NonPublicMethodStructuredArrayTool::class]));
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 32,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'non-public-method-structured-array-tool',
+            'arguments' => [
+                'region' => 'KR',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+    $response->assertStatus(200);
+    $response->assertJsonMissingPath('error');
+
+    $result = $response->json('result');
+    expect($result)->not->toHaveKey('structuredContent');
+    expect($result['content'][0]['type'])->toBe('text');
+    expect(json_decode($result['content'][0]['text'], true, 512, JSON_THROW_ON_ERROR))->toBe([
+        'status' => 'ok',
+        'source' => 'non-public-method',
         'echo' => [
             'region' => 'KR',
         ],
