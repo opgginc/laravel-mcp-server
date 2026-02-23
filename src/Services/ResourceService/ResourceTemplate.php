@@ -20,6 +20,11 @@ abstract class ResourceTemplate
     public string $name;
 
     /**
+     * Optional title for UI display.
+     */
+    public ?string $title = null;
+
+    /**
      * Optional description about what this template exposes.
      */
     public ?string $description = null;
@@ -29,13 +34,38 @@ abstract class ResourceTemplate
      */
     public ?string $mimeType = null;
 
+    /**
+     * Optional icon metadata entries.
+     *
+     * @var array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>
+     */
+    public array $icons = [];
+
+    /**
+     * Optional annotations for MCP clients.
+     *
+     * @var array<string, mixed>
+     */
+    public array $annotations = [];
+
+    /**
+     * Optional transport-level metadata.
+     *
+     * @var array<string, mixed>
+     */
+    public array $meta = [];
+
     public function toArray(): array
     {
         return array_filter([
             'uriTemplate' => $this->uriTemplate,
             'name' => $this->name,
+            'title' => $this->title,
             'description' => $this->description,
             'mimeType' => $this->mimeType,
+            'annotations' => $this->annotations === [] ? null : $this->annotations,
+            '_meta' => $this->meta === [] ? null : $this->meta,
+            'icons' => $this->icons === [] ? null : array_values($this->icons),
         ], static fn ($v) => $v !== null);
     }
 

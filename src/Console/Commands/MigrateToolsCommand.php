@@ -20,7 +20,7 @@ class MigrateToolsCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Migrates older MCP tools to v1.3.0: removes messageType() method, adds isStreaming() only for SSE tools. Creates backup files by default (supports v1.0.x → v1.3.0 and v1.1.x/v1.2.x → v1.3.0).';
+    protected $description = 'Migrates older MCP tools to the current ToolInterface: renames legacy getters and removes messageType(). Creates backup files by default (supports v1.0.x and v1.1.x/v1.2.x tools).';
 
     /**
      * Execute the console command.
@@ -38,7 +38,7 @@ class MigrateToolsCommand extends Command
         }
 
         $this->info("Starting migration scan for tools in: {$toolsPath}");
-        $this->info('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0');
+        $this->info('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to the current ToolInterface');
 
         $finder = new Finder;
         $finder->files()->in($toolsPath)->name('*.php');
@@ -58,10 +58,10 @@ class MigrateToolsCommand extends Command
             // Check for tools that need migration
             $filePath = $file->getRealPath();
             $toolVersion = $this->detectToolVersion($content);
-            $needsMigration = $toolVersion !== null && $toolVersion !== '1.3.0';
+            $needsMigration = $toolVersion !== null;
 
             if ($needsMigration) {
-                $this->line("Found {$toolVersion} tool requiring migration to 1.3.0: {$filePath}");
+                $this->line("Found {$toolVersion} tool requiring migration: {$filePath}");
                 $potentialCandidates++;
 
                 // Ask about backup creation only once
@@ -109,7 +109,7 @@ class MigrateToolsCommand extends Command
                     $originalContent = File::get($filePath);
 
                     // Apply migration strategy based on detected version
-                    $this->info("Performing migration from {$toolVersion} to 1.3.0...");
+                    $this->info("Performing migration from {$toolVersion}...");
                     $modifiedContent = $this->applyMigrationStrategy($toolVersion, $originalContent);
 
                     if ($modifiedContent !== $originalContent) {
@@ -162,18 +162,11 @@ class MigrateToolsCommand extends Command
             return '1.0.x';
         }
 
-        // Check for isStreaming() method (v1.3.0 style)
-        $hasIsStreaming = str_contains($content, 'public function isStreaming(): bool');
-
-        if ($hasIsStreaming) {
-            return '1.3.0'; // Already migrated
-        }
-
-        // Check for messageType() method without isStreaming() (v1.1.x/v1.2.x tools)
+        // Check for messageType() method in v1.1.x/v1.2.x tools.
         $hasMessageType = str_contains($content, 'public function messageType(): ProcessMessageType');
 
         if ($hasMessageType) {
-            return '1.1.x'; // Could be 1.1.x or 1.2.x, needs isStreaming() method
+            return '1.1.x'; // Could be 1.1.x or 1.2.x.
         }
 
         return null; // Unknown or not a proper tool
@@ -192,13 +185,12 @@ class MigrateToolsCommand extends Command
     }
 
     /**
-     * Migrate v1.0.x tools to v1.3.0 (rename methods only, no isStreaming since v1.0.x defaulted to HTTP)
+     * Migrate v1.0.x tools by renaming legacy method names.
      */
     private function migrateFromV1_0(string $content): string
     {
         $modifiedContent = $content;
 
-        // Rename methods only - v1.0.x tools defaulted to HTTP so no isStreaming() needed
         $replacements = [
             'public function getName(): string' => 'public function name(): string',
             'public function getDescription(): string' => 'public function description(): string',
@@ -214,38 +206,24 @@ class MigrateToolsCommand extends Command
     }
 
     /**
-     * Migrate v1.1.x/v1.2.x tools to v1.3.0 (remove messageType and conditionally add isStreaming)
+     * Migrate v1.1.x/v1.2.x tools by removing messageType().
      */
     private function migrateFromV1_1(string $content): string
     {
         $modifiedContent = $content;
 
-        // Find messageType method and determine if it's SSE or HTTP
+        // Remove the legacy messageType() method.
         if (preg_match('/(public function messageType\(\): ProcessMessageType\s*\{[^}]*\})/s', $content, $matches)) {
             $messageTypeMethod = $matches[1];
+            $modifiedContent = str_replace($messageTypeMethod, '', $modifiedContent);
 
-            // Check if the messageType returns SSE
-            $isSSE = str_contains($messageTypeMethod, 'ProcessMessageType::SSE');
-
-            if ($isSSE) {
-                // For SSE tools: Replace messageType with isStreaming() returning true
-                $isStreamingMethod = '    public function isStreaming(): bool'.PHP_EOL.
-                    '    {'.PHP_EOL.
-                    '        return true;'.PHP_EOL.
-                    '    }';
-                $modifiedContent = str_replace($messageTypeMethod, $isStreamingMethod, $modifiedContent);
-            } else {
-                // For HTTP tools: Just remove the messageType method completely
-                $modifiedContent = str_replace($messageTypeMethod, '', $modifiedContent);
-
-                // Clean up any extra newlines left behind
-                $modifiedContent = preg_replace('/\n\s*\n\s*\n/', "\n\n", $modifiedContent);
-            }
-
-            // Remove the ProcessMessageType import if it's no longer needed
-            if (! $isSSE && ! str_contains($modifiedContent, 'ProcessMessageType::')) {
+            // Remove the ProcessMessageType import if it's no longer needed.
+            if (! str_contains($modifiedContent, 'ProcessMessageType::')) {
                 $modifiedContent = preg_replace('/use OPGG\\\\LaravelMcpServer\\\\Enums\\\\ProcessMessageType;\s*\n/', '', $modifiedContent);
             }
+
+            // Clean up extra blank lines left by method removal.
+            $modifiedContent = preg_replace('/\n\s*\n\s*\n/', "\n\n", $modifiedContent);
         }
 
         return $modifiedContent;

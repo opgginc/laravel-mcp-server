@@ -136,7 +136,7 @@ trait FormatsTabularToolResponses
 
         if ($rows === []) {
             $listOfRows = [];
-        } elseif (array_is_list($rows) && $rows !== []) {
+        } elseif (array_is_list($rows)) {
             $listOfRows = $rows;
         } else {
             $listOfRows = [$rows];

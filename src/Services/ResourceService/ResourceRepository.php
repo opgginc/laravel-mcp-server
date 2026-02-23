@@ -7,7 +7,7 @@ use InvalidArgumentException;
 
 class ResourceRepository
 {
-    /** @var array<string, resource> */
+    /** @var array<string, \OPGG\LaravelMcpServer\Services\ResourceService\Resource> */
     protected array $resources = [];
 
     /** @var ResourceTemplate[] */
@@ -21,7 +21,7 @@ class ResourceRepository
     }
 
     /**
-     * @param  resource[]  $resources
+     * @param  \OPGG\LaravelMcpServer\Services\ResourceService\Resource[]  $resources
      */
     public function registerResources(array $resources): self
     {

@@ -216,8 +216,8 @@ class {{ className }} extends Resource
             //     'debug_mode' => config('app.debug'),
             //     'timezone' => config('app.timezone'),
             //     'features' => [
-            //         'mcp_enabled' => config('mcp-server.enabled'),
-            //         'tools_count' => count(config('mcp-server.tools')),
+            //         'mcp_routes_configured' => app('router')->getRoutes()->count() > 0,
+            //         'app_version' => app()->version(),
             //     ],
             // ];
             // return [

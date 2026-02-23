@@ -70,14 +70,4 @@ interface TransportInterface
      * @throws Exception If there is an error receiving messages
      */
     public function receive(): mixed;
-
-    /**
-     * Push a message to a specific client.
-     *
-     * @param  string  $clientId  The unique identifier of the target client
-     * @param  array  $message  The message data to send
-     *
-     * @throws Exception If the message cannot be pushed to the client
-     */
-    public function pushMessage(string $clientId, array $message): void;
 }

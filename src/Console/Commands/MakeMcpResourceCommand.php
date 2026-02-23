@@ -79,19 +79,10 @@ class MakeMcpResourceCommand extends Command
         }
         $fullClassName .= $className;
 
-        // Ask if they want to automatically register the resource
-        if ($this->option('programmatic') || $this->option('no-interaction')) {
-            // In programmatic or no-interaction mode, always register automatically
-            $this->registerResourceInConfig($fullClassName);
-        } elseif ($this->confirm('🤖 Would you like to automatically register this resource in config/mcp-server.php?', true)) {
-            $this->registerResourceInConfig($fullClassName);
-        } else {
-            $this->info("☑️ Don't forget to register your resource in config/mcp-server.php:");
-            $this->comment('    // config/mcp-server.php');
-            $this->comment("    'resources' => [");
-            $this->comment('        // other resources...');
-            $this->comment("        {$fullClassName}::class,");
-            $this->comment('    ],');
+        if (! $this->option('programmatic') && ! $this->option('no-interaction')) {
+            $this->info('☑️ Register your resource in a route endpoint:');
+            $this->comment('    use Illuminate\Support\Facades\Route;');
+            $this->comment("    Route::mcp('/mcp')->resources([{$fullClassName}::class]);");
         }
 
         return 0;
@@ -279,92 +270,5 @@ PHP;
             [$className, $namespace],
             $stub
         );
-    }
-
-    /**
-     * Register the resource in the MCP server configuration file.
-     *
-     * @param  string  $resourceClassName  Fully qualified class name of the resource
-     * @return bool Whether registration was successful
-     */
-    protected function registerResourceInConfig(string $resourceClassName): bool
-    {
-        $configPath = config_path('mcp-server.php');
-
-        if (! file_exists($configPath)) {
-            if (property_exists($this, 'output') && $this->output) {
-                $this->error("❌ Config file not found: {$configPath}");
-            }
-
-            return false;
-        }
-
-        $content = file_get_contents($configPath);
-
-        // Find the resources array in the config file
-        if (! preg_match('/[\'"]resources[\'\"]\s*=>\s*\[([^\]]*)\]/s', $content, $matches)) {
-            // Try to add resources array after tools array if it doesn't exist
-            if (preg_match('/([\'"]tools[\'\"]\s*=>\s*\[.*?\s*\],)/s', $content, $toolsMatches)) {
-                $toolsArray = $toolsMatches[1];
-                $resourcesArray = "\n\n    // Resources - Static resources that expose data to LLMs\n    'resources' => [\n        {$resourceClassName}::class,\n    ],";
-                $newContent = str_replace($toolsArray, "{$toolsArray}{$resourcesArray}", $content);
-
-                if (file_put_contents($configPath, $newContent)) {
-                    if (property_exists($this, 'output') && $this->output) {
-                        $this->info('✅ Created resources array and registered resource in config/mcp-server.php');
-                    }
-
-                    return true;
-                } else {
-                    if (property_exists($this, 'output') && $this->output) {
-                        $this->error('❌ Failed to update config file. Please manually register the resource.');
-                    }
-
-                    return false;
-                }
-            }
-
-            if (property_exists($this, 'output') && $this->output) {
-                $this->error('❌ Could not locate resources array in config file.');
-            }
-
-            return false;
-        }
-
-        $resourcesArrayContent = $matches[1];
-
-        // Check if the resource is already registered
-        if (strpos($resourcesArrayContent, $resourceClassName) !== false) {
-            if (property_exists($this, 'output') && $this->output) {
-                $this->info('✅ Resource is already registered in config file.');
-            }
-
-            return true;
-        }
-
-        // Handle empty array case
-        $fullEntry = trim($resourcesArrayContent) === ''
-            ? "\n        {$resourceClassName}::class,\n    "
-            : "\n        {$resourceClassName}::class,";
-
-        // Replace the entire resources array content
-        $oldResourcesArray = "[{$resourcesArrayContent}]";
-        $newResourcesArray = "[{$resourcesArrayContent}{$fullEntry}]";
-        $newContent = str_replace($oldResourcesArray, $newResourcesArray, $content);
-
-        // Write the updated content back to the config file
-        if (file_put_contents($configPath, $newContent)) {
-            if (property_exists($this, 'output') && $this->output) {
-                $this->info('✅ Resource registered successfully in config/mcp-server.php');
-            }
-
-            return true;
-        } else {
-            if (property_exists($this, 'output') && $this->output) {
-                $this->error('❌ Failed to update config file. Please manually register the resource.');
-            }
-
-            return false;
-        }
     }
 }

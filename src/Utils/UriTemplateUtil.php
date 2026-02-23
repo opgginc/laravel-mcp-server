@@ -18,7 +18,7 @@ class UriTemplateUtil
     {
         preg_match_all('/\{([^}]+)\}/', $template, $matches);
 
-        return $matches[1] ?? [];
+        return $matches[1];
     }
 
     /**

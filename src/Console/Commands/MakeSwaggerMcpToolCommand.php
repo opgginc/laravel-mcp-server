@@ -868,7 +868,7 @@ class MakeSwaggerMcpToolCommand extends Command
                 $stepNumber++;
             }
 
-            $this->line("{$stepNumber}. All components have been automatically registered in config/mcp-server.php");
+            $this->line("{$stepNumber}. Register generated classes in a route endpoint (Route::mcp(...)->tools/resources/...)");
             $stepNumber++;
             $this->line("{$stepNumber}. Update authentication configuration if needed");
         }

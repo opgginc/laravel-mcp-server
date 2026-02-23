@@ -6,24 +6,12 @@ beforeEach(function () {
     // Clean up directories before each test
     File::deleteDirectory(app_path('MCP/Tools'));
     File::deleteDirectory(app_path('MCP/Resources'));
-
-    // Create a minimal config file for testing
-    $configDir = config_path();
-    if (! File::isDirectory($configDir)) {
-        File::makeDirectory($configDir, 0755, true);
-    }
-
-    $configContent = "<?php\n\nreturn [\n    'tools' => [],\n    'resources' => [],\n];";
-    File::put(config_path('mcp-server.php'), $configContent);
 });
 
 afterEach(function () {
     // Clean up after each test
     File::deleteDirectory(app_path('MCP/Tools'));
     File::deleteDirectory(app_path('MCP/Resources'));
-    if (File::exists(config_path('mcp-server.php'))) {
-        File::delete(config_path('mcp-server.php'));
-    }
 });
 
 test('tag directory handles complex special characters', function () {

@@ -79,19 +79,10 @@ class MakeMcpToolCommand extends Command
         }
         $fullClassName .= $className;
 
-        // Ask if they want to automatically register the tool
-        if ($this->option('programmatic') || $this->option('no-interaction')) {
-            // In programmatic or no-interaction mode, always register automatically
-            $this->registerToolInConfig($fullClassName);
-        } elseif ($this->confirm('🤖 Would you like to automatically register this tool in config/mcp-server.php?', true)) {
-            $this->registerToolInConfig($fullClassName);
-        } else {
-            $this->info("☑️ Don't forget to register your tool in config/mcp-server.php:");
-            $this->comment('    // config/mcp-server.php');
-            $this->comment("    'tools' => [");
-            $this->comment('        // other tools...');
-            $this->comment("        {$fullClassName}::class,");
-            $this->comment('    ],');
+        if (! $this->option('programmatic') && ! $this->option('no-interaction')) {
+            $this->info('☑️ Register your tool in a route endpoint:');
+            $this->comment('    use Illuminate\Support\Facades\Route;');
+            $this->comment("    Route::mcp('/mcp')->tools([{$fullClassName}::class]);");
         }
 
         // Display testing instructions (skip in programmatic or no-interaction mode)
@@ -322,72 +313,5 @@ class MakeMcpToolCommand extends Command
             [$className, $namespace, $toolName],
             $stub
         );
-    }
-
-    /**
-     * Register the tool in the MCP server configuration file.
-     *
-     * @param  string  $toolClassName  Fully qualified class name of the tool
-     * @return bool Whether registration was successful
-     */
-    protected function registerToolInConfig(string $toolClassName): bool
-    {
-        $configPath = config_path('mcp-server.php');
-
-        if (! file_exists($configPath)) {
-            $this->error("❌ Config file not found: {$configPath}");
-
-            return false;
-        }
-
-        $content = file_get_contents($configPath);
-
-        // Find the tools array in the config file
-        if (! preg_match('/[\'"]tools[\'"]\s*=>\s*\[(.*?)\],/s', $content, $matches)) {
-            $this->error('❌ Could not locate tools array in config file.');
-
-            return false;
-        }
-
-        $toolsArrayContent = $matches[1];
-        // Escape backslashes for the config file
-        $escapedClassName = str_replace('\\', '\\\\', $toolClassName);
-        $fullEntry = "\n        {$escapedClassName}::class,";
-
-        // Check if the tool is already registered (check both escaped and unescaped)
-        if (strpos($toolsArrayContent, $escapedClassName) !== false || strpos($toolsArrayContent, $toolClassName) !== false) {
-            $this->info('✅ Tool is already registered in config file.');
-
-            return true;
-        }
-
-        // Handle empty array case
-        if (trim($toolsArrayContent) === '') {
-            // Empty array, add the entry directly
-            $newContent = str_replace(
-                "'tools' => []",
-                "'tools' => [{$fullEntry}\n    ]",
-                $content
-            );
-        } else {
-            // Add the new tool to the tools array
-            $newToolsArrayContent = $toolsArrayContent.$fullEntry;
-            $newContent = str_replace($toolsArrayContent, $newToolsArrayContent, $content);
-        }
-
-        // Write the updated content back to the config file
-        if (file_put_contents($configPath, $newContent)) {
-            if (property_exists($this, 'output') && $this->output) {
-                $this->info('✅ Tool registered successfully in config/mcp-server.php');
-            }
-
-            return true;
-        } else {
-            if (property_exists($this, 'output') && $this->output) {
-                $this->error('❌ Failed to update config file. Please manually register the tool.');
-            }
-
-            return false;
-        }
     }
 }

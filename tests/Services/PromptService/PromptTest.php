@@ -7,7 +7,21 @@ class TestPrompt extends Prompt
 {
     public string $name = 'test-prompt';
 
+    public ?string $title = 'Test Prompt Title';
+
     public ?string $description = 'A test prompt';
+
+    public array $annotations = [
+        'priority' => 0.8,
+    ];
+
+    public array $meta = [
+        'team' => 'mcp',
+    ];
+
+    public array $icons = [
+        ['src' => 'https://example.com/prompt-icon.png', 'mimeType' => 'image/png', 'sizes' => ['128x128'], 'theme' => 'light'],
+    ];
 
     public array $arguments = [
         [
@@ -76,7 +90,17 @@ test('prompt toArray includes arguments when present', function () {
     $array = $prompt->toArray();
 
     expect($array)->toHaveKey('arguments')
-        ->and($array['arguments'])->toHaveCount(2);
+        ->and($array['arguments'])->toHaveCount(2)
+        ->and($array['title'])->toBe('Test Prompt Title')
+        ->and($array['annotations'])->toBe([
+            'priority' => 0.8,
+        ])
+        ->and($array['_meta'])->toBe([
+            'team' => 'mcp',
+        ])
+        ->and($array['icons'])->toBe([
+            ['src' => 'https://example.com/prompt-icon.png', 'mimeType' => 'image/png', 'sizes' => ['128x128'], 'theme' => 'light'],
+        ]);
 });
 
 test('prompt toArray excludes arguments when empty', function () {

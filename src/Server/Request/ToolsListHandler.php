@@ -2,7 +2,6 @@
 
 namespace OPGG\LaravelMcpServer\Server\Request;
 
-use Illuminate\Support\Facades\Config;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
@@ -19,15 +18,11 @@ class ToolsListHandler extends RequestHandler
 
     private int $pageSize;
 
-    public function __construct(ToolRepository $toolRepository)
+    public function __construct(ToolRepository $toolRepository, int $pageSize = 50)
     {
         parent::__construct();
         $this->toolRepository = $toolRepository;
-
-        // Enforce the page size mandated by our configuration while defaulting to 50 entries.
-        // This mirrors the cursor based pagination described in the MCP 2025-06-18 tools/list spec.
-        $configuredPageSize = (int) Config::get('mcp-server.tools_list.page_size', 50);
-        $this->pageSize = max(1, $configuredPageSize);
+        $this->pageSize = max(1, $pageSize);
     }
 
     public function execute(string $method, ?array $params = null): array
@@ -53,7 +48,7 @@ class ToolsListHandler extends RequestHandler
 
         $response = [
             // The spec requires returning the tool definitions in a `tools` array.
-            // @see https://modelcontextprotocol.io/specification/2025-06-18#listing-tools
+            // @see https://modelcontextprotocol.io/specification/2025-11-25/schema
             'tools' => $page,
         ];
 

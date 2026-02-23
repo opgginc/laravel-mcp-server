@@ -279,46 +279,6 @@ MCP 协议还定义了"可流式 HTTP SSE"模式，但此包未实现该模式�
 
 ## 基本用法
 
-### 域名限制
-
-您可以将 MCP 服务器路由限制到特定域名，以获得更好的安全性和组织性：
-
-```php
-// config/mcp-server.php
-
-// 允许从所有域名访问（默认）
-'domain' => null,
-
-// 限制到单个域名
-'domain' => 'api.example.com',
-
-// 限制到多个域名
-'domain' => ['api.example.com', 'admin.example.com'],
-```
-
-**何时使用域名限制：**
-- 在不同子域上运行多个应用程序
-- 将 API 端点与主应用程序分离
-- 实现多租户架构，每个租户都有自己的子域
-- 在多个域名上提供相同的 MCP 服务
-
-**示例场景：**
-
-```php
-// 单个 API 子域
-'domain' => 'api.op.gg',
-
-// 不同环境的多个子域
-'domain' => ['api.op.gg', 'staging-api.op.gg'],
-
-// 多租户架构
-'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
-
-// 不同域名上的不同服务
-'domain' => ['api.op.gg', 'api.kargn.as'],
-```
-
-> **注意：** 使用多个域名时，包会自动为每个域名注册单独的路由，以确保在所有指定域名上正确路由。
 
 ### 创建和添加自定义工具
 

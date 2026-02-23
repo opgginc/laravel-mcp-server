@@ -26,9 +26,9 @@ use Throwable;
  */
 final class MCPProtocol
 {
-    // MCP specification (2025-06-18) requires advertising this protocol version during initialize.
-    // @see https://modelcontextprotocol.io/specification/2025-06-18 for the authoritative definition.
-    public const PROTOCOL_VERSION = '2025-06-18';
+    // MCP specification (2025-11-25) requires advertising this protocol version during initialize.
+    // @see https://modelcontextprotocol.io/specification/2025-11-25 for the authoritative definition.
+    public const PROTOCOL_VERSION = '2025-11-25';
 
     private TransportInterface $transport;
 
@@ -121,7 +121,7 @@ final class MCPProtocol
 
             $requestData = DataUtil::makeRequestData(message: $message);
             if ($requestData instanceof RequestData) {
-                return $this->processRequestData(clientId: $clientId, requestData: $requestData);
+                return $this->processRequestData(requestData: $requestData);
             }
             if ($requestData instanceof NotificationData) {
                 return $this->processNotification(clientId: $clientId, notificationData: $requestData);
@@ -131,7 +131,6 @@ final class MCPProtocol
         } catch (JsonRpcErrorException $e) {
             report($e);
             $jsonErrorResource = new JsonRpcErrorResource(exception: $e, id: $messageId);
-            $this->sendSSEMessage(clientId: $clientId, message: $jsonErrorResource);
 
             return new ProcessMessageData(messageType: ProcessMessageType::HTTP, resource: $jsonErrorResource, isNotification: false);
         } catch (Throwable $e) {
@@ -147,7 +146,6 @@ final class MCPProtocol
                 ),
                 id: $messageId
             );
-            $this->sendSSEMessage(clientId: $clientId, message: $jsonErrorResource);
 
             return new ProcessMessageData(messageType: ProcessMessageType::HTTP, resource: $jsonErrorResource, isNotification: false);
         }
@@ -158,12 +156,11 @@ final class MCPProtocol
      * Finds a matching request handler and executes it.
      * Sends the result or an error back to the client.
      *
-     * @param  string  $clientId  The identifier of the client sending the request.
      * @param  RequestData  $requestData  The parsed request data object.
      *
      * @throws Exception
      */
-    private function processRequestData(string $clientId, RequestData $requestData): ProcessMessageData
+    private function processRequestData(RequestData $requestData): ProcessMessageData
     {
         $method = $requestData->method;
         $handler = $this->requestHandlers[$method] ?? null;
@@ -172,30 +169,11 @@ final class MCPProtocol
             $messageType = $handler->getMessageType($requestData->params);
 
             $resultResource = new JsonRpcResultResource(id: $requestData->id, result: $result);
-            $processMessageData = new ProcessMessageData(messageType: $messageType, resource: $resultResource, isNotification: false);
 
-            if ($processMessageData->isSSEMessage()) {
-                $this->sendSSEMessage(clientId: $clientId, message: $resultResource);
-            }
-
-            return $processMessageData;
+            return new ProcessMessageData(messageType: $messageType, resource: $resultResource, isNotification: false);
         }
 
         throw new JsonRpcErrorException("Method not found: {$requestData->method}", JsonRpcErrorCode::METHOD_NOT_FOUND);
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function sendSSEMessage(string $clientId, array|JsonRpcResultResource|JsonRpcErrorResource $message): void
-    {
-        if ($message instanceof JsonRpcResultResource || $message instanceof JsonRpcErrorResource) {
-            $this->transport->pushMessage(clientId: $clientId, message: $message->toResponse());
-
-            return;
-        }
-
-        $this->transport->pushMessage(clientId: $clientId, message: $message);
     }
 
     /**
@@ -218,13 +196,8 @@ final class MCPProtocol
 
                 // Notifications don't return data to client, create empty result
                 $resultResource = new JsonRpcResultResource(id: null, result: []);
-                $processMessageData = new ProcessMessageData(messageType: $messageType, resource: $resultResource, isNotification: true);
 
-                if ($processMessageData->isSSEMessage()) {
-                    $this->sendSSEMessage(clientId: $clientId, message: $resultResource);
-                }
-
-                return $processMessageData;
+                return new ProcessMessageData(messageType: $messageType, resource: $resultResource, isNotification: true);
             } catch (Exception $e) {
                 // Log notification execution errors but don't send error response to client
                 // per JSON-RPC specification for notifications

@@ -24,32 +24,30 @@ class InitializeResource
 
     /**
      * Information about the server itself.
-     * Contains the server's name and version.
+     * Mirrors MCP Implementation shape.
      *
-     * @var array{name: string, version: string}
+     * @var array{name: string, version: string, title?: string, description?: string, websiteUrl?: string, icons?: array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>}
      */
     public array $serverInfo;
 
     /**
+     * Human-readable guidance shown to users by clients.
+     */
+    public ?string $instructions = null;
+
+    /**
      * Constructs a new InitializeResource instance.
      *
-     * @param  string  $name  The name of the server.
-     * @param  string  $version  The version of the server.
+     * @param  array{name: string, version: string, title?: string, description?: string, websiteUrl?: string, icons?: array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>}  $serverInfo
      * @param  array  $capabilities  The capabilities supported by the server.
+     * @param  string|null  $instructions  Optional human-readable instructions for clients.
      * @param  string  $protocolVersion  The protocol version being used.
      */
-    /**
-     * @param  string  $protocolVersion  Defaults to MCP revision 2025-06-18 per the upstream spec.
-     *                                   This ensures initialize echoes the negotiated version documented at
-     *                                   https://modelcontextprotocol.io/specification/2025-06-18#initialization.
-     */
-    public function __construct(string $name, string $version, array $capabilities, string $protocolVersion = '2025-06-18')
+    public function __construct(array $serverInfo, array $capabilities, ?string $instructions = null, string $protocolVersion = MCPProtocol::PROTOCOL_VERSION)
     {
-        $this->serverInfo = [
-            'name' => $name,
-            'version' => $version,
-        ];
+        $this->serverInfo = $serverInfo;
         $this->capabilities = $capabilities;
+        $this->instructions = $instructions;
         $this->protocolVersion = $protocolVersion;
     }
 
@@ -62,10 +60,23 @@ class InitializeResource
      */
     public static function fromArray(array $data): self
     {
+        $serverInfo = $data['serverInfo'] ?? [
+            'name' => $data['name'] ?? 'unknown',
+            'version' => $data['version'] ?? '1.0',
+        ];
+
+        if (! is_array($serverInfo)) {
+            $serverInfo = [
+                'name' => 'unknown',
+                'version' => '1.0',
+            ];
+        }
+
         return new self(
-            $data['name'] ?? 'unknown',
-            $data['version'] ?? '1.0',
-            $data['capabilities'] ?? []
+            $serverInfo,
+            is_array($data['capabilities'] ?? null) ? $data['capabilities'] : [],
+            is_string($data['instructions'] ?? null) ? $data['instructions'] : null,
+            is_string($data['protocolVersion'] ?? null) ? $data['protocolVersion'] : MCPProtocol::PROTOCOL_VERSION,
         );
     }
 
@@ -77,10 +88,16 @@ class InitializeResource
      */
     public function toArray(): array
     {
-        return [
+        $payload = [
             'protocolVersion' => $this->protocolVersion,
             'capabilities' => $this->capabilities,
             'serverInfo' => $this->serverInfo,
         ];
+
+        if ($this->instructions !== null) {
+            $payload['instructions'] = $this->instructions;
+        }
+
+        return $payload;
     }
 }

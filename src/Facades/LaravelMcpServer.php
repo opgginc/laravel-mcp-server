@@ -6,8 +6,6 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @see \OPGG\LaravelMcpServer\LaravelMcpServer
- *
- * @method static void sseRoute(array $middleware = [])
  */
 class LaravelMcpServer extends Facade
 {

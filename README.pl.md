@@ -279,46 +279,6 @@ Protokół MCP definiuje również tryb "Streamable HTTP SSE", ale ten pakiet go
 
 ## Podstawowe użycie
 
-### Ograniczenie domeny
-
-Możesz ograniczyć trasy serwera MCP do określonych domen dla lepszego bezpieczeństwa i organizacji:
-
-```php
-// config/mcp-server.php
-
-// Zezwól na dostęp ze wszystkich domen (domyślnie)
-'domain' => null,
-
-// Ogranicz do jednej domeny
-'domain' => 'api.example.com',
-
-// Ogranicz do wielu domen
-'domain' => ['api.example.com', 'admin.example.com'],
-```
-
-**Kiedy używać ograniczenia domeny:**
-- Uruchamianie wielu aplikacji na różnych subdomenach
-- Oddzielanie punktów końcowych API od głównej aplikacji
-- Implementacja architektur multi-tenant, gdzie każdy tenant ma swoją własną subdomenę
-- Dostarczanie tych samych usług MCP w wielu domenach
-
-**Przykładowe scenariusze:**
-
-```php
-// Jedna subdomena API
-'domain' => 'api.op.gg',
-
-// Wiele subdomen dla różnych środowisk
-'domain' => ['api.op.gg', 'staging-api.op.gg'],
-
-// Architektura multi-tenant
-'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
-
-// Różne usługi na różnych domenach
-'domain' => ['api.op.gg', 'api.kargn.as'],
-```
-
-> **Uwaga:** Przy używaniu wielu domen pakiet automatycznie rejestruje oddzielne trasy dla każdej domeny, aby zapewnić prawidłowy routing we wszystkich określonych domenach.
 
 ### Tworzenie i dodawanie własnych narzędzi
 

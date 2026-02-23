@@ -63,11 +63,11 @@ final class ServerCapabilities
         $this->supportsTools = true;
         $config = $config ?? [];
 
-        // The MCP 2025-06-18 specification mandates advertising whether `tools/list_changed`
+        // The MCP 2025-11-25 specification mandates advertising whether `tools/list_changed`
         // notifications are emitted via the `listChanged` flag within the tools capability block.
         // When a caller does not provide an explicit value we default to `false` so the payload
         // still satisfies the schema described at
-        // https://modelcontextprotocol.io/specification/2025-06-18#capabilities.
+        // https://modelcontextprotocol.io/specification/2025-11-25/schema.
         if (! array_key_exists('listChanged', $config)) {
             $config['listChanged'] = false;
         }
@@ -83,6 +83,15 @@ final class ServerCapabilities
     public function withResources(?array $config = []): self
     {
         $this->supportsResources = true;
+        $config = $config ?? [];
+
+        if (! array_key_exists('subscribe', $config)) {
+            $config['subscribe'] = false;
+        }
+        if (! array_key_exists('listChanged', $config)) {
+            $config['listChanged'] = false;
+        }
+
         $this->resourcesConfig = $config;
 
         return $this;
@@ -94,6 +103,12 @@ final class ServerCapabilities
     public function withPrompts(?array $config = []): self
     {
         $this->supportsPrompts = true;
+        $config = $config ?? [];
+
+        if (! array_key_exists('listChanged', $config)) {
+            $config['listChanged'] = false;
+        }
+
         $this->promptsConfig = $config;
 
         return $this;
