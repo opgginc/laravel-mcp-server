@@ -56,6 +56,11 @@ final class MCPServer
     private ?string $instructions;
 
     /**
+     * Protocol version advertised in initialize responses.
+     */
+    private string $protocolVersion;
+
+    /**
      * The capabilities supported by this server instance.
      */
     private ServerCapabilities $capabilities;
@@ -82,13 +87,20 @@ final class MCPServer
      * @param  array{name: string, version: string, title?: string, description?: string, websiteUrl?: string, icons?: array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>}  $serverInfo  Associative array containing the server identity metadata.
      * @param  ServerCapabilities|null  $capabilities  Optional server capabilities configuration. If null, default capabilities are used.
      * @param  string|null  $instructions  Optional user-facing instructions for clients.
+     * @param  string  $protocolVersion  Protocol version to advertise during initialize.
      */
-    public function __construct(MCPProtocol $protocol, array $serverInfo, ?ServerCapabilities $capabilities = null, ?string $instructions = null)
-    {
+    public function __construct(
+        MCPProtocol $protocol,
+        array $serverInfo,
+        ?ServerCapabilities $capabilities = null,
+        ?string $instructions = null,
+        string $protocolVersion = MCPProtocol::LATEST_PROTOCOL_VERSION,
+    ) {
         $this->protocol = $protocol;
         $this->serverInfo = $serverInfo;
         $this->capabilities = $capabilities ?? new ServerCapabilities;
         $this->instructions = $instructions;
+        $this->protocolVersion = $protocolVersion;
 
         // Register the handler for the mandatory 'initialize' method.
         $this->registerRequestHandler(new InitializeHandler($this));
@@ -123,6 +135,7 @@ final class MCPServer
      * @param  string|null  $websiteUrl  Optional server website URL.
      * @param  array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>  $icons  Optional icon metadata.
      * @param  string|null  $instructions  Optional user-facing instructions.
+     * @param  string  $protocolVersion  Protocol version to advertise during initialize.
      * @return self A new MCPServer instance.
      */
     public static function create(
@@ -135,6 +148,7 @@ final class MCPServer
         ?string $websiteUrl = null,
         array $icons = [],
         ?string $instructions = null,
+        string $protocolVersion = MCPProtocol::LATEST_PROTOCOL_VERSION,
     ): self {
         $serverInfo = [
             'name' => $name,
@@ -154,7 +168,7 @@ final class MCPServer
             $serverInfo['icons'] = array_values($icons);
         }
 
-        return new self($protocol, $serverInfo, $capabilities, $instructions);
+        return new self($protocol, $serverInfo, $capabilities, $instructions, $protocolVersion);
     }
 
     /**
@@ -245,13 +259,11 @@ final class MCPServer
         $this->initialized = true;
 
         $this->clientCapabilities = $data->capabilities;
-        $protocolVersion = MCPProtocol::PROTOCOL_VERSION;
-
         $initializeResource = new InitializeResource(
             $this->serverInfo,
             $this->capabilities->toArray(),
             $this->instructions,
-            $protocolVersion,
+            $this->protocolVersion,
         );
 
         return $initializeResource;

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use OPGG\LaravelMcpServer\Enums\ProtocolVersion;
 use OPGG\LaravelMcpServer\LaravelMcpServer;
 use OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
@@ -62,6 +63,20 @@ it('exposes setServerInfo as the only public server metadata mutator', function 
     expect(method_exists(McpRouteBuilder::class, 'setWebsiteUrl'))->toBeFalse();
     expect(method_exists(McpRouteBuilder::class, 'setIcons'))->toBeFalse();
     expect(method_exists(McpRouteBuilder::class, 'setInstructions'))->toBeFalse();
+});
+
+it('stores protocol version from fluent route builder', function () {
+    bootProvider();
+
+    Route::mcp('/protocol-version')
+        ->setProtocolVersion(ProtocolVersion::V2025_06_18);
+
+    /** @var McpEndpointRegistry $registry */
+    $registry = app(McpEndpointRegistry::class);
+    $definitions = array_values($registry->all());
+
+    expect($definitions)->toHaveCount(1);
+    expect($definitions[0]->protocolVersion)->toBe('2025-06-18');
 });
 
 it('stores endpoint definitions from fluent route builder', function () {
