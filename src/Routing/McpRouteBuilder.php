@@ -13,58 +13,6 @@ final class McpRouteBuilder
         private readonly string $endpointId,
     ) {}
 
-    public function setName(string $name): self
-    {
-        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withName($name));
-
-        return $this;
-    }
-
-    public function setVersion(string $version): self
-    {
-        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withVersion($version));
-
-        return $this;
-    }
-
-    public function setTitle(?string $title): self
-    {
-        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withTitle($title));
-
-        return $this;
-    }
-
-    public function setDescription(?string $description): self
-    {
-        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withDescription($description));
-
-        return $this;
-    }
-
-    public function setWebsiteUrl(?string $websiteUrl): self
-    {
-        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withWebsiteUrl($websiteUrl));
-
-        return $this;
-    }
-
-    /**
-     * @param  array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>  $icons
-     */
-    public function setIcons(array $icons): self
-    {
-        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withIcons($icons));
-
-        return $this;
-    }
-
-    public function setInstructions(?string $instructions): self
-    {
-        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withInstructions($instructions));
-
-        return $this;
-    }
-
     /**
      * @param  array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>|null  $icons
      */
