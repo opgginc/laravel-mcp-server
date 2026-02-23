@@ -79,6 +79,7 @@ final class McpServerFactory
             $endpoint->websiteUrl,
             $endpoint->icons,
             $endpoint->instructions,
+            $endpoint->protocolVersion,
         );
 
         // Intentionally lazy-register repositories by method namespace to avoid

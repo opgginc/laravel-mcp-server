@@ -67,6 +67,7 @@ composer require opgginc/laravel-mcp-server
 
 ```php
 use Illuminate\Support\Facades\Route;
+use OPGG\LaravelMcpServer\Enums\ProtocolVersion;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 
@@ -75,10 +76,17 @@ Route::mcp('/mcp')
         name: 'OP.GG MCP Server',
         version: '2.0.0',
     )
+    ->setProtocolVersion(ProtocolVersion::V2025_11_25)
     ->tools([
         HelloWorldTool::class,
         VersionCheckTool::class,
     ]);
+```
+
+If you need compatibility with clients that do not support `2025-11-25`, set:
+
+```php
+->setProtocolVersion(ProtocolVersion::V2025_06_18)
 ```
 
 ### 3) Verify
