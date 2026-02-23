@@ -4,21 +4,21 @@ namespace OPGG\LaravelMcpServer\Tests\Fixtures\Tools;
 
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
-class AutoStructuredArrayTool implements ToolInterface
+class MethodStructuredArrayTool implements ToolInterface
 {
-    /**
-     * Opt into automatic structuredContent detection for array payloads.
-     */
-    public bool $autoStructuredOutput = true;
+    public function autoStructuredOutput(): bool
+    {
+        return true;
+    }
 
     public function name(): string
     {
-        return 'auto-structured-array-tool';
+        return 'method-structured-array-tool';
     }
 
     public function description(): string
     {
-        return 'Returns an array that should be emitted via structuredContent.';
+        return 'Returns array payloads and opts into structured output via method.';
     }
 
     public function inputSchema(): array
@@ -38,6 +38,7 @@ class AutoStructuredArrayTool implements ToolInterface
     {
         return [
             'status' => 'ok',
+            'source' => 'method',
             'echo' => $arguments,
         ];
     }

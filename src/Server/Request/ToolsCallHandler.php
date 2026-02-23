@@ -44,12 +44,7 @@ class ToolsCallHandler extends RequestHandler
         $arguments = $params['arguments'] ?? [];
         $result = $tool->execute($arguments);
 
-        $autoStructuredOutput = false;
-        if (property_exists($tool, 'autoStructuredOutput')) {
-            $autoStructuredOutput = (bool) (function () {
-                return $this->autoStructuredOutput;
-            })->call($tool);
-        }
+        $autoStructuredOutput = $this->resolveAutoStructuredOutput($tool);
 
         $preparedResult = $result instanceof ToolResponse
             ? $result->toArray()
@@ -146,6 +141,26 @@ class ToolsCallHandler extends RequestHandler
                 'text' => $text,
             ],
         ];
+    }
+
+    /**
+     * Determines whether array results should be mapped into structuredContent automatically.
+     *
+     * We intentionally avoid visibility bypasses (e.g. Closure::call/Reflection::setAccessible)
+     * and only consume explicit, public signals from the tool implementation.
+     */
+    private function resolveAutoStructuredOutput(object $tool): bool
+    {
+        if (method_exists($tool, 'autoStructuredOutput')) {
+            return (bool) $tool->autoStructuredOutput();
+        }
+
+        $publicProperties = get_object_vars($tool);
+        if (array_key_exists('autoStructuredOutput', $publicProperties)) {
+            return (bool) $publicProperties['autoStructuredOutput'];
+        }
+
+        return false;
     }
 
     /**

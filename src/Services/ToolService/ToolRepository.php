@@ -51,6 +51,15 @@ class ToolRepository
     }
 
     /**
+     * Clears class-level schema cache.
+     * Primarily intended for test isolation.
+     */
+    public static function clearSchemaCache(): void
+    {
+        self::$toolSchemaCacheByClass = [];
+    }
+
+    /**
      * Registers multiple tools at once.
      *
      * @param  array<string|ToolInterface>  $tools  An array of tool class strings or ToolInterface instances.

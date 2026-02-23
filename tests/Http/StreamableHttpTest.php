@@ -9,6 +9,7 @@ use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\ConstructionCounterTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\MetadataAwareTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\MethodStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\SecondaryConstructionCounterTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\StructuredOnlyTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\TabularChampionsTool;
@@ -35,11 +36,8 @@ test('streamable http GET returns method not allowed', function () {
 
     $response = $this->get('/mcp');
 
-    $response->assertStatus(405)
-        ->assertJson([
-            'jsonrpc' => '2.0',
-            'error' => 'Method Not Allowed',
-        ]);
+    $response->assertStatus(405);
+    expect($response->getContent())->toBe('');
 });
 
 test('tool can be called via streamable http', function () {
@@ -553,6 +551,42 @@ test('tools can opt into automatic structuredContent detection', function () {
         'status' => 'ok',
         'echo' => [
             'alpha' => 'beta',
+        ],
+    ]);
+});
+
+test('tools can opt into automatic structuredContent detection via method', function () {
+    registerMcpEndpoint(array_merge(defaultTools(), [MethodStructuredArrayTool::class]));
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 31,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'method-structured-array-tool',
+            'arguments' => [
+                'region' => 'KR',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+    $response->assertStatus(200);
+
+    $result = $response->json('result');
+    expect($result['structuredContent'])->toBe([
+        'status' => 'ok',
+        'source' => 'method',
+        'echo' => [
+            'region' => 'KR',
+        ],
+    ]);
+    expect($result['content'][0]['type'])->toBe('text');
+    expect(json_decode($result['content'][0]['text'], true, 512, JSON_THROW_ON_ERROR))->toBe([
+        'status' => 'ok',
+        'source' => 'method',
+        'echo' => [
+            'region' => 'KR',
         ],
     ]);
 });

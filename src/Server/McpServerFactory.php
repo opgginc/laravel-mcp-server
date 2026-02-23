@@ -31,6 +31,24 @@ final class McpServerFactory
     public function __construct(private readonly Container $container) {}
 
     /**
+     * Clears all endpoint and class caches.
+     * Useful in test environments and dynamic route reconfiguration scenarios.
+     */
+    public function clearCache(): void
+    {
+        $this->toolClassMapByEndpoint = [];
+        $this->toolNameByClass = [];
+    }
+
+    /**
+     * Clears endpoint-local caches while preserving cross-endpoint class metadata.
+     */
+    public function clearEndpointCache(string $endpointId): void
+    {
+        unset($this->toolClassMapByEndpoint[$endpointId]);
+    }
+
+    /**
      * @param  array<string, mixed>|null  $requestMessage
      */
     public function make(McpEndpointDefinition $endpoint, ?array $requestMessage = null): MCPServer
@@ -61,6 +79,8 @@ final class McpServerFactory
             $endpoint->instructions,
         );
 
+        // Intentionally lazy-register repositories by method namespace to avoid
+        // constructing unnecessary services for initialize/ping/notifications.
         if ($this->supportsToolsMethod($requestedMethod)) {
             $toolRepository = new ToolRepository($this->container);
 

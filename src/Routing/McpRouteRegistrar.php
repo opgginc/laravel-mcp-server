@@ -4,6 +4,7 @@ namespace OPGG\LaravelMcpServer\Routing;
 
 use Illuminate\Routing\Router as LaravelRouter;
 use OPGG\LaravelMcpServer\Http\Controllers\StreamableHttpController;
+use OPGG\LaravelMcpServer\Server\McpServerFactory;
 
 final class McpRouteRegistrar
 {
@@ -60,11 +61,11 @@ final class McpRouteRegistrar
 
         $definition = $this->registry->create($normalizedPath);
 
-        call_user_func([$router, 'get'], $uri, [
+        $router->get($uri, [
             'uses' => StreamableHttpController::class.'@getHandle',
             self::ROUTE_DEFAULT_ENDPOINT_KEY => $definition->id,
         ]);
-        call_user_func([$router, 'post'], $uri, [
+        $router->post($uri, [
             'uses' => StreamableHttpController::class.'@postHandle',
             self::ROUTE_DEFAULT_ENDPOINT_KEY => $definition->id,
         ]);
@@ -95,6 +96,7 @@ final class McpRouteRegistrar
             $endpointId = $route->getAction(self::ROUTE_DEFAULT_ENDPOINT_KEY);
             if (is_string($endpointId) && $endpointId !== '') {
                 $this->registry->remove($endpointId);
+                $this->clearFactoryEndpointCache($endpointId);
             }
         }
     }
@@ -105,7 +107,7 @@ final class McpRouteRegistrar
             return;
         }
 
-        $routes = call_user_func([$router, 'getRoutes']);
+        $routes = $router->getRoutes();
         if (! is_iterable($routes)) {
             return;
         }
@@ -132,6 +134,7 @@ final class McpRouteRegistrar
             $endpointId = $action[self::ROUTE_DEFAULT_ENDPOINT_KEY] ?? null;
             if (is_string($endpointId) && $endpointId !== '') {
                 $this->registry->remove($endpointId);
+                $this->clearFactoryEndpointCache($endpointId);
             }
         }
     }
@@ -159,7 +162,7 @@ final class McpRouteRegistrar
             return null;
         }
 
-        $groupStack = call_user_func([$router, 'getGroupStack']);
+        $groupStack = $router->getGroupStack();
         if (! is_array($groupStack) || $groupStack === []) {
             return null;
         }
@@ -173,5 +176,14 @@ final class McpRouteRegistrar
     private function normalizeDomain(?string $domain): ?string
     {
         return is_string($domain) && $domain !== '' ? $domain : null;
+    }
+
+    private function clearFactoryEndpointCache(string $endpointId): void
+    {
+        if (! app()->bound(McpServerFactory::class)) {
+            return;
+        }
+
+        app(McpServerFactory::class)->clearEndpointCache($endpointId);
     }
 }

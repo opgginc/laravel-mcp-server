@@ -51,10 +51,10 @@ final class McpEndpointRegistry
         $tools = [];
         foreach ($this->definitions as $definition) {
             foreach ($definition->tools as $toolClass) {
-                $tools[$toolClass] = $toolClass;
+                $tools[] = $toolClass;
             }
         }
 
-        return array_values($tools);
+        return array_values(array_unique($tools));
     }
 }

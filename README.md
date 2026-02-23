@@ -40,7 +40,7 @@ Version 1.5.0 focuses on structured tool output, richer prompt support, and impr
 - **Tabular response helpers** – The new `FormatsTabularToolResponses` trait converts array data into CSV or Markdown tables with consistent MIME typing. Example tools and Pest tests demonstrate column normalization, validation, and multi-format output generation for data-heavy workflows.
 - **Enhanced tool pagination & metadata** – Cursor-based pagination for `tools/list` scales to large catalogs, configurable per endpoint via `->toolsPageSize(...)`. The server advertises schema awareness and `listChanged` hints during capability negotiation, with integration tests covering `nextCursor` behavior.
 - **Prompt registry & generator** – A full prompt registry backed by route endpoint definitions powers the new `prompts/list` and `prompts/get` handlers. Developers can scaffold prompts using `php artisan make:mcp-prompt`, while the service provider surfaces prompt schemas inside the MCP handshake for immediate client discovery.
-- **Resource subscription parity** – Endpoints that enable `->resourcesSubscribe()` now accept `resources/subscribe` and `resources/unsubscribe` requests and return empty MCP results as defined by the 2025-11-25 schema. Endpoints that do not enable subscriptions correctly return `Method not found`.
+- **Resource subscription parity** – Endpoints that enable `->resourcesSubscribe()` now accept `resources/subscribe` and `resources/unsubscribe` requests and return empty MCP results as defined by the 2025-11-25 schema. Endpoints that do not enable subscriptions correctly return `Method not found`. Server-initiated `notifications/resources/updated` delivery is not implemented yet.
 - **Strict initialize validation** – The `initialize` request now validates required MCP fields (`protocolVersion`, `capabilities`, `clientInfo.name`, `clientInfo.version`) and consistently responds with the server-negotiated protocol version.
 
 ### Breaking Changes in v1.1.0 (May 2025)
@@ -102,7 +102,7 @@ This package supports only `streamable_http` transport.
 
    Route::mcp('/mcp')
        ->setName('OP.GG MCP Server')
-       ->setVersion('1.5.2')
+       ->setVersion('2.0.0')
        ->tools([
            HelloWorldTool::class,
            VersionCheckTool::class,
@@ -132,7 +132,7 @@ The package also supports Lumen 9.x and newer applications. After installing the
 
    McpRoute::register('/mcp')
        ->setName('OP.GG MCP Server')
-       ->setVersion('1.5.2')
+       ->setVersion('2.0.0')
        ->tools([
            HelloWorldTool::class,
            VersionCheckTool::class,
@@ -162,7 +162,7 @@ Route::middleware([
 ])->group(function () {
     Route::mcp('/mcp')
         ->setName('Secure MCP')
-        ->setVersion('1.5.2')
+        ->setVersion('2.0.0')
         ->tools([
             \App\MCP\Tools\MyCustomTool::class,
         ]);
@@ -983,8 +983,8 @@ curl -X POST https://your-server.com/mcp \
   -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"file:///logs/app.log"}}'
 ```
 
-If you enable `->resourcesSubscribe()` on the endpoint, clients can also
-subscribe to update notifications for specific URIs:
+If you enable `->resourcesSubscribe()` on the endpoint, clients can also send
+subscription lifecycle requests for specific URIs:
 
 ```bash
 # Subscribe to updates for a resource URI
@@ -998,8 +998,8 @@ curl -X POST https://your-server.com/mcp \
   -d '{"jsonrpc":"2.0","id":4,"method":"resources/unsubscribe","params":{"uri":"file:///logs/app.log"}}'
 ```
 
-The server responds with JSON messages streamed over the HTTP connection, so
-`curl --no-buffer` can be used if you want to see incremental output.
+These handlers currently acknowledge subscribe/unsubscribe requests only. They
+do not emit server-initiated `notifications/resources/updated` messages yet.
 
 ### Working with Prompts
 

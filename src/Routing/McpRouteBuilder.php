@@ -2,6 +2,8 @@
 
 namespace OPGG\LaravelMcpServer\Routing;
 
+use OPGG\LaravelMcpServer\Server\McpServerFactory;
+
 final class McpRouteBuilder
 {
     public function __construct(
@@ -196,12 +198,22 @@ final class McpRouteBuilder
     {
         $current = $this->registry->find($this->endpointId);
         if (! $current) {
+            if (app()->bound('log')) {
+                app('log')->warning('Attempted to mutate an unknown MCP endpoint definition.', [
+                    'endpoint_id' => $this->endpointId,
+                ]);
+            }
+
             return;
         }
 
         $updated = $mutator($current);
         if ($updated instanceof McpEndpointDefinition) {
             $this->registry->update($updated);
+
+            if (app()->bound(McpServerFactory::class)) {
+                app(McpServerFactory::class)->clearEndpointCache($this->endpointId);
+            }
         }
     }
 }

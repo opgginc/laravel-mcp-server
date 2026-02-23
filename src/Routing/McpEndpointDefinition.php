@@ -6,7 +6,7 @@ final class McpEndpointDefinition
 {
     public const DEFAULT_NAME = 'OP.GG MCP Server';
 
-    public const DEFAULT_VERSION = '1.5.2';
+    public const DEFAULT_VERSION = '2.0.0';
 
     public const DEFAULT_TOOLS_PAGE_SIZE = 50;
 
@@ -45,122 +45,27 @@ final class McpEndpointDefinition
 
     public function withName(string $name): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['name' => $name]);
     }
 
     public function withVersion(string $version): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['version' => $version]);
     }
 
     public function withTitle(?string $title): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['title' => $title]);
     }
 
     public function withDescription(?string $description): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['description' => $description]);
     }
 
     public function withWebsiteUrl(?string $websiteUrl): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['websiteUrl' => $websiteUrl]);
     }
 
     /**
@@ -168,50 +73,12 @@ final class McpEndpointDefinition
      */
     public function withIcons(array $icons): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: array_values($icons),
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['icons' => array_values($icons)]);
     }
 
     public function withInstructions(?string $instructions): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['instructions' => $instructions]);
     }
 
     /**
@@ -219,26 +86,7 @@ final class McpEndpointDefinition
      */
     public function withTools(array $tools): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: array_values($tools),
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['tools' => array_values($tools)]);
     }
 
     /**
@@ -246,26 +94,7 @@ final class McpEndpointDefinition
      */
     public function withResources(array $resources): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: array_values($resources),
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['resources' => array_values($resources)]);
     }
 
     /**
@@ -273,26 +102,7 @@ final class McpEndpointDefinition
      */
     public function withResourceTemplates(array $resourceTemplates): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: array_values($resourceTemplates),
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['resourceTemplates' => array_values($resourceTemplates)]);
     }
 
     /**
@@ -300,146 +110,32 @@ final class McpEndpointDefinition
      */
     public function withPrompts(array $prompts): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: array_values($prompts),
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['prompts' => array_values($prompts)]);
     }
 
     public function withToolListChanged(bool $enabled): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $enabled,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['toolListChanged' => $enabled]);
     }
 
     public function withResourcesSubscribe(bool $enabled): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $enabled,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['resourcesSubscribe' => $enabled]);
     }
 
     public function withResourcesListChanged(bool $enabled): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $enabled,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['resourcesListChanged' => $enabled]);
     }
 
     public function withPromptsListChanged(bool $enabled): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $enabled,
-            toolsPageSize: $this->toolsPageSize,
-        );
+        return $this->copy(['promptsListChanged' => $enabled]);
     }
 
     public function withToolsPageSize(int $pageSize): self
     {
-        return new self(
-            id: $this->id,
-            path: $this->path,
-            name: $this->name,
-            version: $this->version,
-            title: $this->title,
-            description: $this->description,
-            websiteUrl: $this->websiteUrl,
-            instructions: $this->instructions,
-            icons: $this->icons,
-            tools: $this->tools,
-            resources: $this->resources,
-            resourceTemplates: $this->resourceTemplates,
-            prompts: $this->prompts,
-            toolListChanged: $this->toolListChanged,
-            resourcesSubscribe: $this->resourcesSubscribe,
-            resourcesListChanged: $this->resourcesListChanged,
-            promptsListChanged: $this->promptsListChanged,
-            toolsPageSize: max(1, $pageSize),
-        );
+        return $this->copy(['toolsPageSize' => max(1, $pageSize)]);
     }
 
     public static function normalizePath(string $path): string
@@ -450,5 +146,99 @@ final class McpEndpointDefinition
         }
 
         return '/'.trim($trimmed, '/');
+    }
+
+    /**
+     * @param  array{
+     *   id?: string,
+     *   path?: string,
+     *   name?: string,
+     *   version?: string,
+     *   title?: ?string,
+     *   description?: ?string,
+     *   websiteUrl?: ?string,
+     *   instructions?: ?string,
+     *   icons?: array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>,
+     *   tools?: array<int, class-string>,
+     *   resources?: array<int, class-string>,
+     *   resourceTemplates?: array<int, class-string>,
+     *   prompts?: array<int, class-string>,
+     *   toolListChanged?: bool,
+     *   resourcesSubscribe?: bool,
+     *   resourcesListChanged?: bool,
+     *   promptsListChanged?: bool,
+     *   toolsPageSize?: int
+     * }  $overrides
+     */
+    private function copy(array $overrides): self
+    {
+        $state = array_merge($this->state(), $overrides);
+
+        return new self(
+            id: $state['id'],
+            path: $state['path'],
+            name: $state['name'],
+            version: $state['version'],
+            title: $state['title'],
+            description: $state['description'],
+            websiteUrl: $state['websiteUrl'],
+            instructions: $state['instructions'],
+            icons: $state['icons'],
+            tools: $state['tools'],
+            resources: $state['resources'],
+            resourceTemplates: $state['resourceTemplates'],
+            prompts: $state['prompts'],
+            toolListChanged: $state['toolListChanged'],
+            resourcesSubscribe: $state['resourcesSubscribe'],
+            resourcesListChanged: $state['resourcesListChanged'],
+            promptsListChanged: $state['promptsListChanged'],
+            toolsPageSize: $state['toolsPageSize'],
+        );
+    }
+
+    /**
+     * @return array{
+     *   id: string,
+     *   path: string,
+     *   name: string,
+     *   version: string,
+     *   title: ?string,
+     *   description: ?string,
+     *   websiteUrl: ?string,
+     *   instructions: ?string,
+     *   icons: array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>,
+     *   tools: array<int, class-string>,
+     *   resources: array<int, class-string>,
+     *   resourceTemplates: array<int, class-string>,
+     *   prompts: array<int, class-string>,
+     *   toolListChanged: bool,
+     *   resourcesSubscribe: bool,
+     *   resourcesListChanged: bool,
+     *   promptsListChanged: bool,
+     *   toolsPageSize: int
+     * }
+     */
+    private function state(): array
+    {
+        return [
+            'id' => $this->id,
+            'path' => $this->path,
+            'name' => $this->name,
+            'version' => $this->version,
+            'title' => $this->title,
+            'description' => $this->description,
+            'websiteUrl' => $this->websiteUrl,
+            'instructions' => $this->instructions,
+            'icons' => $this->icons,
+            'tools' => $this->tools,
+            'resources' => $this->resources,
+            'resourceTemplates' => $this->resourceTemplates,
+            'prompts' => $this->prompts,
+            'toolListChanged' => $this->toolListChanged,
+            'resourcesSubscribe' => $this->resourcesSubscribe,
+            'resourcesListChanged' => $this->resourcesListChanged,
+            'promptsListChanged' => $this->promptsListChanged,
+            'toolsPageSize' => $this->toolsPageSize,
+        ];
     }
 }

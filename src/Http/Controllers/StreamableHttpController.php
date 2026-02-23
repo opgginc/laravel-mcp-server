@@ -23,10 +23,7 @@ class StreamableHttpController
 
     public function getHandle(Request $request)
     {
-        return response()->json([
-            'jsonrpc' => '2.0',
-            'error' => 'Method Not Allowed',
-        ], 405);
+        return response('', 405);
     }
 
     public function postHandle(Request $request)
@@ -58,10 +55,7 @@ class StreamableHttpController
 
         $server = $this->serverFactory->make($endpoint, $messageJson);
 
-        $mcpSessionId = $request->headers->get('mcp-session-id');
-        if (! $mcpSessionId) {
-            $mcpSessionId = Str::uuid()->toString();
-        }
+        $mcpSessionId = $this->resolveSessionId($request);
 
         $processMessageData = $server->requestMessage(clientId: $mcpSessionId, message: $messageJson);
 
@@ -107,6 +101,16 @@ class StreamableHttpController
         $endpointId = $action[McpRouteRegistrar::ROUTE_DEFAULT_ENDPOINT_KEY] ?? null;
 
         return is_string($endpointId) && $endpointId !== '' ? $endpointId : null;
+    }
+
+    private function resolveSessionId(Request $request): string
+    {
+        $sessionId = $request->headers->get('mcp-session-id');
+        if (is_string($sessionId) && Str::isUuid($sessionId)) {
+            return $sessionId;
+        }
+
+        return Str::uuid()->toString();
     }
 
     private function jsonRpcErrorResponse(string $message, JsonRpcErrorCode $code)

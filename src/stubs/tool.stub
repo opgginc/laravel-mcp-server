@@ -56,7 +56,7 @@ class {{ className }} implements ToolInterface
      *
      * Returning a ToolResponse bypasses the flag entirely, so you can mix structured payloads with rich text manually.
      */
-    protected bool $autoStructuredOutput = true;
+    public bool $autoStructuredOutput = true;
 
     /**
      * Very important -- The unique, callable name of your tool.
