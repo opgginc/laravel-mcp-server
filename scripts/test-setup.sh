@@ -92,8 +92,10 @@ use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 
 Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->group(function () {
     Route::mcp('/mcp')
-        ->setName('Test MCP Server')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'Test MCP Server',
+            version: '1.0.0',
+        )
         ->tools([
             HelloWorldTool::class,
             VersionCheckTool::class,
