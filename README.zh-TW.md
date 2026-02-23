@@ -32,43 +32,17 @@
 
 ## ⚠️ 版本資訊與重大變更
 
-### v1.4.0 變更 (最新版本) 🚀
+### v2.0.0 變更（當前版本）✅
 
-版本 1.4.0 引入了從 Swagger/OpenAPI 規範自動產生工具和資源的強大功能：
+v2.0.0 採用 route-first 架構，並移除舊版傳輸/設定路徑：
 
-**新功能：**
-- **Swagger/OpenAPI 工具和資源產生器**：從任何 Swagger/OpenAPI 規範自動產生 MCP 工具或資源
-  - 支援 OpenAPI 3.x 和 Swagger 2.0 格式
-  - **選擇產生類型**：產生為工具（用於動作）或資源（用於唯讀資料）
-  - 具有群組選項的互動式端點選擇
-  - 自動產生認證邏輯（API Key、Bearer Token、OAuth2）
-  - 智慧命名以產生可讀的類別名稱（處理基於雜湊的 operationId）
-  - 產生前內建 API 測試
-  - 完整的 Laravel HTTP 客戶端整合，包括重試邏輯
+- **明確註冊端點**：Laravel 使用 `Route::mcp('/mcp')`，Lumen 使用 `McpRoute::register('/mcp')`。
+- **僅支援 Streamable HTTP**：舊版 SSE 端點/適配器已移除。
+- **移除 config 驅動啟動方式**：不再使用 `config/mcp-server.php` 與自動路由註冊。
+- **移除工具的舊版傳輸方法**：`messageType()` 已移除，`isStreaming()` 執行階段不再使用。
+- **以路由為基礎的工具探索**：`mcp:test-tool` 現在從已註冊 MCP 端點探索工具。
 
-**使用範例：**
-```bash
-# 從 OP.GG API 產生工具
-php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
-
-# 使用選項
-php artisan make:swagger-mcp-tool ./api-spec.json --test-api --group-by=tag --prefix=MyApi
-```
-
-此功能大幅減少了將外部 API 整合到您的 MCP 伺服器所需的時間！
-
-### v1.3.0 變更
-
-版本 1.3.0 改進了 `ToolInterface`，提供更好的通訊控制：
-
-**新功能：**
-- 新增 `isStreaming(): bool` 方法，讓通訊模式選擇更清晰
-- 改進遷移工具，支援從 v1.1.x、v1.2.x 升級到 v1.3.0
-- 增強 stub 檔案，包含完整的 v1.3.0 文件
-
-**棄用功能：**
-- `messageType(): ProcessMessageType` 方法現已棄用（將在 v2.0.0 移除）
-- 請改用 `isStreaming(): bool` 以獲得更好的清晰度和簡潔性
+完整步驟請參考：[v2.0.0 遷移指南](docs/migrations/v2.0.0-migration.md)。
 
 ### v1.1.0 的重大變更
 
@@ -1056,43 +1030,34 @@ python scripts/translate_readme.py
 python scripts/translate_readme.py es ko
 ```
 
-## v2.0.0 棄用功能
+## v2.0.0 遷移說明
 
-以下功能已棄用，將在 v2.0.0 中移除。請相應更新你的程式碼：
+v2.0.0 已正式發布。若你從 v1.x 升級，請套用以下變更。
 
-### ToolInterface 變更
+### v2.0.0 的主要變更
 
-**自 v1.3.0 起棄用：**
-- `messageType(): ProcessMessageType` 方法
-- **替代方案：** 改用 `isStreaming(): bool`
-- **遷移指南：** HTTP 工具回傳 `false`，串流工具回傳 `true`
-- **自動遷移：** 執行 `php artisan mcp:migrate-tools` 來更新你的工具
+- `messageType(): ProcessMessageType` 已移除。
+- `isStreaming(): bool` 執行階段不再使用（可選清理）。
+- `ProcessMessageType::SSE` 已移除。
+- 僅支援 Streamable HTTP（`/sse` 與 `/message` 已移除）。
+- config 方式的 MCP 設定鍵（`server_provider`、`sse_adapter`、`adapters`、`enabled`）已移除。
 
-**遷移範例：**
+### 遷移方式
 
-```php
-// 舊方法（已棄用）
-public function messageType(): ProcessMessageType
-{
-    return ProcessMessageType::HTTP;
-}
+- 透過 `Route::mcp(...)`（Laravel）或 `McpRoute::register(...)`（Lumen）在路由中直接註冊 MCP 端點。
+- 將 server info/tools/resources/templates/prompts 從 config 遷移到 route builder 鏈式設定。
+- 執行 `php artisan mcp:migrate-tools` 清理舊版工具簽名。
+- 將 MCP 客戶端端點更新為實際路由路徑（例如 `/mcp`）。
+- 完整步驟請參考：[v2.0.0 遷移指南](docs/migrations/v2.0.0-migration.md)。
 
-// 新方法（v1.3.0+）
-public function isStreaming(): bool
-{
-    return false; // HTTP 使用 false，串流使用 true
-}
+### 遷移後驗證
+
+```bash
+php artisan route:list | grep mcp
+php artisan mcp:test-tool --list --endpoint=/mcp
+vendor/bin/pest
+vendor/bin/phpstan analyse
 ```
-
-### 已移除功能
-
-**v1.3.0 中已移除：**
-- `ProcessMessageType::PROTOCOL` enum case（合併到 `ProcessMessageType::HTTP`）
-
-**v2.0.0 計劃：**
-- 完全從 `ToolInterface` 移除 `messageType()` 方法
-- 所有工具都需要只實作 `isStreaming()` 方法
-- 簡化工具配置並降低複雜性
 
 ## 授權
 

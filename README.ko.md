@@ -32,43 +32,17 @@
 
 ## ⚠️ 버전 정보 및 주요 변경사항
 
-### v1.4.0 변경사항 (최신) 🚀
+### v2.0.0 변경사항 (최신) ✅
 
-버전 1.4.0에서는 Swagger/OpenAPI 사양으로부터 강력한 자동 도구 및 리소스 생성 기능을 도입합니다:
+버전 2.0.0은 라우트 우선(route-first) 아키텍처로 전환되고, 레거시 전송/설정 경로가 제거되었습니다:
 
-**새로운 기능:**
-- **Swagger/OpenAPI 도구 및 리소스 생성기**: 모든 Swagger/OpenAPI 사양으로부터 자동으로 MCP 도구 또는 리소스 생성
-  - OpenAPI 3.x 및 Swagger 2.0 형식 모두 지원
-  - **생성 타입 선택**: 도구(액션용) 또는 리소스(읽기 전용 데이터용)로 생성
-  - 그룹 옵션을 통한 대화형 엔드포인트 선택
-  - 자동 인증 로직 생성 (API Key, Bearer Token, OAuth2)
-  - 읽기 쉬운 클래스 이름을 위한 스마트 네이밍 (해시 기반 operationId 처리)
-  - 생성 전 내장 API 테스트
-  - 재시도 로직을 포함한 완전한 Laravel HTTP 클라이언트 통합
+- **명시적 엔드포인트 등록**: Laravel은 `Route::mcp('/mcp')`, Lumen은 `McpRoute::register('/mcp')`를 사용합니다.
+- **Streamable HTTP 단일 지원**: 기존 SSE 엔드포인트/어댑터가 제거되었습니다.
+- **config 기반 자동 부트스트랩 제거**: `config/mcp-server.php` 및 자동 라우트 등록을 더 이상 사용하지 않습니다.
+- **레거시 도구 전송 메서드 정리**: `messageType()`는 제거되었고 `isStreaming()`은 런타임에서 사용되지 않습니다.
+- **라우트 기반 도구 검색**: `mcp:test-tool`이 등록된 MCP 엔드포인트에서 도구를 검색합니다.
 
-**사용 예시:**
-```bash
-# OP.GG API에서 도구 생성
-php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
-
-# 옵션과 함께 사용
-php artisan make:swagger-mcp-tool ./api-spec.json --test-api --group-by=tag --prefix=MyApi
-```
-
-이 기능은 외부 API를 MCP 서버에 통합하는 데 필요한 시간을 대폭 줄여줍니다!
-
-### v1.3.0 변경사항
-
-버전 1.3.0에서는 더 나은 통신 제어를 위해 `ToolInterface`가 개선되었습니다:
-
-**새로운 기능:**
-- 더 명확한 통신 패턴 선택을 위한 `isStreaming(): bool` 메서드 추가
-- v1.1.x, v1.2.x에서 v1.3.0으로의 업그레이드를 지원하는 마이그레이션 도구 개선
-- 포괄적인 v1.3.0 문서가 포함된 stub 파일 향상
-
-**폐기 예정 기능:**
-- `messageType(): ProcessMessageType` 메서드가 폐기 예정됨 (v2.0.0에서 제거 예정)
-- 더 나은 명확성과 단순성을 위해 `isStreaming(): bool`을 대신 사용하세요
+전체 절차는 [v2.0.0 마이그레이션 가이드](docs/migrations/v2.0.0-migration.md)를 참고하세요.
 
 ### v1.1.0의 주요 변경사항
 
@@ -1065,43 +1039,34 @@ python scripts/translate_readme.py
 python scripts/translate_readme.py es ko
 ```
 
-## v2.0.0을 위한 폐기 예정 기능
+## v2.0.0 마이그레이션 안내
 
-다음 기능들은 폐기 예정이며 v2.0.0에서 제거될 예정입니다. 코드를 적절히 업데이트해 주세요:
+v2.0.0이 정식 반영되었습니다. v1.x에서 업그레이드하는 경우 아래 내용을 적용하세요.
 
-### ToolInterface 변경사항
+### v2.0.0에서 변경된 내용
 
-**v1.3.0부터 폐기 예정:**
-- `messageType(): ProcessMessageType` 메서드
-- **대체:** `isStreaming(): bool`을 대신 사용
-- **마이그레이션 가이드:** HTTP 도구는 `false`, 스트리밍 도구는 `true` 반환
-- **자동 마이그레이션:** `php artisan mcp:migrate-tools`를 실행하여 도구 업데이트
+- `messageType(): ProcessMessageType`가 제거되었습니다.
+- `isStreaming(): bool`은 런타임에서 더 이상 사용되지 않습니다(선택적 정리).
+- `ProcessMessageType::SSE`가 제거되었습니다.
+- Streamable HTTP만 지원하며 `/sse`, `/message` 엔드포인트는 제거되었습니다.
+- config 기반 MCP 설정 키(`server_provider`, `sse_adapter`, `adapters`, `enabled`)가 제거되었습니다.
 
-**마이그레이션 예시:**
+### 마이그레이션 방법
 
-```php
-// 기존 방식 (폐기 예정)
-public function messageType(): ProcessMessageType
-{
-    return ProcessMessageType::HTTP;
-}
+- Laravel은 `Route::mcp(...)`, Lumen은 `McpRoute::register(...)`로 엔드포인트를 라우트에 직접 등록하세요.
+- 서버 정보/도구/리소스/템플릿/프롬프트 등록을 config에서 route builder 체인으로 이동하세요.
+- `php artisan mcp:migrate-tools`를 실행해 레거시 도구 시그니처를 정리하세요.
+- MCP 클라이언트 엔드포인트를 실제 라우트 경로(예: `/mcp`)로 갱신하세요.
+- 전체 절차: [v2.0.0 마이그레이션 가이드](docs/migrations/v2.0.0-migration.md)
 
-// 새로운 방식 (v1.3.0+)
-public function isStreaming(): bool
-{
-    return false; // HTTP는 false, 스트리밍은 true 사용
-}
+### 마이그레이션 후 검증
+
+```bash
+php artisan route:list | grep mcp
+php artisan mcp:test-tool --list --endpoint=/mcp
+vendor/bin/pest
+vendor/bin/phpstan analyse
 ```
-
-### 제거된 기능
-
-**v1.3.0에서 제거됨:**
-- `ProcessMessageType::PROTOCOL` enum case (`ProcessMessageType::HTTP`로 통합됨)
-
-**v2.0.0 계획:**
-- `ToolInterface`에서 `messageType()` 메서드 완전 제거
-- 모든 도구는 `isStreaming()` 메서드만 구현하면 됨
-- 도구 구성 단순화 및 복잡성 감소
 
 ## 라이선스
 
