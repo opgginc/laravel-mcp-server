@@ -10,6 +10,7 @@ use OPGG\LaravelMcpServer\Data\Resources\JsonRpc\JsonRpcErrorResource;
 use OPGG\LaravelMcpServer\Data\Resources\JsonRpc\JsonRpcResultResource;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
+use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
 use OPGG\LaravelMcpServer\Server\McpServerFactory;
@@ -36,7 +37,7 @@ class StreamableHttpController
             );
         }
 
-        $endpoint = $this->endpointRegistry->find($endpointId);
+        $endpoint = $this->resolveEndpoint($request, $endpointId);
         if ($endpoint === null) {
             return $this->jsonRpcErrorResponse(
                 message: 'Bad Request: MCP endpoint is not registered.',
@@ -101,6 +102,60 @@ class StreamableHttpController
         $endpointId = $action[McpRouteRegistrar::ROUTE_DEFAULT_ENDPOINT_KEY] ?? null;
 
         return is_string($endpointId) && $endpointId !== '' ? $endpointId : null;
+    }
+
+    private function resolveEndpoint(Request $request, string $endpointId): ?McpEndpointDefinition
+    {
+        $endpoint = $this->endpointRegistry->find($endpointId);
+        if ($endpoint instanceof McpEndpointDefinition) {
+            return $endpoint;
+        }
+
+        $endpointPayload = $this->resolveEndpointDefinitionPayload($request);
+        if ($endpointPayload === null) {
+            return null;
+        }
+
+        try {
+            $restoredEndpoint = McpEndpointDefinition::fromArray($endpointPayload);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+
+        if ($restoredEndpoint->id !== $endpointId) {
+            return null;
+        }
+
+        $this->endpointRegistry->update($restoredEndpoint);
+
+        return $restoredEndpoint;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveEndpointDefinitionPayload(Request $request): ?array
+    {
+        /** @var mixed $routeInfo */
+        $routeInfo = $request->route();
+        if ($routeInfo instanceof LaravelRoute) {
+            $actionDefinition = $routeInfo->getAction(McpRouteRegistrar::ROUTE_ENDPOINT_DEFINITION_KEY);
+
+            return is_array($actionDefinition) ? $actionDefinition : null;
+        }
+
+        if (! is_array($routeInfo)) {
+            return null;
+        }
+
+        $action = $routeInfo[2] ?? null;
+        if (! is_array($action)) {
+            return null;
+        }
+
+        $endpointDefinition = $action[McpRouteRegistrar::ROUTE_ENDPOINT_DEFINITION_KEY] ?? null;
+
+        return is_array($endpointDefinition) ? $endpointDefinition : null;
     }
 
     private function resolveSessionId(Request $request): string

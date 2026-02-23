@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use OPGG\LaravelMcpServer\Http\Controllers\StreamableHttpController;
+use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
@@ -795,6 +796,37 @@ test('streamable http returns bad request when endpoint metadata points to unkno
                 'message' => 'Bad Request: MCP endpoint is not registered.',
             ],
         ]);
+});
+
+test('streamable http reconstructs endpoint registry from route metadata when registry is empty', function () {
+    registerMcpEndpoint(defaultTools());
+
+    $postRoute = collect(iterator_to_array(Route::getRoutes()))
+        ->first(fn ($route) => $route->uri() === 'mcp' && in_array('POST', $route->methods(), true));
+
+    expect($postRoute)->not->toBeNull();
+
+    $endpointId = $postRoute->getAction(McpRouteRegistrar::ROUTE_DEFAULT_ENDPOINT_KEY);
+    expect($endpointId)->toBeString();
+
+    /** @var McpEndpointRegistry $registry */
+    $registry = app(McpEndpointRegistry::class);
+    $registry->remove($endpointId);
+    expect($registry->find($endpointId))->toBeNull();
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'method' => 'tools/list',
+        'params' => [],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+
+    $response->assertStatus(200);
+    expect($response->json('result.tools'))->toBeArray();
+    expect(collect($response->json('result.tools'))->pluck('name')->all())->toContain('hello-world', 'check-version');
+    expect($registry->find($endpointId))->not->toBeNull();
 });
 
 test('streamable http returns bad request for malformed json payload', function () {

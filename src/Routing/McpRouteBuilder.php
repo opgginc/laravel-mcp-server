@@ -231,6 +231,10 @@ final class McpRouteBuilder
         if ($updated instanceof McpEndpointDefinition) {
             $this->registry->update($updated);
 
+            if (app()->bound(McpRouteRegistrar::class)) {
+                app(McpRouteRegistrar::class)->syncLaravelRouteEndpointDefinition($updated);
+            }
+
             if (app()->bound(McpServerFactory::class)) {
                 app(McpServerFactory::class)->clearEndpointCache($this->endpointId);
             }

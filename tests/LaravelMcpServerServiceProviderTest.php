@@ -239,6 +239,43 @@ it('replaces existing endpoint definition when same path and domain are register
     expect($definitions[0]->tools)->toBe([AutoStructuredArrayTool::class]);
 });
 
+it('stores endpoint definition payload on registered routes and keeps it synchronized', function () {
+    bootProvider();
+
+    Route::mcp('/cached-mcp')
+        ->setName('Cached MCP')
+        ->setVersion('3.1.4')
+        ->setDescription('Route cache payload')
+        ->tools([LegacyArrayTool::class])
+        ->toolListChanged()
+        ->resourcesSubscribe()
+        ->resourcesListChanged()
+        ->promptsListChanged()
+        ->toolsPageSize(9);
+
+    $routes = mcpRoutes('/cached-mcp');
+    expect($routes)->toHaveCount(2);
+
+    foreach ($routes as $route) {
+        $endpointId = $route->getAction(McpRouteRegistrar::ROUTE_DEFAULT_ENDPOINT_KEY);
+        $definition = $route->getAction(McpRouteRegistrar::ROUTE_ENDPOINT_DEFINITION_KEY);
+
+        expect($endpointId)->toBeString();
+        expect($definition)->toBeArray();
+        expect($definition['id'])->toBe($endpointId);
+        expect($definition['path'])->toBe('/cached-mcp');
+        expect($definition['name'])->toBe('Cached MCP');
+        expect($definition['version'])->toBe('3.1.4');
+        expect($definition['description'])->toBe('Route cache payload');
+        expect($definition['tools'])->toBe([LegacyArrayTool::class]);
+        expect($definition['toolListChanged'])->toBeTrue();
+        expect($definition['resourcesSubscribe'])->toBeTrue();
+        expect($definition['resourcesListChanged'])->toBeTrue();
+        expect($definition['promptsListChanged'])->toBeTrue();
+        expect($definition['toolsPageSize'])->toBe(9);
+    }
+});
+
 it('can register endpoint via laravel mcp helper service', function () {
     bootProvider();
 

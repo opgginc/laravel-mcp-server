@@ -76,6 +76,7 @@ Key benefits:
 - Streamable HTTP transport for MCP request/response flows
 - Implementation of tools and resources compliant with Model Context Protocol specifications
 - Simple routing and middleware configuration
+- Laravel route cache compatibility: endpoint definitions registered via `Route::mcp(...)` are restored from cached route metadata at runtime
 
 ### Transport
 
