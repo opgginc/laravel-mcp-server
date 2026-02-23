@@ -11,6 +11,7 @@ use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\ConstructionCounterTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\MetadataAwareTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\MethodStructuredArrayTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\NonPublicMetadataHooksTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\NonPublicMethodStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\SecondaryConstructionCounterTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\StructuredOnlyTool;
@@ -815,6 +816,31 @@ test('tools list includes metadata extensions when tool exposes them', function 
     expect($target['_meta'])->toBe([
         'vendor' => 'opgg',
     ]);
+});
+
+test('tools list ignores non-public metadata hooks', function () {
+    registerMcpEndpoint(array_merge(defaultTools(), [NonPublicMetadataHooksTool::class]));
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 16,
+        'method' => 'tools/list',
+        'params' => [],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+    $response->assertStatus(200);
+    $response->assertJsonMissingPath('error');
+
+    $tools = $response->json('result.tools');
+    $target = collect($tools)->firstWhere('name', 'non-public-metadata-hooks-tool');
+
+    expect($target)->not->toBeNull();
+    expect(array_key_exists('title', $target))->toBeFalse();
+    expect(array_key_exists('icons', $target))->toBeFalse();
+    expect(array_key_exists('outputSchema', $target))->toBeFalse();
+    expect(array_key_exists('execution', $target))->toBeFalse();
+    expect(array_key_exists('_meta', $target))->toBeFalse();
 });
 
 test('tool can respond with csv content when using the tabular helpers', function () {

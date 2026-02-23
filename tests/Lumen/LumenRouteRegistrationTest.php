@@ -2,8 +2,10 @@
 
 use Illuminate\Support\Arr;
 use OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider;
+use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Routing\McpRoute;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 
 function lumenRegisteredRoutes($app, ?string $uri = null): array
@@ -72,6 +74,29 @@ it('supports registering route via McpRoute helper in lumen', function () {
     $routes = lumenRegisteredRoutes($this->app, '/lumen-mcp');
 
     expect($routes)->toHaveCount(2);
+});
+
+it('replaces existing lumen endpoint definition when same path is registered again', function () {
+    $provider = new LaravelMcpServerServiceProvider($this->app);
+    $provider->register();
+    $provider->boot();
+
+    $registrar = app(McpRouteRegistrar::class);
+
+    $firstBuilder = $registrar->registerLumen($this->app->router, '/mcp');
+    $firstBuilder->tools([LegacyArrayTool::class]);
+    $firstEndpointId = $firstBuilder->endpointId();
+
+    $secondBuilder = $registrar->registerLumen($this->app->router, '/mcp');
+    $secondBuilder->tools([AutoStructuredArrayTool::class]);
+    $secondEndpointId = $secondBuilder->endpointId();
+
+    /** @var McpEndpointRegistry $registry */
+    $registry = app(McpEndpointRegistry::class);
+
+    expect($secondEndpointId)->not->toBe($firstEndpointId);
+    expect($registry->find($firstEndpointId))->toBeNull();
+    expect($registry->find($secondEndpointId)?->tools)->toBe([AutoStructuredArrayTool::class]);
 });
 
 it('keeps route middleware from lumen groups', function () {

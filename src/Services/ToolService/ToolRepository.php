@@ -216,39 +216,29 @@ class ToolRepository
 
         // Optional metadata introduced in newer MCP schema revisions for richer discovery payloads.
         // @see https://modelcontextprotocol.io/specification/2025-11-25/schema
-        if (method_exists($tool, 'title')) {
-            $title = $tool->title();
-            if (is_string($title) && $title !== '') {
-                $schema['title'] = $title;
-            }
+        $title = $this->callOptionalMetadataHook($tool, 'title');
+        if (is_string($title) && $title !== '') {
+            $schema['title'] = $title;
         }
 
-        if (method_exists($tool, 'icons')) {
-            $icons = $tool->icons();
-            if (is_array($icons) && $icons !== []) {
-                $schema['icons'] = array_values($icons);
-            }
+        $icons = $this->callOptionalMetadataHook($tool, 'icons');
+        if (is_array($icons) && $icons !== []) {
+            $schema['icons'] = array_values($icons);
         }
 
-        if (method_exists($tool, 'outputSchema')) {
-            $outputSchema = $tool->outputSchema();
-            if (is_array($outputSchema) && $outputSchema !== []) {
-                $schema['outputSchema'] = $outputSchema;
-            }
+        $outputSchema = $this->callOptionalMetadataHook($tool, 'outputSchema');
+        if (is_array($outputSchema) && $outputSchema !== []) {
+            $schema['outputSchema'] = $outputSchema;
         }
 
-        if (method_exists($tool, 'execution')) {
-            $execution = $tool->execution();
-            if (is_array($execution) && $execution !== []) {
-                $schema['execution'] = $execution;
-            }
+        $execution = $this->callOptionalMetadataHook($tool, 'execution');
+        if (is_array($execution) && $execution !== []) {
+            $schema['execution'] = $execution;
         }
 
-        $meta = null;
-        if (method_exists($tool, 'meta')) {
-            $meta = $tool->meta();
-        } elseif (method_exists($tool, '_meta')) {
-            $meta = $tool->_meta();
+        $meta = $this->callOptionalMetadataHook($tool, 'meta');
+        if (! is_array($meta) || $meta === []) {
+            $meta = $this->callOptionalMetadataHook($tool, '_meta');
         }
 
         if (is_array($meta) && $meta !== []) {
@@ -256,5 +246,18 @@ class ToolRepository
         }
 
         return $schema;
+    }
+
+    /**
+     * Invoke an optional zero-argument metadata hook only when publicly callable.
+     */
+    private function callOptionalMetadataHook(ToolInterface $tool, string $method): mixed
+    {
+        $callable = [$tool, $method];
+        if (! is_callable($callable)) {
+            return null;
+        }
+
+        return call_user_func($callable);
     }
 }

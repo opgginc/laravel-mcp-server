@@ -82,6 +82,11 @@ final class McpRouteRegistrar
         return ltrim($normalizedPath, '/');
     }
 
+    private function normalizeRouteUriForMatching(string $uri): string
+    {
+        return $this->toRouteUri(McpEndpointDefinition::normalizePath($uri));
+    }
+
     private function cleanupExistingLaravelEndpoint(LaravelRouter $router, string $uri, ?string $domain): void
     {
         foreach ($router->getRoutes()->getRoutes() as $route) {
@@ -112,12 +117,19 @@ final class McpRouteRegistrar
             return;
         }
 
+        $normalizedTargetUri = $this->normalizeRouteUriForMatching($uri);
+
         foreach ($routes as $route) {
             if (! is_array($route)) {
                 continue;
             }
 
-            if (($route['uri'] ?? null) !== $uri) {
+            $routeUri = $route['uri'] ?? null;
+            if (! is_string($routeUri)) {
+                continue;
+            }
+
+            if ($this->normalizeRouteUriForMatching($routeUri) !== $normalizedTargetUri) {
                 continue;
             }
 
