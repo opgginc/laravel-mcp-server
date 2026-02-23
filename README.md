@@ -43,9 +43,17 @@ Version 1.5.0 focuses on structured tool output, richer prompt support, and impr
 - **Resource subscription parity** – Endpoints that enable `->resourcesSubscribe()` now accept `resources/subscribe` and `resources/unsubscribe` requests and return empty MCP results as defined by the 2025-11-25 schema. Endpoints that do not enable subscriptions correctly return `Method not found`. Server-initiated `notifications/resources/updated` delivery is not implemented yet.
 - **Strict initialize validation** – The `initialize` request now validates required MCP fields (`protocolVersion`, `capabilities`, `clientInfo.name`, `clientInfo.version`) and consistently responds with the server-negotiated protocol version.
 
-### Breaking Changes in v1.1.0 (May 2025)
+### v2.0.0 Migration & Breaking Changes
 
-Version 1.1.0 introduced a breaking change to the `ToolInterface`. Upgrading from v1.0.x requires refactoring every tool implementation. Refer to the [ToolInterface Migration Guide](docs/migrations/v1.1.0-tool-interface-migration.md) for automated and manual upgrade instructions.
+Version 2.0.0 introduced a route-first architecture and removed legacy transport/configuration paths:
+
+- **Config-driven MCP bootstrapping removed** – `config/mcp-server.php` is no longer read by the package.
+- **Streamable HTTP only** – legacy SSE endpoints and adapters were removed.
+- **Explicit route-based endpoint registration** – use `Route::mcp('/mcp')` (Laravel) or `McpRoute::register('/mcp')` (Lumen).
+- **Server metadata mutators were consolidated** – set server metadata through `setServerInfo(...)` only (`setName()`, `setVersion()`, `setTitle()`, `setDescription()`, `setWebsiteUrl()`, `setIcons()`, and `setInstructions()` are no longer exposed).
+- **Legacy transport methods removed from tools** – remove `messageType()` and optionally clean up `isStreaming()`.
+
+For full migration steps from v1.0.0 to v2.0.0 and before/after examples, see the [v2.0.0 Migration Guide](docs/migrations/v2.0.0-migration.md).
 
 ## Overview of Laravel MCP Server
 
@@ -102,8 +110,10 @@ This package supports only `streamable_http` transport.
    use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 
    Route::mcp('/mcp')
-       ->setName('OP.GG MCP Server')
-       ->setVersion('2.0.0')
+       ->setServerInfo(
+           name: 'OP.GG MCP Server',
+           version: '2.0.0',
+       )
        ->tools([
            HelloWorldTool::class,
            VersionCheckTool::class,
@@ -132,8 +142,10 @@ The package also supports Lumen 9.x and newer applications. After installing the
    use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 
    McpRoute::register('/mcp')
-       ->setName('OP.GG MCP Server')
-       ->setVersion('2.0.0')
+       ->setServerInfo(
+           name: 'OP.GG MCP Server',
+           version: '2.0.0',
+       )
        ->tools([
            HelloWorldTool::class,
            VersionCheckTool::class,
@@ -162,8 +174,10 @@ Route::middleware([
     'cors',           // CORS support if needed
 ])->group(function () {
     Route::mcp('/mcp')
-        ->setName('Secure MCP')
-        ->setVersion('2.0.0')
+        ->setServerInfo(
+            name: 'Secure MCP',
+            version: '2.0.0',
+        )
         ->tools([
             \App\MCP\Tools\MyCustomTool::class,
         ]);
@@ -1461,41 +1475,6 @@ You can also translate specific languages:
 ```bash
 python scripts/translate_readme.py es ko
 ```
-
-## Deprecated Features for v2.0.0
-
-The following features are deprecated and will be removed in v2.0.0. Please update your code accordingly:
-
-### ToolInterface Changes
-
-**Deprecated since v1.3.0 and now unsupported in runtime:**
-- `messageType(): ProcessMessageType`
-- `isStreaming(): bool`
-- **Replacement:** Remove both methods and rely on standard HTTP responses.
-- **Automatic Migration:** Run `php artisan mcp:migrate-tools` to remove legacy `messageType()` usage.
-
-**Example Migration:**
-
-```php
-// Old approach (deprecated)
-public function messageType(): ProcessMessageType
-{
-    return ProcessMessageType::HTTP;
-}
-
-// New approach
-// Remove messageType()/isStreaming() and keep only the current ToolInterface methods.
-```
-
-### Removed Features
-
-**Removed in v1.3.0:**
-- `ProcessMessageType::PROTOCOL` enum case (consolidated into `ProcessMessageType::HTTP`)
-
-**Planning for v2.0.0:**
-- Complete removal of `messageType()` and `isStreaming()` from legacy tool implementations
-- Streamable HTTP as the only supported transport
-- Simplified tool configuration and reduced complexity
 
 ## License
 

@@ -69,7 +69,7 @@ it('supports registering route via McpRoute helper in lumen', function () {
     $provider->register();
     $provider->boot();
 
-    McpRoute::register('/lumen-mcp')->setName('Lumen MCP');
+    McpRoute::register('/lumen-mcp')->setServerInfo(name: 'Lumen MCP');
 
     $routes = lumenRegisteredRoutes($this->app, '/lumen-mcp');
 

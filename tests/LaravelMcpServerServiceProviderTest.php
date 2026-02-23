@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use OPGG\LaravelMcpServer\LaravelMcpServer;
 use OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
+use OPGG\LaravelMcpServer\Routing\McpRouteBuilder;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Handlers\CustomToolsCallHandler;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
@@ -50,6 +51,17 @@ it('registers GET and POST routes via Route::mcp', function () {
     expect($routes)->toHaveCount(2);
     expect(collect($routes)->pluck('methods')->flatten()->contains('POST'))->toBeTrue();
     expect(collect($routes)->pluck('methods')->flatten()->contains('GET'))->toBeTrue();
+});
+
+it('exposes setServerInfo as the only public server metadata mutator', function () {
+    expect(method_exists(McpRouteBuilder::class, 'setServerInfo'))->toBeTrue();
+    expect(method_exists(McpRouteBuilder::class, 'setName'))->toBeFalse();
+    expect(method_exists(McpRouteBuilder::class, 'setVersion'))->toBeFalse();
+    expect(method_exists(McpRouteBuilder::class, 'setTitle'))->toBeFalse();
+    expect(method_exists(McpRouteBuilder::class, 'setDescription'))->toBeFalse();
+    expect(method_exists(McpRouteBuilder::class, 'setWebsiteUrl'))->toBeFalse();
+    expect(method_exists(McpRouteBuilder::class, 'setIcons'))->toBeFalse();
+    expect(method_exists(McpRouteBuilder::class, 'setInstructions'))->toBeFalse();
 });
 
 it('stores endpoint definitions from fluent route builder', function () {
@@ -101,8 +113,10 @@ it('stores custom tools/call handler class from fluent route builder', function 
     bootProvider();
 
     Route::mcp('/tracked-tools')
-        ->setName('Tracked Tools')
-        ->setVersion('2.0.0')
+        ->setServerInfo(
+            name: 'Tracked Tools',
+            version: '2.0.0',
+        )
         ->tools([LegacyArrayTool::class])
         ->toolsCallHandler(CustomToolsCallHandler::class);
 
@@ -125,8 +139,10 @@ it('keeps existing name and version when setServerInfo is partially applied', fu
     bootProvider();
 
     Route::mcp('/partial-server-info')
-        ->setName('Initial Name')
-        ->setVersion('9.9.9')
+        ->setServerInfo(
+            name: 'Initial Name',
+            version: '9.9.9',
+        )
         ->setServerInfo(
             description: 'Only description is updated',
             instructions: 'Follow these instructions.',
@@ -143,7 +159,7 @@ it('keeps existing name and version when setServerInfo is partially applied', fu
     expect($definitions[0]->instructions)->toBe('Follow these instructions.');
 });
 
-it('allows setName and setVersion to override setServerInfo values', function () {
+it('allows subsequent setServerInfo calls to override provided name and version', function () {
     bootProvider();
 
     Route::mcp('/server-info-override')
@@ -151,8 +167,10 @@ it('allows setName and setVersion to override setServerInfo values', function ()
             name: 'Old Name',
             version: '1.0.0',
         )
-        ->setName('New Name')
-        ->setVersion('2.0.0');
+        ->setServerInfo(
+            name: 'New Name',
+            version: '2.0.0',
+        );
 
     /** @var McpEndpointRegistry $registry */
     $registry = app(McpEndpointRegistry::class);
@@ -167,8 +185,10 @@ it('allows setServerInfo to override previously set name and version when provid
     bootProvider();
 
     Route::mcp('/server-info-priority')
-        ->setName('Initial Name')
-        ->setVersion('0.0.1')
+        ->setServerInfo(
+            name: 'Initial Name',
+            version: '0.0.1',
+        )
         ->setServerInfo(
             name: 'Final Name',
             version: '3.2.1',
@@ -203,8 +223,8 @@ it('supports domain and middleware with standard route groups', function () {
 it('registers multiple endpoints independently', function () {
     bootProvider();
 
-    Route::mcp('/first')->setName('First')->setVersion('1.0.0');
-    Route::mcp('/second')->setName('Second')->setVersion('2.0.0');
+    Route::mcp('/first')->setServerInfo(name: 'First', version: '1.0.0');
+    Route::mcp('/second')->setServerInfo(name: 'Second', version: '2.0.0');
 
     /** @var McpEndpointRegistry $registry */
     $registry = app(McpEndpointRegistry::class);
@@ -243,9 +263,11 @@ it('stores endpoint definition payload on registered routes and keeps it synchro
     bootProvider();
 
     Route::mcp('/cached-mcp')
-        ->setName('Cached MCP')
-        ->setVersion('3.1.4')
-        ->setDescription('Route cache payload')
+        ->setServerInfo(
+            name: 'Cached MCP',
+            version: '3.1.4',
+            description: 'Route cache payload',
+        )
         ->tools([LegacyArrayTool::class])
         ->toolListChanged()
         ->resourcesSubscribe()
