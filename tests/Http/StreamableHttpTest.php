@@ -21,8 +21,10 @@ use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\TabularChampionsTool;
 function registerMcpEndpoint(array $tools, int $pageSize = 50): void
 {
     Route::mcp('/mcp')
-        ->setName('HTTP Test MCP')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'HTTP Test MCP',
+            version: '1.0.0',
+        )
         ->tools($tools)
         ->toolsPageSize($pageSize);
 }
@@ -77,8 +79,10 @@ test('tool can be called via streamable http', function () {
 
 test('tools/call uses custom handler when configured on route builder', function () {
     Route::mcp('/tracked-mcp')
-        ->setName('Tracked HTTP Test MCP')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'Tracked HTTP Test MCP',
+            version: '1.0.0',
+        )
         ->tools(defaultTools())
         ->toolsCallHandler(CustomToolsCallHandler::class);
 
@@ -106,8 +110,10 @@ test('tools/call uses custom handler when configured on route builder', function
 
 test('tools/list still works when custom tools/call handler is configured', function () {
     Route::mcp('/tracked-list-mcp')
-        ->setName('Tracked List HTTP Test MCP')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'Tracked List HTTP Test MCP',
+            version: '1.0.0',
+        )
         ->tools(defaultTools())
         ->toolsCallHandler(CustomToolsCallHandler::class);
 
@@ -204,8 +210,10 @@ test('resources/list does not instantiate tool classes for non-tool requests', f
     ConstructionCounterTool::resetCounter();
 
     Route::mcp('/mcp')
-        ->setName('HTTP Test MCP')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'HTTP Test MCP',
+            version: '1.0.0',
+        )
         ->tools([ConstructionCounterTool::class]);
 
     $payload = [
@@ -262,13 +270,17 @@ test('shared tool classes are not re-instantiated for warmup across endpoints', 
     ];
 
     Route::mcp('/mcp-alpha')
-        ->setName('alpha')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'alpha',
+            version: '1.0.0',
+        )
         ->tools($tools);
 
     Route::mcp('/mcp-beta')
-        ->setName('beta')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'beta',
+            version: '1.0.0',
+        )
         ->tools($tools);
 
     $alphaPayload = [
@@ -303,13 +315,17 @@ test('unknown tool lookup is cached across endpoints with shared tool classes', 
     ];
 
     Route::mcp('/mcp-gamma')
-        ->setName('gamma')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'gamma',
+            version: '1.0.0',
+        )
         ->tools($tools);
 
     Route::mcp('/mcp-delta')
-        ->setName('delta')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'delta',
+            version: '1.0.0',
+        )
         ->tools($tools);
 
     $payload = [
@@ -348,13 +364,17 @@ test('tools/list reuses class schema cache across endpoints with shared tool cla
     ];
 
     Route::mcp('/mcp-list-alpha')
-        ->setName('list-alpha')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'list-alpha',
+            version: '1.0.0',
+        )
         ->tools($tools);
 
     Route::mcp('/mcp-list-beta')
-        ->setName('list-beta')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'list-beta',
+            version: '1.0.0',
+        )
         ->tools($tools);
 
     $payload = [
@@ -518,8 +538,10 @@ test('initialize returns invalid params when required initialize fields are miss
 
 test('resources subscribe and unsubscribe return empty result when subscribe capability is enabled', function () {
     Route::mcp('/mcp')
-        ->setName('HTTP Test MCP')
-        ->setVersion('1.0.0')
+        ->setServerInfo(
+            name: 'HTTP Test MCP',
+            version: '1.0.0',
+        )
         ->tools(defaultTools())
         ->resourcesSubscribe();
 
