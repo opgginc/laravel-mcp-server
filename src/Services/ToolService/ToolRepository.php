@@ -15,11 +15,25 @@ use stdClass;
 class ToolRepository
 {
     /**
+     * Class-level schema cache shared across repository instances.
+     *
+     * @var array<class-string<ToolInterface>, array<string, mixed>>
+     */
+    private static array $toolSchemaCacheByClass = [];
+
+    /**
      * Holds the registered tool instances, keyed by their name.
      *
      * @var array<string, ToolInterface>
      */
     protected array $tools = [];
+
+    /**
+     * Holds precomputed tool schemas keyed by tool name.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    protected array $toolSchemas = [];
 
     /**
      * The Laravel service container instance.
@@ -54,6 +68,22 @@ class ToolRepository
     }
 
     /**
+     * Registers multiple tools by schema only.
+     * This avoids keeping executable tool instances when only tools/list is needed.
+     *
+     * @param  array<string|ToolInterface>  $tools  An array of tool class strings or ToolInterface instances.
+     * @return $this
+     */
+    public function registerSchemaMany(array $tools): self
+    {
+        foreach ($tools as $tool) {
+            $this->registerSchema($tool);
+        }
+
+        return $this;
+    }
+
+    /**
      * Registers a single tool.
      * If a class string is provided, it resolves the tool from the container.
      *
@@ -73,6 +103,27 @@ class ToolRepository
         }
 
         $this->tools[$tool->name()] = $tool;
+
+        return $this;
+    }
+
+    /**
+     * Registers a single tool schema.
+     *
+     * @param  string|ToolInterface  $tool  The tool class string or a ToolInterface instance.
+     * @return $this
+     */
+    public function registerSchema(string|ToolInterface $tool): self
+    {
+        if (is_string($tool)) {
+            $schema = self::$toolSchemaCacheByClass[$tool] ??= $this->resolveSchemaFromClass($tool);
+            $this->toolSchemas[$schema['name']] = $schema;
+
+            return $this;
+        }
+
+        $schema = $this->buildToolSchema($tool);
+        $this->toolSchemas[$schema['name']] = $schema;
 
         return $this;
     }
@@ -106,47 +157,95 @@ class ToolRepository
      */
     public function getToolSchemas(): array
     {
-        $schemas = [];
+        $schemasByName = $this->toolSchemas;
         foreach ($this->tools as $tool) {
-            $injectArray = [];
-            if (empty($tool->inputSchema())) {
-                // inputSchema cannot be empty, set a default value.
-                $injectArray['inputSchema'] = [
-                    'type' => 'object',
-                    'properties' => new stdClass,
-                    'required' => [],
-                ];
-            }
-            if (! empty($tool->annotations())) {
-                $injectArray['annotations'] = $tool->annotations();
-            }
-
-            $schema = [
-                'name' => $tool->name(),
-                'description' => $tool->description(),
-                'inputSchema' => $tool->inputSchema(),
-                ...$injectArray,
-            ];
-
-            // Optional metadata introduced in MCP 2025-06-18 for richer discovery payloads.
-            // @see https://modelcontextprotocol.io/specification/2025-06-18#tool
-            if (method_exists($tool, 'title')) {
-                $title = $tool->title();
-                if (is_string($title) && $title !== '') {
-                    $schema['title'] = $title;
-                }
-            }
-
-            if (method_exists($tool, 'outputSchema')) {
-                $outputSchema = $tool->outputSchema();
-                if (is_array($outputSchema) && $outputSchema !== []) {
-                    $schema['outputSchema'] = $outputSchema;
-                }
-            }
-
-            $schemas[] = $schema;
+            $schema = $this->buildToolSchema($tool);
+            $schemasByName[$schema['name']] = $schema;
         }
 
-        return $schemas;
+        return array_values($schemasByName);
+    }
+
+    /**
+     * @param  class-string  $toolClass
+     * @return array<string, mixed>
+     */
+    private function resolveSchemaFromClass(string $toolClass): array
+    {
+        $tool = $this->container->make($toolClass);
+        if (! $tool instanceof ToolInterface) {
+            throw new InvalidArgumentException('Tool must implement the '.ToolInterface::class);
+        }
+
+        return $this->buildToolSchema($tool);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildToolSchema(ToolInterface $tool): array
+    {
+        $injectArray = [];
+        if (empty($tool->inputSchema())) {
+            // inputSchema cannot be empty, set a default value.
+            $injectArray['inputSchema'] = [
+                'type' => 'object',
+                'properties' => new stdClass,
+                'required' => [],
+            ];
+        }
+        if (! empty($tool->annotations())) {
+            $injectArray['annotations'] = $tool->annotations();
+        }
+
+        $schema = [
+            'name' => $tool->name(),
+            'description' => $tool->description(),
+            'inputSchema' => $tool->inputSchema(),
+            ...$injectArray,
+        ];
+
+        // Optional metadata introduced in newer MCP schema revisions for richer discovery payloads.
+        // @see https://modelcontextprotocol.io/specification/2025-11-25/schema
+        if (method_exists($tool, 'title')) {
+            $title = $tool->title();
+            if (is_string($title) && $title !== '') {
+                $schema['title'] = $title;
+            }
+        }
+
+        if (method_exists($tool, 'icons')) {
+            $icons = $tool->icons();
+            if (is_array($icons) && $icons !== []) {
+                $schema['icons'] = array_values($icons);
+            }
+        }
+
+        if (method_exists($tool, 'outputSchema')) {
+            $outputSchema = $tool->outputSchema();
+            if (is_array($outputSchema) && $outputSchema !== []) {
+                $schema['outputSchema'] = $outputSchema;
+            }
+        }
+
+        if (method_exists($tool, 'execution')) {
+            $execution = $tool->execution();
+            if (is_array($execution) && $execution !== []) {
+                $schema['execution'] = $execution;
+            }
+        }
+
+        $meta = null;
+        if (method_exists($tool, 'meta')) {
+            $meta = $tool->meta();
+        } elseif (method_exists($tool, '_meta')) {
+            $meta = $tool->_meta();
+        }
+
+        if (is_array($meta) && $meta !== []) {
+            $schema['_meta'] = $meta;
+        }
+
+        return $schema;
     }
 }

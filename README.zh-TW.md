@@ -279,46 +279,6 @@ MCP 協定也定義了「Streamable HTTP SSE」模式，但此套件未實作且
 
 ## 基本使用
 
-### 網域限制
-
-你可以將 MCP 伺服器路由限制在特定網域，以獲得更好的安全性和組織：
-
-```php
-// config/mcp-server.php
-
-// 允許從所有網域存取（預設）
-'domain' => null,
-
-// 限制單一網域
-'domain' => 'api.example.com',
-
-// 限制多個網域
-'domain' => ['api.example.com', 'admin.example.com'],
-```
-
-**何時使用網域限制：**
-- 在不同子網域上執行多個應用程式
-- 將 API 端點與主應用程式分離
-- 實作多租戶架構，每個租戶有自己的子網域
-- 在多個網域間提供相同的 MCP 服務
-
-**範例情境：**
-
-```php
-// 單一 API 子網域
-'domain' => 'api.op.gg',
-
-// 不同環境的多個子網域
-'domain' => ['api.op.gg', 'staging-api.op.gg'],
-
-// 多租戶架構
-'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
-
-// 不同網域上的不同服務
-'domain' => ['api.op.gg', 'api.kargn.as'],
-```
-
-> **注意：** 使用多個網域時，套件會自動為每個網域註冊獨立的路由，確保在所有指定網域間正確路由。
 
 ### 建立和新增自訂工具
 

@@ -26,27 +26,6 @@ class ToolsCallHandler extends RequestHandler
 
     public function getMessageType(?array $params = null): ProcessMessageType
     {
-        $name = $params['name'] ?? null;
-        if ($name === null) {
-            throw new JsonRpcErrorException(message: 'Tool name is required', code: JsonRpcErrorCode::INVALID_REQUEST);
-        }
-
-        $tool = $this->toolRepository->getTool($name);
-        if (! $tool) {
-            throw new JsonRpcErrorException(message: "Tool '{$name}' not found", code: JsonRpcErrorCode::METHOD_NOT_FOUND);
-        }
-
-        // Check for new isStreaming() method first (v1.3.0+)
-        if (method_exists($tool, 'isStreaming')) {
-            return $tool->isStreaming() ? ProcessMessageType::SSE : ProcessMessageType::HTTP;
-        }
-
-        // Fallback to legacy messageType() method for backward compatibility
-        if (method_exists($tool, 'messageType')) {
-            return $tool->messageType();
-        }
-
-        // Default to HTTP if neither method exists
         return ProcessMessageType::HTTP;
     }
 
@@ -76,64 +55,97 @@ class ToolsCallHandler extends RequestHandler
             ? $result->toArray()
             : $result;
 
-        if ($method === 'tools/call') {
-            if ($result instanceof ToolResponse) {
-                return $preparedResult;
-            }
-
-            if (is_array($preparedResult)) {
-                if (array_key_exists('content', $preparedResult)
-                    || array_key_exists('structuredContent', $preparedResult)
-                    || array_key_exists('isError', $preparedResult)) {
-                    return $preparedResult;
-                }
-
-                if ($autoStructuredOutput) {
-                    $this->encodeJson($preparedResult);
-
-                    return [
-                        'structuredContent' => $preparedResult,
-                    ];
-                }
-
-                $text = $this->encodeJson($preparedResult);
-
-                return [
-                    'content' => [
-                        [
-                            'type' => 'text',
-                            'text' => $text,
-                        ],
-                    ],
-                ];
-            }
-
-            if (is_string($preparedResult)) {
-                return [
-                    'content' => [
-                        [
-                            'type' => 'text',
-                            'text' => $preparedResult,
-                        ],
-                    ],
-                ];
-            }
-
-            $text = $this->encodeJson($preparedResult);
-
-            return [
-                'content' => [
-                    [
-                        'type' => 'text',
-                        'text' => $text,
-                    ],
-                ],
-            ];
-        } else {
+        if ($method !== 'tools/call') {
             return [
                 'result' => $preparedResult,
             ];
         }
+
+        if ($result instanceof ToolResponse) {
+            return $this->normalizeCallToolResult($preparedResult);
+        }
+
+        if (is_array($preparedResult)) {
+            if (array_key_exists('content', $preparedResult)
+                || array_key_exists('structuredContent', $preparedResult)
+                || array_key_exists('isError', $preparedResult)) {
+                return $this->normalizeCallToolResult($preparedResult);
+            }
+
+            if ($autoStructuredOutput) {
+                return $this->normalizeCallToolResult([
+                    'structuredContent' => $preparedResult,
+                ]);
+            }
+
+            return [
+                'content' => $this->textContent($this->encodeJson($preparedResult)),
+            ];
+        }
+
+        if (is_string($preparedResult)) {
+            return [
+                'content' => $this->textContent($preparedResult),
+            ];
+        }
+
+        return [
+            'content' => $this->textContent($this->encodeJson($preparedResult)),
+        ];
+    }
+
+    /**
+     * Normalize tools/call payloads to satisfy CallToolResult shape in MCP 2025-11-25.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeCallToolResult(array $payload): array
+    {
+        if (! array_key_exists('content', $payload)) {
+            $payload['content'] = $this->fallbackContent($payload);
+
+            return $payload;
+        }
+
+        if (! is_array($payload['content'])) {
+            $payload['content'] = $this->textContent($this->encodeJson($payload['content']));
+
+            return $payload;
+        }
+
+        $payload['content'] = array_values($payload['content']);
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<int, array{type: string, text: string}>
+     */
+    private function fallbackContent(array $payload): array
+    {
+        if (array_key_exists('structuredContent', $payload)) {
+            return $this->textContent($this->encodeJson($payload['structuredContent']));
+        }
+
+        $mirrorPayload = $payload;
+        unset($mirrorPayload['content']);
+
+        return $this->textContent($this->encodeJson($mirrorPayload));
+    }
+
+    /**
+     * @return array<int, array{type: string, text: string}>
+     */
+    private function textContent(string $text): array
+    {
+        return [
+            [
+                'type' => 'text',
+                'text' => $text,
+            ],
+        ];
     }
 
     /**

@@ -3,25 +3,11 @@
 use Illuminate\Support\Facades\File;
 
 beforeEach(function () {
-    // Clean up directories before each test
     File::deleteDirectory(app_path('MCP/Tools'));
-
-    // Create a minimal config file for testing
-    $configDir = config_path();
-    if (! File::isDirectory($configDir)) {
-        File::makeDirectory($configDir, 0755, true);
-    }
-
-    $configContent = "<?php\n\nreturn [\n    'tools' => [],\n    'resources' => [],\n];";
-    File::put(config_path('mcp-server.php'), $configContent);
 });
 
 afterEach(function () {
-    // Clean up after each test
     File::deleteDirectory(app_path('MCP/Tools'));
-    if (File::exists(config_path('mcp-server.php'))) {
-        File::delete(config_path('mcp-server.php'));
-    }
 });
 
 test('make:mcp-tool generates tool in root directory by default', function () {
@@ -32,7 +18,6 @@ test('make:mcp-tool generates tool in root directory by default', function () {
     $path = app_path('MCP/Tools/TestTool.php');
     expect(File::exists($path))->toBeTrue();
 
-    // Verify namespace is correct
     $content = File::get($path);
     expect($content)->toContain('namespace App\\MCP\\Tools;');
 });
@@ -54,7 +39,6 @@ test('getPath returns correct path with tag directory', function () {
     $filesystem = new \Illuminate\Filesystem\Filesystem;
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
 
-    // Set dynamicParams using reflection
     $property = new ReflectionProperty($command, 'dynamicParams');
     $property->setAccessible(true);
     $property->setValue($command, ['tagDirectory' => 'Pet']);
@@ -87,7 +71,6 @@ test('replaceStubPlaceholders generates correct namespace with tag directory', f
     $filesystem = new \Illuminate\Filesystem\Filesystem;
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
 
-    // Set dynamicParams using reflection
     $property = new ReflectionProperty($command, 'dynamicParams');
     $property->setAccessible(true);
     $property->setValue($command, ['tagDirectory' => 'Pet']);
@@ -118,76 +101,12 @@ test('makeDirectory creates nested directories', function () {
     expect(File::isDirectory($expectedDirectory))->toBeTrue();
 });
 
-test('tool with tag directory is properly registered in config', function () {
-    // Create a tool using dynamicParams (simulating swagger generation)
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+test('programmatic mode works without config files', function () {
+    $this->artisan('make:mcp-tool', ['name' => 'ProgrammaticTool', '--programmatic' => true, '--no-interaction' => true])
+        ->expectsOutputToContain('Created')
+        ->assertExitCode(0);
 
-    // Set up the command with tag directory
-    $property = new ReflectionProperty($command, 'dynamicParams');
-    $property->setAccessible(true);
-    $property->setValue($command, ['tagDirectory' => 'Pet']);
-
-    // Generate the tool manually to test registration
-    $className = 'AddPetTool';
-    $toolName = 'add-pet';
-
-    $path = app_path('MCP/Tools/Pet/AddPetTool.php');
-    $directory = dirname($path);
-    if (! File::isDirectory($directory)) {
-        File::makeDirectory($directory, 0755, true);
-    }
-
-    // Create a mock tool file
-    $toolContent = '<?php
-
-namespace App\\MCP\\Tools\\Pet;
-
-use OPGG\\LaravelMcpServer\\Services\\ToolService\\ToolInterface;
-
-class AddPetTool implements ToolInterface
-{
-    public function name(): string
-    {
-        return "add-pet";
-    }
-    
-    public function description(): string
-    {
-        return "Add a pet";
-    }
-    
-    public function inputSchema(): array
-    {
-        return [];
-    }
-    
-    public function execute(array $params): array
-    {
-        return ["result" => "success"];
-    }
-    
-    public function messageType(): string
-    {
-        return "text";
-    }
-}';
-
-    File::put($path, $toolContent);
-
-    // Test that the tool can be registered with the correct fully qualified class name
-    $fullyQualifiedClassName = 'App\\MCP\\Tools\\Pet\\AddPetTool';
-
-    $method = new ReflectionMethod($command, 'registerToolInConfig');
-    $method->setAccessible(true);
-
-    $result = $method->invoke($command, $fullyQualifiedClassName);
-    expect($result)->toBeTrue();
-
-    // Verify the tool was added to config (with escaped backslashes)
-    $configContent = File::get(config_path('mcp-server.php'));
-    $escapedClassName = str_replace('\\', '\\\\', $fullyQualifiedClassName);
-    expect($configContent)->toContain($escapedClassName);
+    expect(File::exists(app_path('MCP/Tools/ProgrammaticTool.php')))->toBeTrue();
 });
 
 test('handles directory creation permissions gracefully', function () {
@@ -197,7 +116,6 @@ test('handles directory creation permissions gracefully', function () {
     $method = new ReflectionMethod($command, 'makeDirectory');
     $method->setAccessible(true);
 
-    // Test with a valid path - should not throw exception
     $validPath = app_path('MCP/Tools/TestDir/TestTool.php');
     $result = $method->invoke($command, $validPath);
 

@@ -3,7 +3,6 @@
 namespace {{ namespace }};
 
 use Illuminate\Support\Facades\Validator;
-use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
@@ -47,45 +46,17 @@ class {{ className }} implements ToolInterface
      * Opt into automatic structuredContent conversion for array responses.
      *
      * HISTORY:
-     * - Introduced in v1.5.0 alongside the MCP 2025-06-18 structured payload spec.
+     * - Introduced in v1.5.0 alongside the MCP structured payload schema updates.
      * - Tools created before v1.5 omitted this property and kept legacy JSON-string outputs.
      *
      * BEHAVIOR:
-     * - true (stub default): associative arrays returned from execute() are emitted via `structuredContent`-key.
-     * - false: arrays are JSON-encoded and wrapped under the text-based `content`-key list for backwards compatibility.
+     * - true (stub default): associative arrays returned from execute() are emitted via `structuredContent`
+     *   and mirrored into the required text-based `content` list.
+     * - false: arrays are JSON-encoded and returned only through the text-based `content` list.
      *
      * Returning a ToolResponse bypasses the flag entirely, so you can mix structured payloads with rich text manually.
      */
     protected bool $autoStructuredOutput = true;
-
-    /**
-     * OPTIONAL: Determines if this tool requires streaming (SSE) instead of standard HTTP.
-     *
-     * This method is optional and only needed if you want to use streaming.
-     * If not implemented, the tool defaults to HTTP transport (recommended).
-     *
-     * Most tools should return false for better performance and compatibility.
-     * Only return true if you specifically need real-time streaming capabilities.
-     *
-     * WHEN TO USE STREAMING (return true):
-     * - Real-time progress updates for long-running operations
-     * - Live data feeds or monitoring tools
-     * - Interactive tools requiring bidirectional communication
-     * - Tools that need to push multiple updates during execution
-     *
-     * WHEN TO USE HTTP (return false - RECOMMENDED):
-     * - Standard CRUD operations
-     * - API calls and data retrieval
-     * - File operations and calculations
-     * - Most business logic tools
-     *
-     * @since v1.3.0
-     * @return bool True if the tool requires streaming, false for standard HTTP
-     */
-    public function isStreaming(): bool
-    {
-        return false;
-    }
 
     /**
      * Very important -- The unique, callable name of your tool.

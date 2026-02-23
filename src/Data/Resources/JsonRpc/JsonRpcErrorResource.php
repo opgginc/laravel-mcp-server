@@ -42,14 +42,9 @@ class JsonRpcErrorResource
      */
     public function toResponse(): array
     {
-        $injectId = [];
-        if ($this->id) {
-            $injectId['id'] = $this->id;
-        }
-
         return [
             'jsonrpc' => '2.0',
-            ...$injectId,
+            'id' => $this->id,
             'error' => $this->exception->toArray(),
         ];
     }

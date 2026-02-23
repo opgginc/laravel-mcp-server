@@ -18,9 +18,35 @@ abstract class Resource
     public string $name;
 
     /**
+     * Optional title for UI display.
+     */
+    public ?string $title = null;
+
+    /**
      * Optional description explaining the resource.
      */
     public ?string $description = null;
+
+    /**
+     * Optional icon metadata entries.
+     *
+     * @var array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>
+     */
+    public array $icons = [];
+
+    /**
+     * Optional annotations for MCP clients.
+     *
+     * @var array<string, mixed>
+     */
+    public array $annotations = [];
+
+    /**
+     * Optional transport-level metadata.
+     *
+     * @var array<string, mixed>
+     */
+    public array $meta = [];
 
     /**
      * Optional MIME type hint.
@@ -41,9 +67,13 @@ abstract class Resource
         return array_filter([
             'uri' => $this->uri,
             'name' => $this->name,
+            'title' => $this->title,
             'description' => $this->description,
             'mimeType' => $this->mimeType,
             'size' => $this->size,
+            'annotations' => $this->annotations === [] ? null : $this->annotations,
+            '_meta' => $this->meta === [] ? null : $this->meta,
+            'icons' => $this->icons === [] ? null : array_values($this->icons),
         ], static fn ($v) => $v !== null);
     }
 

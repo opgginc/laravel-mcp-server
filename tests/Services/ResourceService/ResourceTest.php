@@ -9,9 +9,23 @@ class TestResource extends Resource
 
     public string $name = 'Test Resource';
 
+    public ?string $title = 'Test Resource Title';
+
     public ?string $description = 'A test resource';
 
     public ?string $mimeType = 'text/plain';
+
+    public array $annotations = [
+        'audience' => ['assistant'],
+    ];
+
+    public array $meta = [
+        'owner' => 'qa',
+    ];
+
+    public array $icons = [
+        ['src' => 'https://example.com/resource-icon.png', 'mimeType' => 'image/png', 'sizes' => ['128x128'], 'theme' => 'dark'],
+    ];
 
     public function read(): array
     {
@@ -52,8 +66,18 @@ test('resource can be registered in repository', function () {
         ->and($schemas[0])->toMatchArray([
             'uri' => 'file:///test.txt',
             'name' => 'Test Resource',
+            'title' => 'Test Resource Title',
             'description' => 'A test resource',
             'mimeType' => 'text/plain',
+            'annotations' => [
+                'audience' => ['assistant'],
+            ],
+            '_meta' => [
+                'owner' => 'qa',
+            ],
+            'icons' => [
+                ['src' => 'https://example.com/resource-icon.png', 'mimeType' => 'image/png', 'sizes' => ['128x128'], 'theme' => 'dark'],
+            ],
         ]);
 });
 

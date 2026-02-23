@@ -3,6 +3,7 @@
 namespace OPGG\LaravelMcpServer\Services\ToolService;
 
 use InvalidArgumentException;
+use JsonException;
 
 /**
  * Value object describing a structured tool response.
@@ -80,19 +81,32 @@ final class ToolResponse
      */
     public static function structured(array $structuredContent, ?array $content = null, array $metadata = []): self
     {
-        $contentItems = $content !== null ? array_values($content) : [];
+        $contentItems = $content !== null
+            ? array_values($content)
+            : [[
+                'type' => 'text',
+                'text' => self::encodeStructuredContent($structuredContent),
+            ]];
 
         return new self(
             $contentItems,
             [
                 ...$metadata,
-                // The MCP 2025-06-18 spec encourages servers to mirror structured payloads in the
+                // The MCP 2025-11-25 schema encourages servers to mirror structured payloads in the
                 // `structuredContent` field for reliable client parsing.
-                // @see https://modelcontextprotocol.io/specification/2025-06-18#structured-content
+                // @see https://modelcontextprotocol.io/specification/2025-11-25/schema
                 'structuredContent' => $structuredContent,
-            ],
-            $contentItems !== []
+            ]
         );
+    }
+
+    private static function encodeStructuredContent(array $structuredContent): string
+    {
+        try {
+            return json_encode($structuredContent, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        } catch (JsonException $exception) {
+            throw new InvalidArgumentException('Failed to encode structuredContent: '.$exception->getMessage(), previous: $exception);
+        }
     }
 
     /**

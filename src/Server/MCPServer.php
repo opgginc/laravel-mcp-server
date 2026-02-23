@@ -17,7 +17,9 @@ use OPGG\LaravelMcpServer\Server\Request\PromptsGetHandler;
 use OPGG\LaravelMcpServer\Server\Request\PromptsListHandler;
 use OPGG\LaravelMcpServer\Server\Request\ResourcesListHandler;
 use OPGG\LaravelMcpServer\Server\Request\ResourcesReadHandler;
+use OPGG\LaravelMcpServer\Server\Request\ResourcesSubscribeHandler;
 use OPGG\LaravelMcpServer\Server\Request\ResourcesTemplatesListHandler;
+use OPGG\LaravelMcpServer\Server\Request\ResourcesUnsubscribeHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsListHandler;
 use OPGG\LaravelMcpServer\Services\PromptService\PromptRepository;
@@ -44,9 +46,14 @@ final class MCPServer
     /**
      * Information about the server, typically including name and version.
      *
-     * @var array{name: string, version: string}
+     * @var array{name: string, version: string, title?: string, description?: string, websiteUrl?: string, icons?: array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>}
      */
     private array $serverInfo;
+
+    /**
+     * Optional human-readable instructions included in initialize responses.
+     */
+    private ?string $instructions;
 
     /**
      * The capabilities supported by this server instance.
@@ -71,15 +78,17 @@ final class MCPServer
      * Initializes the server with the communication protocol, server information,
      * and capabilities. Registers the mandatory 'initialize' request handler.
      *
-     * @param  MCPProtocol  $protocol  The protocol handler instance (e.g., for JSON-RPC over SSE).
-     * @param  array{name: string, version: string}  $serverInfo  Associative array containing the server's name and version.
+     * @param  MCPProtocol  $protocol  The protocol handler instance.
+     * @param  array{name: string, version: string, title?: string, description?: string, websiteUrl?: string, icons?: array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>}  $serverInfo  Associative array containing the server identity metadata.
      * @param  ServerCapabilities|null  $capabilities  Optional server capabilities configuration. If null, default capabilities are used.
+     * @param  string|null  $instructions  Optional user-facing instructions for clients.
      */
-    public function __construct(MCPProtocol $protocol, array $serverInfo, ?ServerCapabilities $capabilities = null)
+    public function __construct(MCPProtocol $protocol, array $serverInfo, ?ServerCapabilities $capabilities = null, ?string $instructions = null)
     {
         $this->protocol = $protocol;
         $this->serverInfo = $serverInfo;
         $this->capabilities = $capabilities ?? new ServerCapabilities;
+        $this->instructions = $instructions;
 
         // Register the handler for the mandatory 'initialize' method.
         $this->registerRequestHandler(new InitializeHandler($this));
@@ -109,18 +118,43 @@ final class MCPServer
      * @param  string  $name  The server name.
      * @param  string  $version  The server version.
      * @param  ServerCapabilities|null  $capabilities  Optional server capabilities configuration.
+     * @param  string|null  $title  Optional display title.
+     * @param  string|null  $description  Optional server description.
+     * @param  string|null  $websiteUrl  Optional server website URL.
+     * @param  array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>  $icons  Optional icon metadata.
+     * @param  string|null  $instructions  Optional user-facing instructions.
      * @return self A new MCPServer instance.
      */
     public static function create(
         MCPProtocol $protocol,
         string $name,
         string $version,
-        ?ServerCapabilities $capabilities = null
+        ?ServerCapabilities $capabilities = null,
+        ?string $title = null,
+        ?string $description = null,
+        ?string $websiteUrl = null,
+        array $icons = [],
+        ?string $instructions = null,
     ): self {
-        return new self($protocol, [
+        $serverInfo = [
             'name' => $name,
             'version' => $version,
-        ], $capabilities);
+        ];
+
+        if ($title !== null) {
+            $serverInfo['title'] = $title;
+        }
+        if ($description !== null) {
+            $serverInfo['description'] = $description;
+        }
+        if ($websiteUrl !== null) {
+            $serverInfo['websiteUrl'] = $websiteUrl;
+        }
+        if ($icons !== []) {
+            $serverInfo['icons'] = array_values($icons);
+        }
+
+        return new self($protocol, $serverInfo, $capabilities, $instructions);
     }
 
     /**
@@ -130,9 +164,9 @@ final class MCPServer
      * @param  ToolRepository  $toolRepository  The repository containing available tools.
      * @return self The current MCPServer instance for method chaining.
      */
-    public function registerToolRepository(ToolRepository $toolRepository): self
+    public function registerToolRepository(ToolRepository $toolRepository, int $pageSize = 50): self
     {
-        $this->registerRequestHandler(new ToolsListHandler($toolRepository));
+        $this->registerRequestHandler(new ToolsListHandler($toolRepository, $pageSize));
         $this->registerRequestHandler(new ToolsCallHandler($toolRepository));
 
         return $this;
@@ -141,11 +175,15 @@ final class MCPServer
     /**
      * Registers request handlers required for MCP Resources.
      */
-    public function registerResourceRepository(ResourceRepository $repository): self
+    public function registerResourceRepository(ResourceRepository $repository, bool $supportsSubscribe = false): self
     {
         $this->registerRequestHandler(new ResourcesListHandler($repository));
         $this->registerRequestHandler(new ResourcesReadHandler($repository));
         $this->registerRequestHandler(new ResourcesTemplatesListHandler($repository));
+        if ($supportsSubscribe) {
+            $this->registerRequestHandler(new ResourcesSubscribeHandler);
+            $this->registerRequestHandler(new ResourcesUnsubscribeHandler);
+        }
 
         return $this;
     }
@@ -163,7 +201,6 @@ final class MCPServer
 
     /**
      * Initiates the connection process via the protocol handler.
-     * Depending on the transport (e.g., SSE), this might start listening for client connections.
      */
     public function connect(): void
     {
@@ -208,16 +245,26 @@ final class MCPServer
         $this->initialized = true;
 
         $this->clientCapabilities = $data->capabilities;
-        $protocolVersion = $data->protocolVersion ?? MCPProtocol::PROTOCOL_VERSION;
+        $protocolVersion = MCPProtocol::PROTOCOL_VERSION;
 
         $initializeResource = new InitializeResource(
-            $this->serverInfo['name'],
-            $this->serverInfo['version'],
+            $this->serverInfo,
             $this->capabilities->toArray(),
-            $protocolVersion
+            $this->instructions,
+            $protocolVersion,
         );
 
         return $initializeResource;
+    }
+
+    /**
+     * Returns client capabilities captured during initialize, if available.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getClientCapabilities(): ?array
+    {
+        return $this->clientCapabilities;
     }
 
     /**

@@ -85,11 +85,12 @@ class SwaggerParser
             throw new \Exception('YAML format not yet supported. Please use JSON format.');
         }
 
-        $this->spec = $response->json();
-
-        if (! is_array($this->spec)) {
+        $decodedSpec = $response->json();
+        if (! is_array($decodedSpec)) {
             throw new \Exception('Invalid Swagger/OpenAPI spec format');
         }
+
+        $this->spec = $decodedSpec;
     }
 
     /**
@@ -108,11 +109,12 @@ class SwaggerParser
             throw new \Exception('YAML format not yet supported. Please use JSON format.');
         }
 
-        $this->spec = json_decode($content, true);
-
-        if (! is_array($this->spec)) {
+        $decodedSpec = json_decode($content, true);
+        if (! is_array($decodedSpec)) {
             throw new \Exception('Invalid Swagger/OpenAPI spec format');
         }
+
+        $this->spec = $decodedSpec;
     }
 
     /**

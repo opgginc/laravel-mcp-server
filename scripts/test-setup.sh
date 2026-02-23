@@ -83,44 +83,32 @@ print_step "Installing laravel-mcp-server package..."
 composer require opgginc/laravel-mcp-server:@dev --no-interaction
 print_success "MCP server package installed"
 
-# Step 5: Publish configuration
-print_step "Publishing MCP server configuration..."
-php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider" --no-interaction
-print_success "Configuration published"
+# Step 5: Register MCP routes
+print_step "Registering MCP routes..."
+cat >> routes/web.php << 'EOF'
 
-# Step 6: Configure Streamable HTTP provider
-print_step "Configuring Streamable HTTP provider..."
-cat > config/mcp-server.php << 'EOF'
-<?php
+use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
+use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 
-return [
-    'enabled' => true,
-    'server' => [
-        'name' => 'Test MCP Server',
-        'version' => '1.0.0',
-    ],
-    'server_provider' => 'streamable_http',
-    'default_path' => 'mcp',
-    'middlewares' => [],
-    'tools' => [
-        \OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool::class,
-        \OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool::class,
-    ],
-];
+Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->group(function () {
+    Route::mcp('/mcp')
+        ->setName('Test MCP Server')
+        ->setVersion('1.0.0')
+        ->tools([
+            HelloWorldTool::class,
+            VersionCheckTool::class,
+        ]);
+});
 EOF
-print_success "Streamable HTTP provider configured"
+print_success "MCP routes registered at /mcp"
 
-# Step 7: Install and configure Laravel Octane
+# Step 6: Install and configure Laravel Octane
 print_step "Installing Laravel Octane..."
 composer require laravel/octane --no-interaction
 php artisan octane:install --server=frankenphp --no-interaction
 print_success "Laravel Octane installed with FrankenPHP"
 
-# Step 8: Skip Redis setup (not needed for Streamable HTTP)
-print_step "Skipping Redis setup (not needed for Streamable HTTP)..."
-print_success "Redis setup skipped"
-
-# Step 9: Create test script for MCP HTTP testing
+# Step 7: Create test script for MCP HTTP testing
 print_step "Creating MCP HTTP test script..."
 cat > test-mcp.sh << 'EOF'
 #!/bin/bash
@@ -128,7 +116,7 @@ cat > test-mcp.sh << 'EOF'
 # MCP HTTP Test Script
 # This script tests the MCP server using curl with Streamable HTTP transport
 
-set -e
+set -euo pipefail
 
 # Get server port from file
 if [ -f .server.port ]; then
@@ -151,13 +139,21 @@ if ! command -v curl &> /dev/null; then
     exit 1
 fi
 
+show_json() {
+    if command -v jq > /dev/null 2>&1; then
+        jq '.'
+    else
+        cat
+    fi
+}
+
 echo ""
 echo "🔧 Running MCP HTTP Tests..."
 echo ""
 
 # Test 1: Initialize handshake
 echo "📡 Test 1: Initialize handshake"
-curl -X POST "$HTTP_ENDPOINT" \
+curl -fsS -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -176,27 +172,27 @@ curl -X POST "$HTTP_ENDPOINT" \
         "version": "1.0.0"
       }
     }
-  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+  }' | show_json
 
 echo ""
 echo ""
 
 # Test 2: List tools
 echo "📋 Test 2: List available tools"
-curl -X POST "$HTTP_ENDPOINT" \
+curl -fsS -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
     "id": 2,
     "method": "tools/list"
-  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+  }' | show_json
 
 echo ""
 echo ""
 
 # Test 3: Call hello-world tool
 echo "👋 Test 3: Call hello-world tool"
-curl -X POST "$HTTP_ENDPOINT" \
+curl -fsS -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -208,14 +204,14 @@ curl -X POST "$HTTP_ENDPOINT" \
         "name": "Test User"
       }
     }
-  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+  }' | show_json
 
 echo ""
 echo ""
 
 # Test 4: Call check-version tool
 echo "🔍 Test 4: Call check-version tool"
-curl -X POST "$HTTP_ENDPOINT" \
+curl -fsS -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -225,62 +221,62 @@ curl -X POST "$HTTP_ENDPOINT" \
       "name": "check-version",
       "arguments": {}
     }
-  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+  }' | show_json
 
 echo ""
 echo ""
 # Test 5: List resources
 echo "📚 Test 5: List available resources"
-curl -X POST "$HTTP_ENDPOINT" \
+curl -fsS -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
     "id": 5,
     "method": "resources/list"
-  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+  }' | show_json
 
 echo ""
 echo ""
 # Test 6: Read example resource
 echo "📖 Test 6: Read example log resource"
-curl -X POST "$HTTP_ENDPOINT" \
+curl -fsS -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
     "id": 6,
     "method": "resources/read",
     "params": { "uri": "file:///logs/example.log" }
-  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+  }' | show_json
 
 echo ""
 echo ""
 # Test 6.5: List resource templates
 echo "📑 Test 6.5: List resource templates"
-curl -X POST "$HTTP_ENDPOINT" \
+curl -fsS -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
     "id": 65,
     "method": "resources/templates/list"
-  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+  }' | show_json
 
 echo ""
 echo ""
 # Test 7: List prompts
 echo "📝 Test 7: List available prompts"
-curl -X POST "$HTTP_ENDPOINT" \
+curl -fsS -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
     "id": 7,
     "method": "prompts/list"
-  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+  }' | show_json
 
 echo ""
 echo ""
 # Test 8: Render prompt
 echo "🗒 Test 8: Get welcome prompt"
-curl -X POST "$HTTP_ENDPOINT" \
+curl -fsS -X POST "$HTTP_ENDPOINT" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -293,7 +289,7 @@ curl -X POST "$HTTP_ENDPOINT" \
         "role": "admin"
       }
     }
-  }' | jq '.' 2>/dev/null || echo "Response received (install jq for pretty printing)"
+  }' | show_json
 
 echo ""
 echo ""
@@ -308,7 +304,7 @@ EOF
 chmod +x test-mcp.sh
 print_success "MCP HTTP test script created"
 
-# Step 10: Create startup script
+# Step 8: Create startup script
 print_step "Creating startup script..."
 cat > start-server.sh << 'EOF'
 #!/bin/bash
@@ -349,12 +345,13 @@ echo "✅ Octane server started (PID: $OCTANE_PID) on port $SERVER_PORT"
 # Wait for server to be ready
 echo "⏳ Waiting for server to be ready..."
 for i in {1..30}; do
-    if curl -s http://localhost:$SERVER_PORT/mcp > /dev/null 2>&1; then
+    MCP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$SERVER_PORT/mcp" || true)
+    if [ "$MCP_STATUS" = "405" ]; then
         echo "✅ Server is ready at http://localhost:$SERVER_PORT"
         break
     fi
     if [ $i -eq 30 ]; then
-        echo "❌ Server failed to start within 30 seconds"
+        echo "❌ Server failed to start within 30 seconds (last /mcp status: $MCP_STATUS)"
         kill $OCTANE_PID 2>/dev/null || true
         rm -f .octane.pid .server.port
         exit 1
@@ -367,7 +364,7 @@ EOF
 chmod +x start-server.sh
 print_success "Startup script created"
 
-# Step 11: Create stop server script
+# Step 9: Create stop server script
 print_step "Creating stop server script..."
 cat > stop-server.sh << 'EOF'
 #!/bin/bash
@@ -404,7 +401,7 @@ EOF
 chmod +x stop-server.sh
 print_success "Stop server script created"
 
-# Step 12: Create run-test script (all-in-one)
+# Step 10: Create run-test script (all-in-one)
 print_step "Creating all-in-one test runner..."
 cat > run-test.sh << 'EOF'
 #!/bin/bash

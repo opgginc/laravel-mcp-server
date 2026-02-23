@@ -36,10 +36,12 @@
 
 Version 1.5.0 focuses on structured tool output, richer prompt support, and improved discoverability across the MCP protocol:
 
-- **Structured tool responses** – Use `ToolResponse::structured()` to emit plain text and JSON payloads simultaneously. Existing tools keep returning JSON strings inside the `content` array for backwards compatibility, while new stubs expose a `$autoStructuredOutput = true` flag so array responses automatically populate `structuredContent` per the MCP 2025-06-18 specification. Tool interfaces optionally expose `title()` and `outputSchema()` so schema-aware clients can display richer results.
+- **Structured tool responses** – Use `ToolResponse::structured()` to emit plain text and JSON payloads simultaneously. Existing tools keep returning JSON strings inside the `content` array for backwards compatibility, while new stubs expose a `$autoStructuredOutput = true` flag so array responses populate `structuredContent` and keep the required `content` field per the MCP 2025-11-25 specification. Tool interfaces optionally expose `title()` and `outputSchema()` so schema-aware clients can display richer results.
 - **Tabular response helpers** – The new `FormatsTabularToolResponses` trait converts array data into CSV or Markdown tables with consistent MIME typing. Example tools and Pest tests demonstrate column normalization, validation, and multi-format output generation for data-heavy workflows.
-- **Enhanced tool pagination & metadata** – Cursor-based pagination for `tools/list` scales to large catalogs, configurable via the `MCP_TOOLS_PAGE_SIZE` environment variable. The server advertises schema awareness and `listChanged` hints during capability negotiation, with integration tests covering `nextCursor` behavior.
-- **Prompt registry & generator** – A full prompt registry backed by configuration files powers the new `prompts/list` and `prompts/get` handlers. Developers can scaffold prompts using `php artisan make:mcp-prompt`, while the service provider surfaces prompt schemas inside the MCP handshake for immediate client discovery.
+- **Enhanced tool pagination & metadata** – Cursor-based pagination for `tools/list` scales to large catalogs, configurable per endpoint via `->toolsPageSize(...)`. The server advertises schema awareness and `listChanged` hints during capability negotiation, with integration tests covering `nextCursor` behavior.
+- **Prompt registry & generator** – A full prompt registry backed by route endpoint definitions powers the new `prompts/list` and `prompts/get` handlers. Developers can scaffold prompts using `php artisan make:mcp-prompt`, while the service provider surfaces prompt schemas inside the MCP handshake for immediate client discovery.
+- **Resource subscription parity** – Endpoints that enable `->resourcesSubscribe()` now accept `resources/subscribe` and `resources/unsubscribe` requests and return empty MCP results as defined by the 2025-11-25 schema. Endpoints that do not enable subscriptions correctly return `Method not found`.
+- **Strict initialize validation** – The `initialize` request now validates required MCP fields (`protocolVersion`, `capabilities`, `clientInfo.name`, `clientInfo.version`) and consistently responds with the server-negotiated protocol version.
 
 ### Breaking Changes in v1.1.0 (May 2025)
 
@@ -47,7 +49,7 @@ Version 1.1.0 introduced a breaking change to the `ToolInterface`. Upgrading fro
 
 ## Overview of Laravel MCP Server
 
-Laravel MCP Server is a powerful package designed to streamline the implementation of Model Context Protocol (MCP) servers in Laravel applications. **Unlike most Laravel MCP packages that use Standard Input/Output (stdio) transport**, this package focuses on **Streamable HTTP** transport and still includes a **legacy SSE provider** for backwards compatibility, providing a secure and controlled integration method.
+Laravel MCP Server is a powerful package designed to streamline the implementation of Model Context Protocol (MCP) servers in Laravel applications. **Unlike most Laravel MCP packages that use Standard Input/Output (stdio) transport**, this package focuses on **Streamable HTTP** transport, providing a secure and controlled integration method.
 
 ### Why Streamable HTTP instead of STDIO?
 
@@ -66,24 +68,18 @@ Key benefits:
 
 - Seamless and rapid implementation of Streamable HTTP in existing Laravel projects
 - Support for the latest Laravel and PHP versions
-- Efficient server communication and real-time data processing
+- Efficient server communication and data processing
 - Enhanced security for enterprise environments
 
 ## Key Features
 
-- Real-time communication support through Streamable HTTP with SSE integration
+- Streamable HTTP transport for MCP request/response flows
 - Implementation of tools and resources compliant with Model Context Protocol specifications
-- Adapter-based design architecture with Pub/Sub messaging pattern (starting with Redis, more adapters planned)
 - Simple routing and middleware configuration
 
-### Transport Providers
+### Transport
 
-The configuration option `server_provider` controls which transport is used. Available providers are:
-
-1. **streamable_http** – the recommended default. Uses standard HTTP requests and avoids issues with platforms that close SSE connections after about a minute (e.g. many serverless environments).
-2. **sse** – a legacy provider kept for backwards compatibility. It relies on long-lived SSE connections and may not work on platforms with short HTTP timeouts.
-
-The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package does not implement it and there are no plans to do so.
+This package supports only `streamable_http` transport.
 
 ## Requirements
 
@@ -98,9 +94,19 @@ The MCP protocol also defines a "Streamable HTTP SSE" mode, but this package doe
    composer require opgginc/laravel-mcp-server
    ```
 
-2. Publish the configuration file:
-   ```bash
-   php artisan vendor:publish --provider="OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider"
+2. Register one or more MCP endpoints in your route file:
+   ```php
+   use Illuminate\Support\Facades\Route;
+   use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
+   use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
+
+   Route::mcp('/mcp')
+       ->setName('OP.GG MCP Server')
+       ->setVersion('1.5.2')
+       ->tools([
+           HelloWorldTool::class,
+           VersionCheckTool::class,
+       ]);
    ```
 
 ### Lumen Setup
@@ -118,17 +124,20 @@ The package also supports Lumen 9.x and newer applications. After installing the
    $app->register(OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider::class);
    ```
 
-3. Copy the configuration file (Lumen does not ship with `vendor:publish` by default):
-   ```bash
-   cp vendor/opgginc/laravel-mcp-server/config/mcp-server.php config/mcp-server.php
-   ```
-
-4. Tell Lumen to load the configuration:
+3. Register MCP routes explicitly (Lumen does not provide `Route::mcp()` macro):
    ```php
-   $app->configure('mcp-server');
-   ```
+   use OPGG\LaravelMcpServer\Routing\McpRoute;
+   use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
+   use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 
-   (If you skip steps 3-4 the package will still run with the default configuration. Creating the file simply allows you to override the defaults.)
+   McpRoute::register('/mcp')
+       ->setName('OP.GG MCP Server')
+       ->setVersion('1.5.2')
+       ->tools([
+           HelloWorldTool::class,
+           VersionCheckTool::class,
+       ]);
+   ```
 
 
 ## Basic Usage
@@ -141,21 +150,23 @@ The Laravel MCP Server uses Laravel's middleware system for authentication, prov
 
 #### Quick Start: Securing Your MCP Server
 
-##### 1. Enable Authentication in Configuration
-
-Edit your `config/mcp-server.php` file to add authentication middleware:
+##### 1. Apply Authentication in Routes
 
 ```php
-// config/mcp-server.php
+use Illuminate\Support\Facades\Route;
 
-'middlewares' => [
-    // PRODUCTION CONFIGURATION (Choose one or combine):
-    'auth:sanctum',      // For Laravel Sanctum (recommended)
-    // 'auth:api',        // For Laravel Passport
-    // 'custom.mcp.auth', // For custom authentication
-    'throttle:100,1',     // Rate limiting (100 requests per minute)
-    'cors',               // CORS support if needed
-],
+Route::middleware([
+    'auth:sanctum',   // For Laravel Sanctum (recommended)
+    'throttle:100,1', // Rate limiting
+    'cors',           // CORS support if needed
+])->group(function () {
+    Route::mcp('/mcp')
+        ->setName('Secure MCP')
+        ->setVersion('1.5.2')
+        ->tools([
+            \App\MCP\Tools\MyCustomTool::class,
+        ]);
+});
 ```
 
 ##### 2. Option A: Laravel Sanctum (Recommended)
@@ -238,14 +249,17 @@ protected $routeMiddleware = [
 ];
 ```
 
-**Configure in MCP Settings:**
+**Configure MCP Route Registration:**
 
 ```php
-// config/mcp-server.php
-'middlewares' => [
+Route::middleware([
     'mcp.auth',        // Your custom API key middleware
     'throttle:100,1',  // Rate limiting
-],
+])->group(function () {
+    Route::mcp('/mcp')->tools([
+        \App\MCP\Tools\MyCustomTool::class,
+    ]);
+});
 
 // .env file
 MCP_API_KEY=your-secure-api-key-here
@@ -339,8 +353,7 @@ class McpAuditLog
 Configure different authentication strategies per environment:
 
 ```php
-// config/mcp-server.php
-'middlewares' => array_filter([
+$mcpMiddlewares = array_filter([
     // Always apply rate limiting
     'throttle:' . env('MCP_RATE_LIMIT', '60') . ',1',
     
@@ -355,7 +368,13 @@ Configure different authentication strategies per environment:
     
     // CORS if needed
     env('MCP_CORS_ENABLED', false) ? 'cors' : null,
-]),
+]);
+
+Route::middleware($mcpMiddlewares)->group(function () {
+    Route::mcp('/mcp')->tools([
+        \App\MCP\Tools\MyCustomTool::class,
+    ]);
+});
 ```
 
 #### Testing Authentication
@@ -425,54 +444,17 @@ For user-facing applications:
 ##### Partner Integration
 For third-party integrations:
 ```php
-'middlewares' => [
+Route::middleware([
     'auth:api',         // OAuth2 via Passport
     'throttle:100,1',   // Moderate rate limiting
     'mcp.partner.acl',  // Partner-specific access control
     'mcp.audit',        // Full audit trail
-]
+])->group(function () {
+    Route::mcp('/partner-mcp')->tools([
+        \App\MCP\Tools\MyCustomTool::class,
+    ]);
+});
 ```
-
-### Domain Restriction
-
-You can restrict MCP server routes to specific domain(s) for better security and organization:
-
-```php
-// config/mcp-server.php
-
-// Allow access from all domains (default)
-'domain' => null,
-
-// Restrict to a single domain
-'domain' => 'api.example.com',
-
-// Restrict to multiple domains
-'domain' => ['api.example.com', 'admin.example.com'],
-```
-
-**When to use domain restriction:**
-- Running multiple applications on different subdomains
-- Separating API endpoints from your main application
-- Implementing multi-tenant architectures where each tenant has its own subdomain
-- Providing the same MCP services across multiple domains
-
-**Example scenarios:**
-
-```php
-// Single API subdomain
-'domain' => 'api.op.gg',
-
-// Multiple subdomains for different environments
-'domain' => ['api.op.gg', 'staging-api.op.gg'],
-
-// Multi-tenant architecture
-'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
-
-// Different services on different domains
-'domain' => ['api.op.gg', 'api.kargn.as'],
-```
-
-> **Note:** When using multiple domains, the package automatically registers separate routes for each domain to ensure proper routing across all specified domains.
 
 ### Creating and Adding Custom Tools
 
@@ -487,7 +469,7 @@ This command:
 - Handles various input formats (spaces, hyphens, mixed case)
 - Automatically converts the name to proper case format
 - Creates a properly structured tool class in `app/MCP/Tools`
-- Offers to automatically register the tool in your configuration
+- Prints route registration guidance for `Route::mcp(...)`
 
 #### Generate Tools from Swagger/OpenAPI Specifications (v1.4.0+)
 
@@ -671,15 +653,20 @@ The generated tools include:
 - Query parameter, path parameter, and request body handling
 - Laravel HTTP client with timeout configuration
 
-You can also manually create and register tools in `config/mcp-server.php`:
+You can also manually create tools and register them directly on a route endpoint:
 
 ```php
+use Illuminate\Support\Facades\Route;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
 class MyCustomTool implements ToolInterface
 {
     // Tool implementation
 }
+
+Route::mcp('/mcp')->tools([
+    MyCustomTool::class,
+]);
 ```
 
 ### Understanding Your Tool's Structure (ToolInterface)
@@ -691,18 +678,8 @@ When you create a tool by implementing `OPGG\LaravelMcpServer\Services\ToolServi
 
 namespace OPGG\LaravelMcpServer\Services\ToolService;
 
-use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
-
 interface ToolInterface
 {
-    /**
-     * @deprecated since v1.3.0, use isStreaming() instead. Will be removed in v2.0.0
-     */
-    public function messageType(): ProcessMessageType;
-
-    // NEW in v1.3.0: Determines if this tool requires streaming (SSE) instead of standard HTTP.
-    public function isStreaming(): bool;
-
     // The unique, callable name of your tool (e.g., 'get-user-details').
     public function name(): string;
 
@@ -721,29 +698,6 @@ interface ToolInterface
 ```
 
 Let's dive deeper into some of these methods:
-
-**`messageType(): ProcessMessageType` (Deprecated in v1.3.0)**
-
-⚠️ **This method is deprecated since v1.3.0.** Use `isStreaming(): bool` instead for better clarity.
-
-This method specifies the type of message processing for your tool. It returns a `ProcessMessageType` enum value. The available types are:
-
-- `ProcessMessageType::HTTP`: For tools interacting via standard HTTP request/response. Most common for new tools.
-- `ProcessMessageType::SSE`: For tools specifically designed to work with Server-Sent Events.
-
-For most tools, especially those designed for the primary `streamable_http` provider, you'll return `ProcessMessageType::HTTP`.
-
-**`isStreaming(): bool` (New in v1.3.0)**
-
-This is the new, more intuitive method for controlling communication patterns:
-
-- `return false`: Use standard HTTP request/response (recommended for most tools)
-- `return true`: Use Server-Sent Events for real-time streaming
-
-Most tools should return `false` unless you specifically need real-time streaming capabilities like:
-- Real-time progress updates for long-running operations
-- Live data feeds or monitoring tools
-- Interactive tools requiring bidirectional communication
 
 **`name(): string`**
 
@@ -804,7 +758,7 @@ if ($validator->fails()) {
 
 #### Automatic structuredContent opt-in for array responses (v1.5+)
 
-Laravel MCP Server 1.5 keeps backwards compatibility with legacy tools by leaving associative-array results as JSON strings under the `content` field. New installations created from the `make:mcp-tool` stub expose a `$autoStructuredOutput = true` property so array payloads are promoted into the `structuredContent` field automatically.
+Laravel MCP Server 1.5 keeps backwards compatibility with legacy tools by leaving associative-array results as JSON strings under the `content` field. New installations created from the `make:mcp-tool` stub expose a `$autoStructuredOutput = true` property so array payloads are promoted into `structuredContent` while preserving a text mirror in `content` (required by MCP 2025-11-25).
 
 To enable the new behaviour on an existing tool, declare the property on your class:
 
@@ -815,7 +769,7 @@ class OrderLookupTool implements ToolInterface
 
     public function execute(array $arguments): array
     {
-        // Returning an array now fills the `structuredContent` field automatically.
+        // Returning an array fills `structuredContent` and keeps JSON text in `content`.
         return [
             'orderId' => $arguments['id'],
             'status' => 'shipped',
@@ -963,8 +917,8 @@ php artisan make:mcp-resource SystemLogResource
 php artisan make:mcp-resource-template UserLogTemplate
 ```
 
-Register the generated classes in `config/mcp-server.php` under the `resources`
-and `resource_templates` arrays. Each resource class extends the base
+Register the generated classes on an endpoint with
+`Route::mcp(...)->resources([...])->resourceTemplates([...])`. Each resource class extends the base
 `Resource` class and implements a `read()` method that returns either `text` or
 `blob` content. Templates extend `ResourceTemplate` and describe dynamic URI
 patterns clients can use. A resource is identified by a URI such as
@@ -1029,6 +983,21 @@ curl -X POST https://your-server.com/mcp \
   -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"file:///logs/app.log"}}'
 ```
 
+If you enable `->resourcesSubscribe()` on the endpoint, clients can also
+subscribe to update notifications for specific URIs:
+
+```bash
+# Subscribe to updates for a resource URI
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"resources/subscribe","params":{"uri":"file:///logs/app.log"}}'
+
+# Unsubscribe from updates
+curl -X POST https://your-server.com/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":4,"method":"resources/unsubscribe","params":{"uri":"file:///logs/app.log"}}'
+```
+
 The server responds with JSON messages streamed over the HTTP connection, so
 `curl --no-buffer` can be used if you want to see incremental output.
 
@@ -1041,7 +1010,7 @@ Create prompt classes in `app/MCP/Prompts` using:
 php artisan make:mcp-prompt WelcomePrompt
 ```
 
-Register them in `config/mcp-server.php` under `prompts`. Each prompt class
+Register them in an endpoint with `Route::mcp(...)->prompts([...])`. Each prompt class
 extends the `Prompt` base class and defines:
 - `name`: Unique identifier (e.g., "welcome-user")
 - `description`: Optional human-readable description  
@@ -1430,68 +1399,11 @@ npx @modelcontextprotocol/inspector node build/index.js
 
 This will typically open a web interface at `localhost:6274`. To test your MCP server:
 
-1. **Warning**: `php artisan serve` CANNOT be used with this package because it cannot handle multiple PHP connections simultaneously. Since MCP SSE requires processing multiple connections concurrently, you must use one of these alternatives:
-
-   - **Laravel Octane** (Easiest option):
-
-     ```bash
-     # Install and set up Laravel Octane with FrankenPHP (recommended)
-     composer require laravel/octane
-     php artisan octane:install --server=frankenphp
-
-     # Start the Octane server
-     php artisan octane:start
-     ```
-
-     > **Important**: When installing Laravel Octane, make sure to use FrankenPHP as the server. The package may not work properly with RoadRunner due to compatibility issues with SSE connections. If you can help fix this RoadRunner compatibility issue, please submit a Pull Request - your contribution would be greatly appreciated!
-
-     For details, see the [Laravel Octane documentation](https://laravel.com/docs/12.x/octane)
-
-   - **Production-grade options**:
-     - Nginx + PHP-FPM
-     - Apache + PHP-FPM
-     - Custom Docker setup
-
-   * Any web server that properly supports SSE streaming (required only for the legacy SSE provider)
-
-2. In the Inspector interface, enter your Laravel server's MCP endpoint URL (e.g., `http://localhost:8000/mcp`). If you are using the legacy SSE provider, use the SSE URL instead (`http://localhost:8000/mcp/sse`).
+1. Start your Laravel server (for example, `php artisan serve`, Laravel Octane, or Nginx/Apache + PHP-FPM).
+2. In the Inspector interface, enter your Laravel server's MCP endpoint URL (e.g., `http://localhost:8000/mcp`).
 3. Connect and explore available tools visually
 
-The MCP endpoint follows the pattern: `http://[your-laravel-server]/[default_path]` where `default_path` is defined in your `config/mcp-server.php` file.
-
-## Advanced Features
-
-### Pub/Sub Architecture with SSE Adapters (legacy provider)
-
-The package implements a publish/subscribe (pub/sub) messaging pattern through its adapter system:
-
-1. **Publisher (Server)**: When clients send requests to the `/message` endpoint, the server processes these requests and publishes responses through the configured adapter.
-
-2. **Message Broker (Adapter)**: The adapter (e.g., Redis) maintains message queues for each client, identified by unique client IDs. This provides a reliable asynchronous communication layer.
-
-3. **Subscriber (SSE connection)**: Long-lived SSE connections subscribe to messages for their respective clients and deliver them in real-time. This applies only when using the legacy SSE provider.
-
-This architecture enables:
-
-- Scalable real-time communication
-- Reliable message delivery even during temporary disconnections
-- Efficient handling of multiple concurrent client connections
-- Potential for distributed server deployments
-
-### Redis Adapter Configuration
-
-The default Redis adapter can be configured as follows:
-
-```php
-'sse_adapter' => 'redis',
-'adapters' => [
-    'redis' => [
-        'prefix' => 'mcp_sse_',    // Prefix for Redis keys
-        'connection' => 'default', // Redis connection from database.php
-        'ttl' => 100,              // Message TTL in seconds
-    ],
-],
-```
+The MCP endpoint follows the exact path you register with `Route::mcp('/your-path')` (for example, `http://localhost:8000/mcp`).
 
 
 ## Translation README.md
@@ -1516,11 +1428,11 @@ The following features are deprecated and will be removed in v2.0.0. Please upda
 
 ### ToolInterface Changes
 
-**Deprecated since v1.3.0:**
-- `messageType(): ProcessMessageType` method
-- **Replacement:** Use `isStreaming(): bool` instead
-- **Migration Guide:** Return `false` for HTTP tools, `true` for streaming tools
-- **Automatic Migration:** Run `php artisan mcp:migrate-tools` to update your tools
+**Deprecated since v1.3.0 and now unsupported in runtime:**
+- `messageType(): ProcessMessageType`
+- `isStreaming(): bool`
+- **Replacement:** Remove both methods and rely on standard HTTP responses.
+- **Automatic Migration:** Run `php artisan mcp:migrate-tools` to remove legacy `messageType()` usage.
 
 **Example Migration:**
 
@@ -1531,11 +1443,8 @@ public function messageType(): ProcessMessageType
     return ProcessMessageType::HTTP;
 }
 
-// New approach (v1.3.0+)
-public function isStreaming(): bool
-{
-    return false; // Use false for HTTP, true for streaming
-}
+// New approach
+// Remove messageType()/isStreaming() and keep only the current ToolInterface methods.
 ```
 
 ### Removed Features
@@ -1544,8 +1453,8 @@ public function isStreaming(): bool
 - `ProcessMessageType::PROTOCOL` enum case (consolidated into `ProcessMessageType::HTTP`)
 
 **Planning for v2.0.0:**
-- Complete removal of `messageType()` method from `ToolInterface`
-- All tools will be required to implement `isStreaming()` method only
+- Complete removal of `messageType()` and `isStreaming()` from legacy tool implementations
+- Streamable HTTP as the only supported transport
 - Simplified tool configuration and reduced complexity
 
 ## License

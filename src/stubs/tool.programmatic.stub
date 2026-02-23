@@ -17,16 +17,6 @@ use Illuminate\Support\Facades\Validator;
 class {{ className }} implements ToolInterface
 {
     /**
-     * Determines if this tool requires streaming (SSE) instead of standard HTTP
-     * 
-     * @return bool false for standard HTTP request/response, true for SSE streaming
-     */
-    public function isStreaming(): bool
-    {
-        return false;
-    }
-
-    /**
      * The unique identifier for this tool
      *
      * @return string The tool name used in MCP requests

@@ -62,7 +62,6 @@ PHP;
 
 function getExpectedNewToolContent(string $className = 'OldTool'): string
 {
-    // v1.0.x tools don't get isStreaming() method since they default to HTTP
     return <<<PHP
 <?php
 
@@ -108,12 +107,12 @@ test('command migrates old tool successfully', function () {
 
     $this->artisan('mcp:migrate-tools', ['path' => $toolDir])
         ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
-        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
-        ->expectsOutput("Found 1.0.x tool requiring migration to 1.3.0: {$toolPath}")
+        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to the current ToolInterface')
+        ->expectsOutput("Found 1.0.x tool requiring migration: {$toolPath}")
         ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'yes')
         ->expectsOutput('Backup files will be created with .backup extension.')
         ->expectsOutput("Backed up '{$toolPath}' to '{$backupPath}'.")
-        ->expectsOutput('Performing migration from 1.0.x to 1.3.0...')
+        ->expectsOutput('Performing migration from 1.0.x...')
         ->expectsOutput("Successfully migrated '{$toolPath}'.")
         ->expectsOutput('Scan complete. Processed 1 potential candidates.')
         ->assertExitCode(0);
@@ -133,7 +132,7 @@ test('command skips if backup exists', function () {
     File::copy($toolPath, $backupPath); // Create backup beforehand
 
     $this->artisan('mcp:migrate-tools', ['path' => dirname($toolPath)])
-        ->expectsOutput("Found 1.0.x tool requiring migration to 1.3.0: {$toolPath}")
+        ->expectsOutput("Found 1.0.x tool requiring migration: {$toolPath}")
         ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'yes')
         ->expectsOutput('Backup files will be created with .backup extension.')
         ->expectsOutput("Backup for '{$toolPath}' already exists at '{$backupPath}'. Skipping migration for this file.")
@@ -198,19 +197,19 @@ class {$className} implements ToolInterface
 PHP;
 }
 
-test('command migrates v1.2 tool to v1.3 successfully', function () {
+test('command migrates v1.2 tool successfully', function () {
     $toolPath = setUpMockToolFile('MyV12Tool.php', getV1_2ToolContent('MyV12Tool'));
     $backupPath = $toolPath.'.backup';
     $toolDir = dirname($toolPath);
 
     $this->artisan('mcp:migrate-tools', ['path' => $toolDir])
         ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
-        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
-        ->expectsOutput("Found 1.1.x tool requiring migration to 1.3.0: {$toolPath}")
+        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to the current ToolInterface')
+        ->expectsOutput("Found 1.1.x tool requiring migration: {$toolPath}")
         ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'yes')
         ->expectsOutput('Backup files will be created with .backup extension.')
         ->expectsOutput("Backed up '{$toolPath}' to '{$backupPath}'.")
-        ->expectsOutput('Performing migration from 1.1.x to 1.3.0...')
+        ->expectsOutput('Performing migration from 1.1.x...')
         ->expectsOutput("Successfully migrated '{$toolPath}'.")
         ->expectsOutput('Scan complete. Processed 1 potential candidates.')
         ->assertExitCode(0);
@@ -222,7 +221,6 @@ test('command migrates v1.2 tool to v1.3 successfully', function () {
     $migratedContent = File::get($toolPath);
     expect($migratedContent)->not->toContain('public function messageType(): ProcessMessageType');
     expect($migratedContent)->not->toContain('return ProcessMessageType::HTTP');
-    // HTTP tools don't get isStreaming() method since they default to HTTP
     expect($migratedContent)->not->toContain('public function isStreaming(): bool');
 });
 
@@ -271,19 +269,19 @@ class {$className} implements ToolInterface
 PHP;
 }
 
-test('command migrates v1.1 tool to v1.3 successfully', function () {
+test('command migrates v1.1 tool successfully', function () {
     $toolPath = setUpMockToolFile('MyV11Tool.php', getV1_1ToolContent('MyV11Tool'));
     $backupPath = $toolPath.'.backup';
     $toolDir = dirname($toolPath);
 
     $this->artisan('mcp:migrate-tools', ['path' => $toolDir])
         ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
-        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
-        ->expectsOutput("Found 1.1.x tool requiring migration to 1.3.0: $toolPath")
+        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to the current ToolInterface')
+        ->expectsOutput("Found 1.1.x tool requiring migration: $toolPath")
         ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'yes')
         ->expectsOutput('Backup files will be created with .backup extension.')
         ->expectsOutput("Backed up '$toolPath' to '$backupPath'.")
-        ->expectsOutput('Performing migration from 1.1.x to 1.3.0...')
+        ->expectsOutput('Performing migration from 1.1.x...')
         ->expectsOutput("Successfully migrated '$toolPath'.")
         ->expectsOutput('Scan complete. Processed 1 potential candidates.')
         ->assertExitCode(0);
@@ -291,13 +289,11 @@ test('command migrates v1.1 tool to v1.3 successfully', function () {
     expect(File::exists($backupPath))->toBeTrue();
     expect(File::get($backupPath))->toBe(getV1_1ToolContent('MyV11Tool'));
 
-    // Check that messageType method was replaced with isStreaming for SSE tools
+    // Check that messageType method was removed.
     $migratedContent = File::get($toolPath);
-    expect($migratedContent)->toContain('public function isStreaming(): bool');
-    expect($migratedContent)->toContain('return true;');
-    // Original messageType method should be removed
     expect($migratedContent)->not->toContain('public function messageType(): ProcessMessageType');
     expect($migratedContent)->not->toContain('return ProcessMessageType::SSE');
+    expect($migratedContent)->not->toContain('public function isStreaming(): bool');
 });
 
 test('command handles invalid path', function () {
@@ -323,9 +319,9 @@ test('command works with --no-backup flag', function () {
 
     $this->artisan('mcp:migrate-tools', ['path' => $toolDir, '--no-backup' => true])
         ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
-        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
-        ->expectsOutput("Found 1.0.x tool requiring migration to 1.3.0: {$toolPath}")
-        ->expectsOutput('Performing migration from 1.0.x to 1.3.0...')
+        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to the current ToolInterface')
+        ->expectsOutput("Found 1.0.x tool requiring migration: {$toolPath}")
+        ->expectsOutput('Performing migration from 1.0.x...')
         ->expectsOutput("Successfully migrated '{$toolPath}'.")
         ->expectsOutput('Scan complete. Processed 1 potential candidates.')
         ->assertExitCode(0);
@@ -346,11 +342,11 @@ test('command allows declining backup creation', function () {
 
     $this->artisan('mcp:migrate-tools', ['path' => $toolDir])
         ->expectsOutput("Starting migration scan for tools in: {$toolDir}")
-        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to v1.3.0')
-        ->expectsOutput("Found 1.0.x tool requiring migration to 1.3.0: {$toolPath}")
+        ->expectsOutput('This tool supports migration from v1.0.x, v1.1.x, and v1.2.x to the current ToolInterface')
+        ->expectsOutput("Found 1.0.x tool requiring migration: {$toolPath}")
         ->expectsConfirmation('Do you want to create backup files before migration? (Recommended)', 'no')
         ->expectsOutput('No backup files will be created. Migration will modify files directly.')
-        ->expectsOutput('Performing migration from 1.0.x to 1.3.0...')
+        ->expectsOutput('Performing migration from 1.0.x...')
         ->expectsOutput("Successfully migrated '{$toolPath}'.")
         ->expectsOutput('Scan complete. Processed 1 potential candidates.')
         ->assertExitCode(0);

@@ -13,14 +13,40 @@ abstract class Prompt
     public string $name;
 
     /**
+     * Optional title for UI display.
+     */
+    public ?string $title = null;
+
+    /**
      * Optional description of the prompt.
      */
     public ?string $description = null;
 
     /**
+     * Optional icon metadata entries.
+     *
+     * @var array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>
+     */
+    public array $icons = [];
+
+    /**
+     * Optional annotations for MCP clients.
+     *
+     * @var array<string, mixed>
+     */
+    public array $annotations = [];
+
+    /**
+     * Optional transport-level metadata.
+     *
+     * @var array<string, mixed>
+     */
+    public array $meta = [];
+
+    /**
      * Arguments that can be used in the prompt.
      *
-     * @var array<int, array{name: string, description?: string, required?: bool}>
+     * @var array<int, array{name: string, title?: string, description?: string, required?: bool}>
      */
     public array $arguments = [];
 
@@ -55,8 +81,24 @@ abstract class Prompt
             'name' => $this->name,
         ];
 
+        if ($this->title !== null) {
+            $data['title'] = $this->title;
+        }
+
         if ($this->description !== null) {
             $data['description'] = $this->description;
+        }
+
+        if ($this->icons !== []) {
+            $data['icons'] = array_values($this->icons);
+        }
+
+        if ($this->annotations !== []) {
+            $data['annotations'] = $this->annotations;
+        }
+
+        if ($this->meta !== []) {
+            $data['_meta'] = $this->meta;
         }
 
         if (! empty($this->arguments)) {
