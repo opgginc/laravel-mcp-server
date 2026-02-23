@@ -32,17 +32,17 @@
 
 ## ✅ Version Information & Breaking Changes
 
-### v1.5.0 Highlights (Oct 2025) ✅
+### v2.0.0 Highlights (Feb 2026) ✅
 
-Version 1.5.0 focuses on structured tool output, richer prompt support, and improved discoverability across the MCP protocol:
+Version 2.0.0 introduces a route-first architecture and removes legacy transport/configuration paths:
 
-- **Structured tool responses** – Use `ToolResponse::structured()` to emit plain text and JSON payloads simultaneously. Existing tools keep returning JSON strings inside the `content` array for backwards compatibility, while new stubs expose a `$autoStructuredOutput = true` flag so array responses populate `structuredContent` and keep the required `content` field per the MCP 2025-11-25 specification. Tool interfaces optionally expose `title()` and `outputSchema()` so schema-aware clients can display richer results.
-- **Tabular response helpers** – The new `FormatsTabularToolResponses` trait converts array data into CSV or Markdown tables with consistent MIME typing. Example tools and Pest tests demonstrate column normalization, validation, and multi-format output generation for data-heavy workflows.
-- **Enhanced tool pagination & metadata** – Cursor-based pagination for `tools/list` scales to large catalogs, configurable per endpoint via `->toolsPageSize(...)`. The server advertises schema awareness and `listChanged` hints during capability negotiation, with integration tests covering `nextCursor` behavior.
-- **Prompt registry & generator** – A full prompt registry backed by route endpoint definitions powers the new `prompts/list` and `prompts/get` handlers. Developers can scaffold prompts using `php artisan make:mcp-prompt`, while the service provider surfaces prompt schemas inside the MCP handshake for immediate client discovery.
-- **Resource subscription parity** – Endpoints that enable `->resourcesSubscribe()` now accept `resources/subscribe` and `resources/unsubscribe` requests and return empty MCP results as defined by the 2025-11-25 schema. Endpoints that do not enable subscriptions correctly return `Method not found`. Server-initiated `notifications/resources/updated` delivery is not implemented yet.
-- **Strict initialize validation** – The `initialize` request now validates required MCP fields (`protocolVersion`, `capabilities`, `clientInfo.name`, `clientInfo.version`) and consistently responds with the server-negotiated protocol version.
+- **Route-first endpoint registration** – Register endpoints explicitly with `Route::mcp('/mcp')` in Laravel and `McpRoute::register('/mcp')` in Lumen.
+- **Streamable HTTP only** – Legacy SSE endpoints/adapters were removed.
+- **Config-driven bootstrap removed** – `config/mcp-server.php` and auto route registration are no longer used.
+- **Legacy tool transport methods removed from runtime** – `messageType()` was removed and `isStreaming()` is no longer used by runtime.
+- **Route-driven tool discovery** – `mcp:test-tool` now discovers tools from registered MCP endpoints.
 
+See the [v2.0.0 Migration Guide](docs/migrations/v2.0.0-migration.md) for the full upgrade checklist.
 ### Breaking Changes in v1.1.0 (May 2025)
 
 Version 1.1.0 introduced a breaking change to the `ToolInterface`. Upgrading from v1.0.x requires refactoring every tool implementation. Refer to the [ToolInterface Migration Guide](docs/migrations/v1.1.0-tool-interface-migration.md) for automated and manual upgrade instructions.
@@ -1461,41 +1461,34 @@ You can also translate specific languages:
 python scripts/translate_readme.py es ko
 ```
 
-## Deprecated Features for v2.0.0
+## v2.0.0 Migration Notes
 
-The following features are deprecated and will be removed in v2.0.0. Please update your code accordingly:
+Version 2.0.0 is now live. If you are upgrading from v1.x, apply the following changes.
 
-### ToolInterface Changes
+### What changed in v2.0.0
 
-**Deprecated since v1.3.0 and now unsupported in runtime:**
-- `messageType(): ProcessMessageType`
-- `isStreaming(): bool`
-- **Replacement:** Remove both methods and rely on standard HTTP responses.
-- **Automatic Migration:** Run `php artisan mcp:migrate-tools` to remove legacy `messageType()` usage.
+- `messageType(): ProcessMessageType` was removed.
+- `isStreaming(): bool` is no longer used by runtime (optional cleanup).
+- `ProcessMessageType::SSE` was removed.
+- Streamable HTTP is the only supported transport (`/sse` and `/message` were removed).
+- Config-driven MCP setup keys (`server_provider`, `sse_adapter`, `adapters`, `enabled`) were removed.
 
-**Example Migration:**
+### How to migrate
 
-```php
-// Old approach (deprecated)
-public function messageType(): ProcessMessageType
-{
-    return ProcessMessageType::HTTP;
-}
+- Register MCP endpoints directly in routes using `Route::mcp(...)` (Laravel) or `McpRoute::register(...)` (Lumen).
+- Move server info/tools/resources/templates/prompts from config to the route builder chain.
+- Run `php artisan mcp:migrate-tools` for legacy tool signature cleanup.
+- Update MCP client endpoints to your route path (for example, `/mcp`).
+- Follow the full guide: [v2.0.0 Migration Guide](docs/migrations/v2.0.0-migration.md).
 
-// New approach
-// Remove messageType()/isStreaming() and keep only the current ToolInterface methods.
+### Post-migration verification
+
+```bash
+php artisan route:list | grep mcp
+php artisan mcp:test-tool --list --endpoint=/mcp
+vendor/bin/pest
+vendor/bin/phpstan analyse
 ```
-
-### Removed Features
-
-**Removed in v1.3.0:**
-- `ProcessMessageType::PROTOCOL` enum case (consolidated into `ProcessMessageType::HTTP`)
-
-**Planning for v2.0.0:**
-- Complete removal of `messageType()` and `isStreaming()` from legacy tool implementations
-- Streamable HTTP as the only supported transport
-- Simplified tool configuration and reduced complexity
-
 ## License
 
 This project is distributed under the MIT license.

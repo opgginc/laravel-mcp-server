@@ -32,43 +32,17 @@
 
 ## ⚠️ Informações de Versão & Breaking Changes
 
-### Mudanças na v1.4.0 (Mais Recente) 🚀
+### Mudanças na v2.0.0 (Versão Atual) ✅
 
-A versão 1.4.0 introduz poderosa geração automática de ferramentas e recursos a partir de especificações Swagger/OpenAPI:
+A versão 2.0.0 adota uma arquitetura route-first e remove caminhos legados de transporte/configuração:
 
-**Novas Funcionalidades:**
-- **Gerador de Ferramentas e Recursos Swagger/OpenAPI**: Gera automaticamente ferramentas ou recursos MCP a partir de qualquer especificação Swagger/OpenAPI
-  - Suporta formatos OpenAPI 3.x e Swagger 2.0
-  - **Escolha do tipo de geração**: Gere como Ferramentas (para ações) ou Recursos (para dados somente leitura)
-  - Seleção interativa de endpoints com opções de agrupamento
-  - Geração automática de lógica de autenticação (API Key, Bearer Token, OAuth2)
-  - Nomenclatura inteligente para nomes de classes legíveis (lida com operationIds baseados em hash)
-  - Teste de API integrado antes da geração
-  - Integração completa com cliente HTTP Laravel incluindo lógica de retry
+- **Registro explícito de endpoints**: use `Route::mcp('/mcp')` no Laravel e `McpRoute::register('/mcp')` no Lumen.
+- **Apenas Streamable HTTP**: endpoints/adaptadores SSE legados foram removidos.
+- **Sem bootstrap via config**: `config/mcp-server.php` e auto-registro de rotas não são mais usados.
+- **Limpeza de métodos legados de transporte em tools**: `messageType()` foi removido e `isStreaming()` não é mais usado em runtime.
+- **Descoberta de tools orientada por rotas**: `mcp:test-tool` agora lê tools de endpoints MCP registrados.
 
-**Exemplo de Uso:**
-```bash
-# Gerar ferramentas da API OP.GG
-php artisan make:swagger-mcp-tool https://api.op.gg/lol/swagger.json
-
-# Com opções
-php artisan make:swagger-mcp-tool ./api-spec.json --test-api --group-by=tag --prefix=MyApi
-```
-
-Esta funcionalidade reduz drasticamente o tempo necessário para integrar APIs externas no seu servidor MCP!
-
-### Mudanças na v1.3.0
-
-A versão 1.3.0 introduz melhorias na `ToolInterface` para melhor controle de comunicação:
-
-**Novas Funcionalidades:**
-- Adicionado método `isStreaming(): bool` para seleção mais clara do padrão de comunicação
-- Ferramentas de migração aprimoradas suportando upgrades da v1.1.x, v1.2.x para v1.3.0
-- Arquivos stub aprimorados com documentação abrangente da v1.3.0
-
-**Funcionalidades Depreciadas:**
-- Método `messageType(): ProcessMessageType` agora está depreciado (será removido na v2.0.0)
-- Use `isStreaming(): bool` em vez disso para melhor clareza e simplicidade
+Veja o guia completo: [Guia de Migração v2.0.0](docs/migrations/v2.0.0-migration.md).
 
 ### Breaking Changes na v1.1.0
 
@@ -1075,43 +1049,34 @@ Você também pode traduzir idiomas específicos:
 python scripts/translate_readme.py es ko
 ```
 
-## Funcionalidades Depreciadas para v2.0.0
+## Notas de Migração para v2.0.0
 
-As seguintes funcionalidades estão depreciadas e serão removidas na v2.0.0. Por favor atualize seu código adequadamente:
+A versão 2.0.0 já está disponível. Se você está migrando da v1.x, aplique as mudanças abaixo.
 
-### Mudanças na ToolInterface
+### O que mudou na v2.0.0
 
-**Depreciado desde v1.3.0:**
-- Método `messageType(): ProcessMessageType`
-- **Substituição:** Use `isStreaming(): bool` em vez disso
-- **Guia de Migração:** Retorne `false` para tools HTTP, `true` para tools de streaming
-- **Migração Automática:** Execute `php artisan mcp:migrate-tools` para atualizar suas tools
+- `messageType(): ProcessMessageType` foi removido.
+- `isStreaming(): bool` não é mais usado em runtime (limpeza opcional).
+- `ProcessMessageType::SSE` foi removido.
+- Streamable HTTP é o único transporte suportado (`/sse` e `/message` foram removidos).
+- Chaves de configuração MCP (`server_provider`, `sse_adapter`, `adapters`, `enabled`) foram removidas.
 
-**Exemplo de Migração:**
+### Como migrar
 
-```php
-// Abordagem antiga (depreciada)
-public function messageType(): ProcessMessageType
-{
-    return ProcessMessageType::HTTP;
-}
+- Registre endpoints MCP diretamente nas rotas com `Route::mcp(...)` (Laravel) ou `McpRoute::register(...)` (Lumen).
+- Mova server info/tools/resources/templates/prompts do config para a cadeia do route builder.
+- Execute `php artisan mcp:migrate-tools` para limpar assinaturas legadas de tools.
+- Atualize os endpoints dos clientes MCP para seu caminho real de rota (por exemplo, `/mcp`).
+- Guia completo: [Guia de Migração v2.0.0](docs/migrations/v2.0.0-migration.md).
 
-// Nova abordagem (v1.3.0+)
-public function isStreaming(): bool
-{
-    return false; // Use false para HTTP, true para streaming
-}
+### Verificação pós-migração
+
+```bash
+php artisan route:list | grep mcp
+php artisan mcp:test-tool --list --endpoint=/mcp
+vendor/bin/pest
+vendor/bin/phpstan analyse
 ```
-
-### Funcionalidades Removidas
-
-**Removido na v1.3.0:**
-- Case enum `ProcessMessageType::PROTOCOL` (consolidado em `ProcessMessageType::HTTP`)
-
-**Planejado para v2.0.0:**
-- Remoção completa do método `messageType()` da `ToolInterface`
-- Todas as tools serão obrigatórias a implementar apenas o método `isStreaming()`
-- Configuração de tool simplificada e complexidade reduzida
 
 ## Licença
 
