@@ -148,6 +148,69 @@ final class McpEndpointDefinition
         return $this->copy(['toolsPageSize' => max(1, $pageSize)]);
     }
 
+    /**
+     * @return array{
+     *   id: string,
+     *   path: string,
+     *   name: string,
+     *   version: string,
+     *   title: ?string,
+     *   description: ?string,
+     *   websiteUrl: ?string,
+     *   instructions: ?string,
+     *   icons: array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>,
+     *   tools: array<int, class-string>,
+     *   resources: array<int, class-string>,
+     *   resourceTemplates: array<int, class-string>,
+     *   prompts: array<int, class-string>,
+     *   toolsCallHandler: class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null,
+     *   toolListChanged: bool,
+     *   resourcesSubscribe: bool,
+     *   resourcesListChanged: bool,
+     *   promptsListChanged: bool,
+     *   toolsPageSize: int
+     * }
+     */
+    public function toArray(): array
+    {
+        return $this->state();
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    public static function fromArray(array $state): self
+    {
+        $id = $state['id'] ?? null;
+        if (! is_string($id) || $id === '') {
+            throw new \InvalidArgumentException('Endpoint definition id is required.');
+        }
+
+        $path = $state['path'] ?? '/';
+
+        return new self(
+            id: $id,
+            path: self::normalizePath(is_string($path) ? $path : '/'),
+            name: self::stringOrDefault($state['name'] ?? null, self::DEFAULT_NAME),
+            version: self::stringOrDefault($state['version'] ?? null, self::DEFAULT_VERSION),
+            title: self::nullableString($state['title'] ?? null),
+            description: self::nullableString($state['description'] ?? null),
+            websiteUrl: self::nullableString($state['websiteUrl'] ?? null),
+            instructions: self::nullableString($state['instructions'] ?? null),
+            icons: self::arrayOrDefault($state['icons'] ?? null),
+            tools: self::arrayOrDefault($state['tools'] ?? null),
+            resources: self::arrayOrDefault($state['resources'] ?? null),
+            resourceTemplates: self::arrayOrDefault($state['resourceTemplates'] ?? null),
+            prompts: self::arrayOrDefault($state['prompts'] ?? null),
+            toolsCallHandler: self::nullableString($state['toolsCallHandler'] ?? null),
+            toolListChanged: self::boolOrDefault($state['toolListChanged'] ?? null, false),
+            resourcesSubscribe: self::boolOrDefault($state['resourcesSubscribe'] ?? null, false),
+            resourcesListChanged: self::boolOrDefault($state['resourcesListChanged'] ?? null, false),
+            promptsListChanged: self::boolOrDefault($state['promptsListChanged'] ?? null, false),
+            toolsPageSize: max(1, self::intOrDefault($state['toolsPageSize'] ?? null, self::DEFAULT_TOOLS_PAGE_SIZE)),
+        );
+    }
+
     public static function normalizePath(string $path): string
     {
         $trimmed = trim($path);
@@ -254,5 +317,33 @@ final class McpEndpointDefinition
             'promptsListChanged' => $this->promptsListChanged,
             'toolsPageSize' => $this->toolsPageSize,
         ];
+    }
+
+    private static function stringOrDefault(mixed $value, string $default): string
+    {
+        return is_string($value) && $value !== '' ? $value : $default;
+    }
+
+    private static function nullableString(mixed $value): ?string
+    {
+        return is_string($value) ? $value : null;
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private static function arrayOrDefault(mixed $value): array
+    {
+        return is_array($value) ? array_values($value) : [];
+    }
+
+    private static function boolOrDefault(mixed $value, bool $default): bool
+    {
+        return is_bool($value) ? $value : $default;
+    }
+
+    private static function intOrDefault(mixed $value, int $default): int
+    {
+        return is_int($value) ? $value : $default;
     }
 }

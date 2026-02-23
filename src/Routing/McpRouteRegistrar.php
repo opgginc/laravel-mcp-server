@@ -10,6 +10,8 @@ final class McpRouteRegistrar
 {
     public const ROUTE_DEFAULT_ENDPOINT_KEY = 'mcp_endpoint_id';
 
+    public const ROUTE_ENDPOINT_DEFINITION_KEY = 'mcp_endpoint_definition';
+
     private const LUMEN_ROUTER_CLASS = 'Laravel\\Lumen\\Routing\\Router';
 
     public function __construct(private readonly McpEndpointRegistry $registry) {}
@@ -38,10 +40,12 @@ final class McpRouteRegistrar
         $router->get($uri, [
             'uses' => StreamableHttpController::class.'@getHandle',
             self::ROUTE_DEFAULT_ENDPOINT_KEY => $definition->id,
+            self::ROUTE_ENDPOINT_DEFINITION_KEY => $definition->toArray(),
         ]);
         $router->post($uri, [
             'uses' => StreamableHttpController::class.'@postHandle',
             self::ROUTE_DEFAULT_ENDPOINT_KEY => $definition->id,
+            self::ROUTE_ENDPOINT_DEFINITION_KEY => $definition->toArray(),
         ]);
 
         return new McpRouteBuilder($this->registry, $definition->id);
@@ -64,13 +68,39 @@ final class McpRouteRegistrar
         $router->get($uri, [
             'uses' => StreamableHttpController::class.'@getHandle',
             self::ROUTE_DEFAULT_ENDPOINT_KEY => $definition->id,
+            self::ROUTE_ENDPOINT_DEFINITION_KEY => $definition->toArray(),
         ]);
         $router->post($uri, [
             'uses' => StreamableHttpController::class.'@postHandle',
             self::ROUTE_DEFAULT_ENDPOINT_KEY => $definition->id,
+            self::ROUTE_ENDPOINT_DEFINITION_KEY => $definition->toArray(),
         ]);
 
         return new McpRouteBuilder($this->registry, $definition->id);
+    }
+
+    public function syncLaravelRouteEndpointDefinition(McpEndpointDefinition $definition): void
+    {
+        if (! app()->bound('router')) {
+            return;
+        }
+
+        /** @var mixed $router */
+        $router = app('router');
+        if (! $router instanceof LaravelRouter) {
+            return;
+        }
+
+        foreach ($router->getRoutes()->getRoutes() as $route) {
+            $endpointId = $route->getAction(self::ROUTE_DEFAULT_ENDPOINT_KEY);
+            if (! is_string($endpointId) || $endpointId !== $definition->id) {
+                continue;
+            }
+
+            $action = $route->getAction();
+            $action[self::ROUTE_ENDPOINT_DEFINITION_KEY] = $definition->toArray();
+            $route->setAction($action);
+        }
     }
 
     private function toRouteUri(string $normalizedPath): string
