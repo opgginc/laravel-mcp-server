@@ -2,13 +2,10 @@
 
 namespace OPGG\LaravelMcpServer\Transports;
 
-use Exception;
-
 /**
  * StreamableHttpTransport implementation for MCP Server.
  *
- * Handles HTTP transport with streaming capabilities using Server-Sent Events (SSE).
- * This transport is designed for use with the StreamableHttpController.
+ * Handles HTTP transport for the Streamable HTTP controller.
  *
  * @see https://modelcontextprotocol.io/docs/concepts/transports
  * @since 1.0.0
@@ -42,8 +39,6 @@ final class StreamableHttpTransport implements TransportInterface
     /**
      * Starts the StreamableHttp transport connection.
      * Sets the connected flag and initializes the transport. Idempotent.
-     *
-     * @throws Exception If initialization fails.
      */
     public function start(): void
     {
@@ -58,8 +53,6 @@ final class StreamableHttpTransport implements TransportInterface
     /**
      * Initializes the transport: generates client ID and sends the initial 'endpoint' event.
      * Adapter-specific initialization might occur here or externally.
-     *
-     * @throws Exception If sending the initial event fails.
      */
     public function initialize(): void {}
 
@@ -68,16 +61,12 @@ final class StreamableHttpTransport implements TransportInterface
      * Encodes array messages to JSON.
      *
      * @param  string|array  $message  The message content.
-     *
-     * @throws Exception If JSON encoding fails or sending the event fails.
      */
     public function send(string|array $message): void {}
 
     /**
      * Closes the connection, notifies handlers, cleans up adapter resources, and attempts a final 'close' event.
      * Idempotent. Errors during cleanup/final event are logged.
-     *
-     * @throws Exception From handlers if they throw exceptions.
      */
     public function close(): void
     {
@@ -119,9 +108,7 @@ final class StreamableHttpTransport implements TransportInterface
     }
 
     /**
-     * Receives messages for this client via the configured adapter.
-     * Returns an empty array if no adapter, no messages, or on error.
-     * Triggers error handlers on adapter failure.
+     * Receives messages for this transport.
      *
      * @return array An array of message payloads.
      */
@@ -129,15 +116,4 @@ final class StreamableHttpTransport implements TransportInterface
     {
         return [];
     }
-
-    /**
-     * Pushes a message to the adapter for later retrieval by the target client.
-     * Encodes the message to JSON before pushing.
-     *
-     * @param  string  $clientId  The target client ID.
-     * @param  array  $message  The message payload (as an array).
-     *
-     * @throws Exception If adapter is not set, JSON encoding fails, or adapter push fails.
-     */
-    public function pushMessage(string $clientId, array $message): void {}
 }

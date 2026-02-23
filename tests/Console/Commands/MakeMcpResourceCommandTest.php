@@ -3,21 +3,11 @@
 use Illuminate\Support\Facades\File;
 
 beforeEach(function () {
-    // Create a minimal config file for testing
-    $configDir = config_path();
-    if (! File::isDirectory($configDir)) {
-        File::makeDirectory($configDir, 0755, true);
-    }
-
-    $configContent = "<?php\n\nreturn [\n    'tools' => [],\n    'resources' => [],\n];";
-    File::put(config_path('mcp-server.php'), $configContent);
+    File::deleteDirectory(app_path('MCP/Resources'));
 });
 
 afterEach(function () {
     File::deleteDirectory(app_path('MCP/Resources'));
-    if (File::exists(config_path('mcp-server.php'))) {
-        File::delete(config_path('mcp-server.php'));
-    }
 });
 
 test('make:mcp-resource generates a resource class', function () {
@@ -47,7 +37,6 @@ test('getPath returns correct path with tag directory', function () {
     $filesystem = new \Illuminate\Filesystem\Filesystem;
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand($filesystem);
 
-    // Set dynamicParams using reflection
     $property = new ReflectionProperty($command, 'dynamicParams');
     $property->setAccessible(true);
     $property->setValue($command, ['tagDirectory' => 'Pet']);
@@ -79,7 +68,6 @@ test('replaceStubPlaceholders generates correct namespace with tag directory', f
     $filesystem = new \Illuminate\Filesystem\Filesystem;
     $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand($filesystem);
 
-    // Set dynamicParams using reflection
     $property = new ReflectionProperty($command, 'dynamicParams');
     $property->setAccessible(true);
     $property->setValue($command, ['tagDirectory' => 'Pet']);
@@ -107,4 +95,12 @@ test('makeDirectory creates nested directories for resources', function () {
     $expectedDirectory = dirname($testPath);
     expect($result)->toBe($expectedDirectory);
     expect(File::isDirectory($expectedDirectory))->toBeTrue();
+});
+
+test('programmatic mode works without config files', function () {
+    $this->artisan('make:mcp-resource', ['name' => 'ProgrammaticResource', '--programmatic' => true, '--no-interaction' => true])
+        ->expectsOutputToContain('Created')
+        ->assertExitCode(0);
+
+    expect(File::exists(app_path('MCP/Resources/ProgrammaticResource.php')))->toBeTrue();
 });

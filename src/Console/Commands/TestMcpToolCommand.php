@@ -4,8 +4,9 @@ namespace OPGG\LaravelMcpServer\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
+use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
+use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
 class TestMcpToolCommand extends Command
@@ -15,7 +16,7 @@ class TestMcpToolCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'mcp:test-tool {tool? : The name or class of the tool to test} {--input= : JSON input for the tool} {--list : List all available tools}';
+    protected $signature = 'mcp:test-tool {tool? : The name or class of the tool to test} {--input= : JSON input for the tool} {--list : List all available tools} {--endpoint= : Limit tools to a specific MCP endpoint path or endpoint id}';
 
     /**
      * The console command description.
@@ -117,8 +118,7 @@ class TestMcpToolCommand extends Command
             return $identifier;
         }
 
-        // Load all registered tools from config
-        $configuredTools = Config::get('mcp-server.tools', []);
+        $configuredTools = $this->getRegisteredToolClasses();
 
         // Check for exact class match
         foreach ($configuredTools as $toolClass) {
@@ -303,10 +303,10 @@ class TestMcpToolCommand extends Command
      */
     protected function listAllTools(): int
     {
-        $configuredTools = Config::get('mcp-server.tools', []);
+        $configuredTools = $this->getRegisteredToolClasses();
 
         if (empty($configuredTools)) {
-            $this->warn('No MCP tools are configured. Add tools in config/mcp-server.php');
+            $this->warn('No MCP tools are registered. Use Route::mcp(...)->tools([...]) to register endpoint tools.');
 
             return 0;
         }
@@ -345,10 +345,10 @@ class TestMcpToolCommand extends Command
      */
     protected function askForTool(): ?string
     {
-        $configuredTools = Config::get('mcp-server.tools', []);
+        $configuredTools = $this->getRegisteredToolClasses();
 
         if (empty($configuredTools)) {
-            $this->warn('No MCP tools are configured. Add tools in config/mcp-server.php');
+            $this->warn('No MCP tools are registered. Use Route::mcp(...)->tools([...]) to register endpoint tools.');
 
             return null;
         }
@@ -383,5 +383,46 @@ class TestMcpToolCommand extends Command
         );
 
         return $validTools[$selectedIndex] ?? null;
+    }
+
+    /**
+     * @return array<int, class-string>
+     */
+    protected function getRegisteredToolClasses(): array
+    {
+        /** @var McpEndpointRegistry $registry */
+        $registry = app(McpEndpointRegistry::class);
+
+        $endpointFilter = $this->option('endpoint');
+        if (! is_string($endpointFilter) || trim($endpointFilter) === '') {
+            return $registry->allToolClasses();
+        }
+
+        $needle = trim($endpointFilter);
+        $matchedTools = [];
+        foreach ($registry->all() as $definition) {
+            if ($this->matchesEndpoint($definition, $needle)) {
+                foreach ($definition->tools as $toolClass) {
+                    $matchedTools[$toolClass] = $toolClass;
+                }
+            }
+        }
+
+        if ($matchedTools !== []) {
+            return array_values($matchedTools);
+        }
+
+        $this->warn("Endpoint '{$needle}' is not registered via Route::mcp().");
+
+        return [];
+    }
+
+    protected function matchesEndpoint(McpEndpointDefinition $definition, string $needle): bool
+    {
+        if ($definition->id === $needle) {
+            return true;
+        }
+
+        return McpEndpointDefinition::normalizePath($definition->path) === McpEndpointDefinition::normalizePath($needle);
     }
 }

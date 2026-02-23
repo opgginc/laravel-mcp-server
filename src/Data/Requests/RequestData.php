@@ -6,7 +6,7 @@ namespace OPGG\LaravelMcpServer\Data\Requests;
  * Represents a JSON-RPC Request object according to the MCP specification.
  * This class encapsulates the data structure for incoming requests.
  *
- * @link https://modelcontextprotocol.io/specification/2025-06-18/basic/index#requests
+ * @link https://modelcontextprotocol.io/specification/2025-11-25/schema
  *
  * @property string $method The name of the method to be invoked.
  * @property string $jsonRpc The JSON-RPC version string (e.g., "2.0").

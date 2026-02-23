@@ -8,11 +8,6 @@ use stdClass;
 
 class VersionCheckTool implements ToolInterface
 {
-    public function isStreaming(): bool
-    {
-        return false;
-    }
-
     public function name(): string
     {
         return 'check-version';

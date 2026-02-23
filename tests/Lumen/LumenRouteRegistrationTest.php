@@ -2,38 +2,29 @@
 
 use Illuminate\Support\Arr;
 use OPGG\LaravelMcpServer\LaravelMcpServerServiceProvider;
-use OPGG\LaravelMcpServer\Server\MCPServer;
+use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
+use OPGG\LaravelMcpServer\Routing\McpRoute;
+use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 
-beforeEach(function () {
-    $this->app->singleton(MCPServer::class, fn () => \Mockery::mock(MCPServer::class));
-
-    $this->app['config']->set('mcp-server.enabled', true);
-    $this->app['config']->set('mcp-server.default_path', '/mcp');
-    $this->app['config']->set('mcp-server.middlewares', ['auth']);
-    $this->app['config']->set('mcp-server.domain', null);
-});
-
-function lumenRegisteredRoutes($app, ?string $domain = null): array
+function lumenRegisteredRoutes($app, ?string $uri = null): array
 {
     $routes = [];
 
     foreach ($app->router->getRoutes() as $route) {
         $action = $route['action'] ?? [];
-        $routeDomain = $action['domain'] ?? null;
+        $routeUri = $route['uri'] ?? '';
 
-        if ($domain !== null && $routeDomain !== null && $routeDomain !== $domain) {
-            continue;
-        }
-
-        if ($domain === null && $routeDomain !== null) {
+        if ($uri !== null && $routeUri !== $uri) {
             continue;
         }
 
         $routes[] = [
             'method' => $route['method'],
-            'uri' => $route['uri'],
+            'uri' => $routeUri,
             'middleware' => Arr::wrap($action['middleware'] ?? []),
-            'domain' => $routeDomain,
+            'endpoint_id' => $action[McpRouteRegistrar::ROUTE_DEFAULT_ENDPOINT_KEY] ?? null,
         ];
     }
 
@@ -42,56 +33,83 @@ function lumenRegisteredRoutes($app, ?string $domain = null): array
     return $routes;
 }
 
-it('registers streamable http routes in lumen', function () {
-    $this->app['config']->set('mcp-server.server_provider', 'streamable_http');
-
+it('does not auto-register routes in lumen', function () {
     $provider = new LaravelMcpServerServiceProvider($this->app);
     $provider->register();
     $provider->boot();
 
-    $routes = lumenRegisteredRoutes($this->app);
+    expect(lumenRegisteredRoutes($this->app))->toBeEmpty();
+});
+
+it('registers streamable routes through McpRouteRegistrar in lumen', function () {
+    $provider = new LaravelMcpServerServiceProvider($this->app);
+    $provider->register();
+    $provider->boot();
+
+    app(McpRouteRegistrar::class)
+        ->registerLumen($this->app->router, '/mcp')
+        ->tools([LegacyArrayTool::class]);
+
+    $routes = lumenRegisteredRoutes($this->app, '/mcp');
 
     expect($routes)->sequence(
         fn ($route) => $route
             ->uri->toBe('/mcp')
             ->method->toBe('GET')
-            ->middleware->toContain('auth'),
+            ->endpoint_id->toBeString(),
         fn ($route) => $route
             ->uri->toBe('/mcp')
             ->method->toBe('POST')
-            ->middleware->toContain('auth'),
+            ->endpoint_id->toBeString(),
     );
 });
 
-it('registers sse routes with domain restriction in lumen', function () {
-    $this->app['config']->set('mcp-server.server_provider', 'sse');
-    $this->app['config']->set('mcp-server.domain', 'lumen.example.com');
-
+it('supports registering route via McpRoute helper in lumen', function () {
     $provider = new LaravelMcpServerServiceProvider($this->app);
     $provider->register();
     $provider->boot();
 
-    $routes = lumenRegisteredRoutes($this->app, 'lumen.example.com');
+    McpRoute::register('/lumen-mcp')->setName('Lumen MCP');
 
-    expect($routes)->sequence(
-        fn ($route) => $route
-            ->uri->toBe('/mcp/message')
-            ->method->toBe('POST'),
-        fn ($route) => $route
-            ->uri->toBe('/mcp/sse')
-            ->method->toBe('GET'),
-    );
+    $routes = lumenRegisteredRoutes($this->app, '/lumen-mcp');
+
+    expect($routes)->toHaveCount(2);
 });
 
-it('skips registration when lumen server disabled', function () {
-    $this->app['config']->set('mcp-server.enabled', false);
-    $this->app['config']->set('mcp-server.server_provider', 'streamable_http');
-
+it('replaces existing lumen endpoint definition when same path is registered again', function () {
     $provider = new LaravelMcpServerServiceProvider($this->app);
     $provider->register();
     $provider->boot();
 
-    $routes = lumenRegisteredRoutes($this->app);
+    $registrar = app(McpRouteRegistrar::class);
 
-    expect($routes)->toBeEmpty();
+    $firstBuilder = $registrar->registerLumen($this->app->router, '/mcp');
+    $firstBuilder->tools([LegacyArrayTool::class]);
+    $firstEndpointId = $firstBuilder->endpointId();
+
+    $secondBuilder = $registrar->registerLumen($this->app->router, '/mcp');
+    $secondBuilder->tools([AutoStructuredArrayTool::class]);
+    $secondEndpointId = $secondBuilder->endpointId();
+
+    /** @var McpEndpointRegistry $registry */
+    $registry = app(McpEndpointRegistry::class);
+
+    expect($secondEndpointId)->not->toBe($firstEndpointId);
+    expect($registry->find($firstEndpointId))->toBeNull();
+    expect($registry->find($secondEndpointId)?->tools)->toBe([AutoStructuredArrayTool::class]);
+});
+
+it('keeps route middleware from lumen groups', function () {
+    $provider = new LaravelMcpServerServiceProvider($this->app);
+    $provider->register();
+    $provider->boot();
+
+    $this->app->router->group(['middleware' => ['auth']], function ($router) {
+        app(McpRouteRegistrar::class)->registerLumen($router, '/secure-mcp');
+    });
+
+    $routes = lumenRegisteredRoutes($this->app, '/secure-mcp');
+    expect($routes)->toHaveCount(2);
+    expect($routes[0]['middleware'])->toContain('auth');
+    expect($routes[1]['middleware'])->toContain('auth');
 });

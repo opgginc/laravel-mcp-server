@@ -10,9 +10,23 @@ class TestResourceTemplate extends ResourceTemplate
 
     public string $name = 'Daily Logs';
 
+    public ?string $title = 'Daily Log Template';
+
     public ?string $description = 'Access logs by date (YYYY-MM-DD)';
 
     public ?string $mimeType = 'text/plain';
+
+    public array $annotations = [
+        'audience' => ['user'],
+    ];
+
+    public array $meta = [
+        'scope' => 'logs',
+    ];
+
+    public array $icons = [
+        ['src' => 'https://example.com/template-icon.png', 'mimeType' => 'image/png', 'sizes' => ['128x128'], 'theme' => 'dark'],
+    ];
 
     public function read(string $uri, array $params): array
     {
@@ -119,6 +133,13 @@ test('multiple templates can be registered', function () {
     $schemas = $repository->getTemplateSchemas();
     expect($schemas)->toHaveCount(2)
         ->and($schemas[0]['name'])->toBe('Daily Logs')
+        ->and($schemas[0]['title'])->toBe('Daily Log Template')
+        ->and($schemas[0]['annotations'])->toBe([
+            'audience' => ['user'],
+        ])
+        ->and($schemas[0]['_meta'])->toBe([
+            'scope' => 'logs',
+        ])
         ->and($schemas[1]['name'])->toBe('User Profiles');
 });
 

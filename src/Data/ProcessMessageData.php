@@ -2,7 +2,6 @@
 
 namespace OPGG\LaravelMcpServer\Data;
 
-use Illuminate\Support\Facades\Config;
 use OPGG\LaravelMcpServer\Data\Resources\JsonRpc\JsonRpcErrorResource;
 use OPGG\LaravelMcpServer\Data\Resources\JsonRpc\JsonRpcResultResource;
 use OPGG\LaravelMcpServer\Enums\ProcessMessageType;
@@ -29,14 +28,5 @@ final class ProcessMessageData
         }
 
         return $this->resource;
-    }
-
-    public function isSSEMessage(): bool
-    {
-        if (Config::get('mcp-server.server_provider') === 'sse') {
-            return true;
-        }
-
-        return $this->messageType === ProcessMessageType::SSE;
     }
 }

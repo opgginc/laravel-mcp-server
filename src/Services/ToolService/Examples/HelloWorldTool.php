@@ -5,15 +5,13 @@ namespace OPGG\LaravelMcpServer\Services\ToolService\Examples;
 use Illuminate\Support\Facades\Validator;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
+use OPGG\LaravelMcpServer\Services\ToolService\Concerns\FormatsTabularToolResponses;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolResponse;
 
 class HelloWorldTool implements ToolInterface
 {
-    public function isStreaming(): bool
-    {
-        return false;
-    }
+    use FormatsTabularToolResponses;
 
     public function name(): string
     {
@@ -28,6 +26,21 @@ class HelloWorldTool implements ToolInterface
     public function title(): string
     {
         return 'Hello World Greeting';
+    }
+
+    /**
+     * @return array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>
+     */
+    public function icons(): array
+    {
+        return [
+            [
+                'src' => 'https://example.com/icons/hello-world.png',
+                'mimeType' => 'image/png',
+                'sizes' => ['256x256'],
+                'theme' => 'light',
+            ],
+        ];
     }
 
     public function inputSchema(): array
@@ -83,8 +96,8 @@ class HelloWorldTool implements ToolInterface
             'message' => "Hello, HelloWorld `{$name}` developer.",
         ];
 
-        // Provide both human readable and structured payloads per MCP 2025-06-18 guidance.
-        // @see https://modelcontextprotocol.io/specification/2025-06-18#structured-content
+        // Provide both human readable and structured payloads per MCP schema guidance.
+        // @see https://modelcontextprotocol.io/specification/2025-11-25/schema
         return ToolResponse::structured($payload, [
             [
                 'type' => 'text',

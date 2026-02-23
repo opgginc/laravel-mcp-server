@@ -279,46 +279,6 @@ O protocolo MCP também define um modo "Streamable HTTP SSE", mas este pacote n�
 
 ## Uso Básico
 
-### Restrição de Domínio
-
-Você pode restringir rotas do servidor MCP a domínio(s) específico(s) para melhor segurança e organização:
-
-```php
-// config/mcp-server.php
-
-// Permitir acesso de todos os domínios (padrão)
-'domain' => null,
-
-// Restringir a um único domínio
-'domain' => 'api.example.com',
-
-// Restringir a múltiplos domínios
-'domain' => ['api.example.com', 'admin.example.com'],
-```
-
-**Quando usar restrição de domínio:**
-- Executando múltiplas aplicações em diferentes subdomínios
-- Separando endpoints de API da sua aplicação principal
-- Implementando arquiteturas multi-tenant onde cada tenant tem seu próprio subdomínio
-- Fornecendo os mesmos serviços MCP através de múltiplos domínios
-
-**Cenários de exemplo:**
-
-```php
-// Subdomínio de API único
-'domain' => 'api.op.gg',
-
-// Múltiplos subdomínios para diferentes ambientes
-'domain' => ['api.op.gg', 'staging-api.op.gg'],
-
-// Arquitetura multi-tenant
-'domain' => ['tenant1.op.gg', 'tenant2.op.gg', 'tenant3.op.gg'],
-
-// Diferentes serviços em diferentes domínios
-'domain' => ['api.op.gg', 'api.kargn.as'],
-```
-
-> **Nota:** Ao usar múltiplos domínios, o pacote registra automaticamente rotas separadas para cada domínio para garantir roteamento adequado através de todos os domínios especificados.
 
 ### Criando e Adicionando Tools Customizadas
 
