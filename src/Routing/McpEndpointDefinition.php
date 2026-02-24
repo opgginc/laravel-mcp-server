@@ -12,6 +12,8 @@ final class McpEndpointDefinition
 
     public const DEFAULT_TOOLS_PAGE_SIZE = 50;
 
+    public const DEFAULT_COMPACT_ENUM_EXAMPLE_COUNT = 3;
+
     /**
      * @param  array<int, class-string>  $tools
      * @param  array<int, class-string>  $resources
@@ -36,11 +38,13 @@ final class McpEndpointDefinition
         public readonly array $resourceTemplates = [],
         public readonly array $prompts = [],
         public readonly ?string $toolsCallHandler = null,
+        public readonly bool $enabledApi = false,
         public readonly bool $toolListChanged = false,
         public readonly bool $resourcesSubscribe = false,
         public readonly bool $resourcesListChanged = false,
         public readonly bool $promptsListChanged = false,
         public readonly int $toolsPageSize = self::DEFAULT_TOOLS_PAGE_SIZE,
+        public readonly int $compactEnumExampleCount = self::DEFAULT_COMPACT_ENUM_EXAMPLE_COUNT,
     ) {}
 
     public static function create(string $id, string $path): self
@@ -131,6 +135,11 @@ final class McpEndpointDefinition
         return $this->copy(['toolsCallHandler' => $handlerClass]);
     }
 
+    public function withEnabledApi(bool $enabled): self
+    {
+        return $this->copy(['enabledApi' => $enabled]);
+    }
+
     public function withToolListChanged(bool $enabled): self
     {
         return $this->copy(['toolListChanged' => $enabled]);
@@ -156,6 +165,11 @@ final class McpEndpointDefinition
         return $this->copy(['toolsPageSize' => max(1, $pageSize)]);
     }
 
+    public function withCompactEnumExampleCount(int $count): self
+    {
+        return $this->copy(['compactEnumExampleCount' => max(1, $count)]);
+    }
+
     /**
      * @return array{
      *   id: string,
@@ -173,11 +187,13 @@ final class McpEndpointDefinition
      *   resourceTemplates: array<int, class-string>,
      *   prompts: array<int, class-string>,
      *   toolsCallHandler: class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null,
+     *   enabledApi: bool,
      *   toolListChanged: bool,
      *   resourcesSubscribe: bool,
      *   resourcesListChanged: bool,
      *   promptsListChanged: bool,
-     *   toolsPageSize: int
+     *   toolsPageSize: int,
+     *   compactEnumExampleCount: int
      * }
      */
     public function toArray(): array
@@ -213,11 +229,16 @@ final class McpEndpointDefinition
             resourceTemplates: self::arrayOrDefault($state['resourceTemplates'] ?? null),
             prompts: self::arrayOrDefault($state['prompts'] ?? null),
             toolsCallHandler: self::nullableString($state['toolsCallHandler'] ?? null),
+            enabledApi: self::boolOrDefault($state['enabledApi'] ?? null, false),
             toolListChanged: self::boolOrDefault($state['toolListChanged'] ?? null, false),
             resourcesSubscribe: self::boolOrDefault($state['resourcesSubscribe'] ?? null, false),
             resourcesListChanged: self::boolOrDefault($state['resourcesListChanged'] ?? null, false),
             promptsListChanged: self::boolOrDefault($state['promptsListChanged'] ?? null, false),
             toolsPageSize: max(1, self::intOrDefault($state['toolsPageSize'] ?? null, self::DEFAULT_TOOLS_PAGE_SIZE)),
+            compactEnumExampleCount: max(1, self::intOrDefault(
+                $state['compactEnumExampleCount'] ?? null,
+                self::DEFAULT_COMPACT_ENUM_EXAMPLE_COUNT
+            )),
         );
     }
 
@@ -248,11 +269,13 @@ final class McpEndpointDefinition
      *   resourceTemplates?: array<int, class-string>,
      *   prompts?: array<int, class-string>,
      *   toolsCallHandler?: class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null,
+     *   enabledApi?: bool,
      *   toolListChanged?: bool,
      *   resourcesSubscribe?: bool,
      *   resourcesListChanged?: bool,
      *   promptsListChanged?: bool,
-     *   toolsPageSize?: int
+     *   toolsPageSize?: int,
+     *   compactEnumExampleCount?: int
      * }  $overrides
      */
     private function copy(array $overrides): self
@@ -275,11 +298,13 @@ final class McpEndpointDefinition
             resourceTemplates: $state['resourceTemplates'],
             prompts: $state['prompts'],
             toolsCallHandler: $state['toolsCallHandler'],
+            enabledApi: $state['enabledApi'],
             toolListChanged: $state['toolListChanged'],
             resourcesSubscribe: $state['resourcesSubscribe'],
             resourcesListChanged: $state['resourcesListChanged'],
             promptsListChanged: $state['promptsListChanged'],
             toolsPageSize: $state['toolsPageSize'],
+            compactEnumExampleCount: $state['compactEnumExampleCount'],
         );
     }
 
@@ -300,11 +325,13 @@ final class McpEndpointDefinition
      *   resourceTemplates: array<int, class-string>,
      *   prompts: array<int, class-string>,
      *   toolsCallHandler: class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null,
+     *   enabledApi: bool,
      *   toolListChanged: bool,
      *   resourcesSubscribe: bool,
      *   resourcesListChanged: bool,
      *   promptsListChanged: bool,
-     *   toolsPageSize: int
+     *   toolsPageSize: int,
+     *   compactEnumExampleCount: int
      * }
      */
     private function state(): array
@@ -325,11 +352,13 @@ final class McpEndpointDefinition
             'resourceTemplates' => $this->resourceTemplates,
             'prompts' => $this->prompts,
             'toolsCallHandler' => $this->toolsCallHandler,
+            'enabledApi' => $this->enabledApi,
             'toolListChanged' => $this->toolListChanged,
             'resourcesSubscribe' => $this->resourcesSubscribe,
             'resourcesListChanged' => $this->resourcesListChanged,
             'promptsListChanged' => $this->promptsListChanged,
             'toolsPageSize' => $this->toolsPageSize,
+            'compactEnumExampleCount' => $this->compactEnumExampleCount,
         ];
     }
 

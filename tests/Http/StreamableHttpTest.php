@@ -9,7 +9,10 @@ use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Handlers\CustomToolsCallHandler;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\CompactEnumTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\ConstructionCounterTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\EnumClassTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\JsonSchemaBuilderTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\MetadataAwareTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\MethodStructuredArrayTool;
@@ -931,6 +934,79 @@ test('tools list includes metadata extensions when tool exposes them', function 
     expect($target['_meta'])->toBe([
         'vendor' => 'opgg',
     ]);
+});
+
+test('tools list expands enum class references to enum values', function () {
+    registerMcpEndpoint([EnumClassTool::class]);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 17,
+        'method' => 'tools/list',
+        'params' => [],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+    $response->assertStatus(200);
+
+    $tools = $response->json('result.tools');
+    $target = collect($tools)->firstWhere('name', 'enum-class-tool');
+
+    expect($target)->not->toBeNull();
+    expect($target['inputSchema']['properties']['platform']['enum'])->toBe(['web', 'desktop']);
+});
+
+test('tools list applies endpoint compact enum example count configuration', function () {
+    Route::mcp('/mcp')
+        ->setServerInfo(
+            name: 'HTTP Test MCP',
+            version: '1.0.0',
+        )
+        ->setConfig(compactEnumExampleCount: 1)
+        ->tools([CompactEnumTool::class]);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 18,
+        'method' => 'tools/list',
+        'params' => [],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+    $response->assertStatus(200);
+
+    $tools = $response->json('result.tools');
+    $target = collect($tools)->firstWhere('name', 'compact-enum-tool');
+
+    expect($target)->not->toBeNull();
+    expect($target['inputSchema']['properties']['mode'])->not->toHaveKey('enum');
+    expect($target['inputSchema']['properties']['mode']['description'])->toBe('Mode Examples: alpha');
+});
+
+test('tools list supports input and output schema maps built with json schema types', function () {
+    registerMcpEndpoint([JsonSchemaBuilderTool::class]);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 18,
+        'method' => 'tools/list',
+        'params' => [],
+    ];
+
+    $response = $this->postJson('/mcp', $payload);
+    $response->assertStatus(200);
+
+    $tools = $response->json('result.tools');
+    $target = collect($tools)->firstWhere('name', 'json-schema-builder-tool');
+
+    expect($target)->not->toBeNull();
+    expect($target['inputSchema']['type'])->toBe('object');
+    expect($target['inputSchema']['required'])->toBe(['location']);
+    expect($target['inputSchema']['properties']['location']['type'])->toBe('string');
+    expect($target['inputSchema']['properties']['units']['enum'])->toBe(['celsius', 'fahrenheit']);
+    expect($target['outputSchema']['type'])->toBe('object');
+    expect($target['outputSchema']['required'])->toBe(['forecast', 'temperature']);
+    expect($target['outputSchema']['properties']['temperature']['type'])->toBe('number');
 });
 
 test('tools list ignores non-public metadata hooks', function () {

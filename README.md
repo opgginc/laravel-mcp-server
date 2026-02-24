@@ -76,7 +76,11 @@ Route::mcp('/mcp')
         name: 'OP.GG MCP Server',
         version: '2.0.0',
     )
+    ->setConfig(
+        compactEnumExampleCount: 3,
+    )
     ->setProtocolVersion(ProtocolVersion::V2025_11_25)
+    ->enabledApi()
     ->tools([
         HelloWorldTool::class,
         VersionCheckTool::class,
@@ -170,6 +174,7 @@ Full guide: [docs/migrations/v2.0.0-migration.md](docs/migrations/v2.0.0-migrati
 - Create prompts: `php artisan make:mcp-prompt PromptName`
 - Create notifications: `php artisan make:mcp-notification HandlerName --method=notifications/method`
 - Generate from OpenAPI: `php artisan make:swagger-mcp-tool <spec-url-or-file>`
+- Export tools to OpenAPI: `php artisan mcp:export-openapi --output=storage/api-docs-mcp/api-docs.json`
 
 Code references:
 - Tool examples: `src/Services/ToolService/Examples/`
@@ -249,6 +254,56 @@ Route::mcp('/mcp')
     ]);
 ```
 
+## MCP Tools -> OpenAPI Export
+
+Export all registered `ToolInterface` classes (via `Route::mcp(...)->tools([...])`) to an OpenAPI JSON document using each tool's `inputSchema()`.
+Only endpoints configured with `->enabledApi()` are included in this export and exposed through `POST /tools/{tool_name}`.
+Operations are grouped by endpoint `name` using OpenAPI `tags`.
+If multiple endpoints register the same tool name, the operation keeps first-registration behavior and merges all matching endpoint names into `tags`.
+If route registration is missing, the command auto-discovers tools under default paths: `app/MCP/Tools` and `app/Tools`.
+
+```bash
+# Default output: storage/api-docs-mcp/api-docs.json
+php artisan mcp:export-openapi
+
+# Custom output + metadata
+php artisan mcp:export-openapi \
+  --output=storage/app/mcp.openapi.json \
+  --title="MCP Tools API" \
+  --api-version=2.1.0
+
+# Limit to one endpoint (id or path)
+php artisan mcp:export-openapi --endpoint=/mcp
+
+# Discover tools from additional directory paths
+php artisan mcp:export-openapi --discover-path=app/MCP/Tools
+
+# Existing output is overwritten by default
+php artisan mcp:export-openapi
+```
+
+Enable Tool API route generation:
+
+```php
+use Illuminate\Support\Facades\Route;
+
+Route::mcp('/mcp')
+    ->setServerInfo(name: 'OP.GG MCP Server', version: '2.0.0')
+    ->enabledApi()
+    ->tools([
+        \App\MCP\Tools\GreetingTool::class,
+    ]);
+```
+
+Swagger UI testing tip:
+- Exported operations use `query parameters` only (no `requestBody`) for simpler manual testing.
+- Required fields from each tool `inputSchema().required` are reflected in Swagger parameter validation.
+- Enum fields are exported with `schema.enum` so Swagger renders dropdown selections.
+- Array fields are exported with `style=form` + `explode=true` (repeat key format, e.g. `desired_output_fields=items&desired_output_fields=runes`).
+- `/tools/{tool_name}` argument parsing prefers query parameters over body/form payloads to avoid Swagger conflicts.
+- Enum fields without explicit `default`/`example` are auto-filled from the first enum value (or first non-null enum value).
+- String fields with descriptions like `e.g., en_US, ko_KR, ja_JP` auto-infer first sample value as `default` and `example`.
+
 ## Example Tool Class
 
 ```php
@@ -297,6 +352,67 @@ class GreetingTool implements ToolInterface
     }
 }
 ```
+
+## JsonSchema Builder (Laravel-Style)
+
+This package provides its own JsonSchema builder under the `OPGG\LaravelMcpServer` namespace.
+You can define tool schemas in a Laravel 12-style fluent format while keeping `inputSchema(): array`.
+
+```php
+<?php
+
+namespace App\MCP\Tools;
+
+use App\Enums\Platform;
+use OPGG\LaravelMcpServer\JsonSchema\JsonSchema;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+
+class WeatherTool implements ToolInterface
+{
+    public function name(): string
+    {
+        return 'weather-tool';
+    }
+
+    public function description(): string
+    {
+        return 'Get weather by location.';
+    }
+
+    public function inputSchema(): array
+    {
+        return [
+            'location' => JsonSchema::string()
+                ->description('Location to query')
+                ->required(),
+            'platform' => JsonSchema::string()
+                ->enum(Platform::class)
+                ->description('Client platform'),
+            'days' => JsonSchema::integer()
+                ->min(1)
+                ->max(7)
+                ->default(1),
+        ];
+    }
+
+    public function annotations(): array
+    {
+        return [];
+    }
+
+    public function execute(array $arguments): mixed
+    {
+        return ['ok' => true];
+    }
+}
+```
+
+Notes:
+- Existing full JSON Schema arrays are still supported.
+- `enum()` accepts either an array or a `BackedEnum::class`.
+- `compact()` can be chained after `enum()` to remove `enum` from emitted schema and append a compact hint to `description` (`compact()`, `compact(null)`, `compact(3)`, or `compact('custom hint')`).
+- Default compact example count is `3`, and it can be overridden per endpoint via `Route::mcp(...)->setConfig(compactEnumExampleCount: N)`.
+- When exporting (`tools/list`, OpenAPI), property maps are automatically normalized to JSON Schema object format.
 
 ## Example Prompt Class
 
