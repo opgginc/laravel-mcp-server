@@ -86,7 +86,7 @@ test('mcp:export-openapi can filter tools by endpoint id', function () {
 });
 
 test('mcp:export-openapi discovers tool classes from filesystem path', function () {
-    $fixturePath = realpath(__DIR__.'/../../fixtures/Tools');
+    $fixturePath = realpath(__DIR__.'/../../Fixtures/Tools');
     expect($fixturePath)->not->toBeFalse();
 
     $this->artisan('mcp:export-openapi', [
