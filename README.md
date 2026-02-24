@@ -311,6 +311,8 @@ Swagger UI testing tip:
 
 namespace App\MCP\Tools;
 
+use App\Enums\Platform;
+use OPGG\LaravelMcpServer\JsonSchema\JsonSchema;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 
 class GreetingTool implements ToolInterface
@@ -328,11 +330,13 @@ class GreetingTool implements ToolInterface
     public function inputSchema(): array
     {
         return [
-            'type' => 'object',
-            'properties' => [
-                'name' => ['type' => 'string'],
-            ],
-            'required' => ['name'],
+            'name' => JsonSchema::string()
+                ->description('Developer Name')
+                ->required(),
+            'platform' => JsonSchema::string()
+                ->enum(Platform::class)
+                ->description('Client platform')
+                ->compact(),
         ];
     }
 
