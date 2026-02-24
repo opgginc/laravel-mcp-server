@@ -10,4 +10,3 @@ test('platform enum exposes web and desktop values', function () {
 
     expect($values)->toBe(['web', 'desktop']);
 });
-
