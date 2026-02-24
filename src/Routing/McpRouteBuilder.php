@@ -65,6 +65,22 @@ final class McpRouteBuilder
         return $this;
     }
 
+    public function setConfig(
+        ?int $compactEnumExampleCount = null,
+    ): self {
+        $this->mutate(function (McpEndpointDefinition $definition) use ($compactEnumExampleCount) {
+            $updated = $definition;
+
+            if ($compactEnumExampleCount !== null) {
+                $updated = $updated->withCompactEnumExampleCount($compactEnumExampleCount);
+            }
+
+            return $updated;
+        });
+
+        return $this;
+    }
+
     /**
      * @param  array<int, class-string>  $tools
      */
@@ -119,6 +135,13 @@ final class McpRouteBuilder
         }
 
         $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withToolsCallHandler($handlerClass));
+
+        return $this;
+    }
+
+    public function enabledApi(bool $enabled = true): self
+    {
+        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withEnabledApi($enabled));
 
         return $this;
     }

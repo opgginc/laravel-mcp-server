@@ -4,6 +4,8 @@ namespace OPGG\LaravelMcpServer\Services\ToolService;
 
 use Illuminate\Container\Container;
 use InvalidArgumentException;
+use OPGG\LaravelMcpServer\JsonSchema\Types\Type;
+use OPGG\LaravelMcpServer\Utils\JsonSchemaNormalizer;
 use stdClass;
 
 /**
@@ -41,13 +43,22 @@ class ToolRepository
     protected Container $container;
 
     /**
+     * Compact enum example count applied while normalizing JsonSchema types.
+     */
+    protected int $compactEnumExampleCount;
+
+    /**
      * Constructor.
      *
      * @param  Container|null  $container  The Laravel service container instance. If null, it resolves from the facade.
      */
-    public function __construct(?Container $container = null)
+    public function __construct(?Container $container = null, ?int $compactEnumExampleCount = null)
     {
         $this->container = $container ?? Container::getInstance();
+        $this->compactEnumExampleCount = max(
+            1,
+            $compactEnumExampleCount ?? Type::defaultCompactEnumExampleCount()
+        );
     }
 
     /**
@@ -194,10 +205,12 @@ class ToolRepository
      */
     private function buildToolSchema(ToolInterface $tool): array
     {
+        $inputSchema = JsonSchemaNormalizer::normalize($tool->inputSchema(), $this->compactEnumExampleCount);
+
         $injectArray = [];
-        if (empty($tool->inputSchema())) {
+        if (empty($inputSchema)) {
             // inputSchema cannot be empty, set a default value.
-            $injectArray['inputSchema'] = [
+            $inputSchema = [
                 'type' => 'object',
                 'properties' => new stdClass,
                 'required' => [],
@@ -210,7 +223,7 @@ class ToolRepository
         $schema = [
             'name' => $tool->name(),
             'description' => $tool->description(),
-            'inputSchema' => $tool->inputSchema(),
+            'inputSchema' => $inputSchema,
             ...$injectArray,
         ];
 
@@ -228,7 +241,10 @@ class ToolRepository
 
         $outputSchema = $this->callOptionalMetadataHook($tool, 'outputSchema');
         if (is_array($outputSchema) && $outputSchema !== []) {
-            $schema['outputSchema'] = $outputSchema;
+            $schema['outputSchema'] = JsonSchemaNormalizer::normalize(
+                $outputSchema,
+                $this->compactEnumExampleCount
+            );
         }
 
         $execution = $this->callOptionalMetadataHook($tool, 'execution');

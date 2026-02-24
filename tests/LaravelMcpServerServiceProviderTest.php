@@ -56,6 +56,8 @@ it('registers GET and POST routes via Route::mcp', function () {
 
 it('exposes setServerInfo as the only public server metadata mutator', function () {
     expect(method_exists(McpRouteBuilder::class, 'setServerInfo'))->toBeTrue();
+    expect(method_exists(McpRouteBuilder::class, 'setConfig'))->toBeTrue();
+    expect(method_exists(McpRouteBuilder::class, 'enabledApi'))->toBeTrue();
     expect(method_exists(McpRouteBuilder::class, 'setName'))->toBeFalse();
     expect(method_exists(McpRouteBuilder::class, 'setVersion'))->toBeFalse();
     expect(method_exists(McpRouteBuilder::class, 'setTitle'))->toBeFalse();
@@ -63,6 +65,34 @@ it('exposes setServerInfo as the only public server metadata mutator', function 
     expect(method_exists(McpRouteBuilder::class, 'setWebsiteUrl'))->toBeFalse();
     expect(method_exists(McpRouteBuilder::class, 'setIcons'))->toBeFalse();
     expect(method_exists(McpRouteBuilder::class, 'setInstructions'))->toBeFalse();
+});
+
+it('registers tool api route only when enabledApi is enabled and avoids duplicates', function () {
+    bootProvider();
+
+    Route::mcp('/mcp-alpha')->tools([LegacyArrayTool::class]);
+
+    $beforeRoutes = array_values(array_filter(
+        iterator_to_array(Route::getRoutes()),
+        fn ($route) => in_array('POST', $route->methods(), true) && $route->uri() === 'tools/{tool_name}'
+    ));
+    expect($beforeRoutes)->toBeEmpty();
+
+    Route::mcp('/mcp-beta')
+        ->enabledApi()
+        ->tools([LegacyArrayTool::class]);
+
+    Route::mcp('/mcp-gamma')
+        ->enabledApi()
+        ->tools([AutoStructuredArrayTool::class]);
+
+    $toolApiRoutes = array_values(array_filter(
+        iterator_to_array(Route::getRoutes()),
+        fn ($route) => in_array('POST', $route->methods(), true) && $route->uri() === 'tools/{tool_name}'
+    ));
+
+    expect($toolApiRoutes)->toHaveCount(1);
+    expect($toolApiRoutes[0]->getAction(McpRouteRegistrar::ROUTE_TOOL_API_ENABLED_KEY))->toBeTrue();
 });
 
 it('stores protocol version from fluent route builder', function () {
@@ -77,6 +107,20 @@ it('stores protocol version from fluent route builder', function () {
 
     expect($definitions)->toHaveCount(1);
     expect($definitions[0]->protocolVersion)->toBe('2025-06-18');
+});
+
+it('stores endpoint config from fluent route builder', function () {
+    bootProvider();
+
+    Route::mcp('/configurable')
+        ->setConfig(compactEnumExampleCount: 2);
+
+    /** @var McpEndpointRegistry $registry */
+    $registry = app(McpEndpointRegistry::class);
+    $definitions = array_values($registry->all());
+
+    expect($definitions)->toHaveCount(1);
+    expect($definitions[0]->compactEnumExampleCount)->toBe(2);
 });
 
 it('stores endpoint definitions from fluent route builder', function () {
@@ -283,6 +327,7 @@ it('stores endpoint definition payload on registered routes and keeps it synchro
             version: '3.1.4',
             description: 'Route cache payload',
         )
+        ->setConfig(compactEnumExampleCount: 4)
         ->tools([LegacyArrayTool::class])
         ->toolListChanged()
         ->resourcesSubscribe()
@@ -310,6 +355,7 @@ it('stores endpoint definition payload on registered routes and keeps it synchro
         expect($definition['resourcesListChanged'])->toBeTrue();
         expect($definition['promptsListChanged'])->toBeTrue();
         expect($definition['toolsPageSize'])->toBe(9);
+        expect($definition['compactEnumExampleCount'])->toBe(4);
     }
 });
 

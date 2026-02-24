@@ -3,6 +3,7 @@
 namespace OPGG\LaravelMcpServer;
 
 use Illuminate\Routing\Router as LaravelRouter;
+use OPGG\LaravelMcpServer\Console\Commands\ExportToolsOpenApiCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpNotificationCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpPromptCommand;
 use OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand;
@@ -35,6 +36,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
                 MakeMcpPromptCommand::class,
                 MakeMcpNotificationCommand::class,
                 MakeSwaggerMcpToolCommand::class,
+                ExportToolsOpenApiCommand::class,
                 TestMcpToolCommand::class,
                 MigrateToolsCommand::class,
             ]);
