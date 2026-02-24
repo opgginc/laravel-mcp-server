@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+use OPGG\LaravelMcpServer\Utils\JsonSchemaNormalizer;
 
 class TestMcpToolCommand extends Command
 {
@@ -67,7 +68,7 @@ class TestMcpToolCommand extends Command
         $this->newLine();
 
         // Get input schema
-        $inputSchema = $tool->inputSchema();
+        $inputSchema = JsonSchemaNormalizer::normalize($tool->inputSchema());
         $this->line('Input schema:');
         $this->displaySchema($inputSchema);
         $this->newLine();

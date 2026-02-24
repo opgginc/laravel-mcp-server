@@ -8,6 +8,13 @@ interface ToolInterface
 
     public function description(): string;
 
+    /**
+     * Return either:
+     * - A full JSON Schema root object array.
+     * - A property map (Laravel-style) where each value is an OPGG JsonSchema Type.
+     *
+     * @return array<string, mixed>
+     */
     public function inputSchema(): array;
 
     public function annotations(): array;

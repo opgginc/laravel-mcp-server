@@ -85,7 +85,10 @@ final class McpServerFactory
         // Intentionally lazy-register repositories by method namespace to avoid
         // constructing unnecessary services for initialize/ping/notifications.
         if ($this->supportsToolsMethod($requestedMethod)) {
-            $toolRepository = new ToolRepository($this->container);
+            $toolRepository = new ToolRepository(
+                $this->container,
+                $endpoint->compactEnumExampleCount,
+            );
 
             if ($this->isToolCallMethod($requestedMethod)) {
                 $requestedToolName = $this->requestedToolName($requestMessage);

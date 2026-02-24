@@ -4,6 +4,7 @@ namespace OPGG\LaravelMcpServer\Routing;
 
 use Illuminate\Routing\Router as LaravelRouter;
 use OPGG\LaravelMcpServer\Http\Controllers\StreamableHttpController;
+use OPGG\LaravelMcpServer\Http\Controllers\ToolApiController;
 use OPGG\LaravelMcpServer\Server\McpServerFactory;
 
 final class McpRouteRegistrar
@@ -12,7 +13,11 @@ final class McpRouteRegistrar
 
     public const ROUTE_ENDPOINT_DEFINITION_KEY = 'mcp_endpoint_definition';
 
+    public const ROUTE_TOOL_API_ENABLED_KEY = 'mcp_tool_api_route';
+
     private const LUMEN_ROUTER_CLASS = 'Laravel\\Lumen\\Routing\\Router';
+
+    private const TOOL_API_ROUTE_URI = 'tools/{tool_name}';
 
     public function __construct(private readonly McpEndpointRegistry $registry) {}
 
@@ -91,6 +96,7 @@ final class McpRouteRegistrar
             return;
         }
 
+        $toolApiContexts = [];
         foreach ($router->getRoutes()->getRoutes() as $route) {
             $endpointId = $route->getAction(self::ROUTE_DEFAULT_ENDPOINT_KEY);
             if (! is_string($endpointId) || $endpointId !== $definition->id) {
@@ -100,6 +106,40 @@ final class McpRouteRegistrar
             $action = $route->getAction();
             $action[self::ROUTE_ENDPOINT_DEFINITION_KEY] = $definition->toArray();
             $route->setAction($action);
+
+            if (! $definition->enabledApi) {
+                continue;
+            }
+
+            if (! in_array('POST', $route->methods(), true)) {
+                continue;
+            }
+
+            $domain = $this->normalizeDomain($route->getDomain());
+            $domainKey = $domain ?? '__null__';
+            if (isset($toolApiContexts[$domainKey])) {
+                continue;
+            }
+
+            $toolApiContexts[$domainKey] = [
+                'domain' => $domain,
+                'middleware' => array_values($route->gatherMiddleware()),
+            ];
+        }
+
+        if (! $definition->enabledApi) {
+            return;
+        }
+
+        foreach ($toolApiContexts as $toolApiContext) {
+            $domain = $toolApiContext['domain'];
+            $middleware = $toolApiContext['middleware'];
+
+            $this->ensureLaravelToolApiRoute(
+                router: $router,
+                domain: $domain,
+                middleware: $middleware,
+            );
         }
     }
 
@@ -218,6 +258,53 @@ final class McpRouteRegistrar
     private function normalizeDomain(?string $domain): ?string
     {
         return is_string($domain) && $domain !== '' ? $domain : null;
+    }
+
+    /**
+     * @param  array<int, string>  $middleware
+     */
+    private function ensureLaravelToolApiRoute(LaravelRouter $router, ?string $domain, array $middleware): void
+    {
+        $uri = self::TOOL_API_ROUTE_URI;
+        if ($this->hasLaravelToolApiRoute($router, $uri, $domain)) {
+            return;
+        }
+
+        $action = [
+            'uses' => ToolApiController::class.'@handle',
+            self::ROUTE_TOOL_API_ENABLED_KEY => true,
+        ];
+
+        if ($domain !== null) {
+            $action['domain'] = $domain;
+        }
+
+        if ($middleware !== []) {
+            $action['middleware'] = $middleware;
+        }
+
+        $router->post($uri, $action);
+    }
+
+    private function hasLaravelToolApiRoute(LaravelRouter $router, string $uri, ?string $domain): bool
+    {
+        foreach ($router->getRoutes()->getRoutes() as $route) {
+            if (! in_array('POST', $route->methods(), true)) {
+                continue;
+            }
+
+            if ($route->uri() !== $uri) {
+                continue;
+            }
+
+            if ($this->normalizeDomain($route->getDomain()) !== $this->normalizeDomain($domain)) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     private function clearFactoryEndpointCache(string $endpointId): void

@@ -3,9 +3,12 @@
 namespace OPGG\LaravelMcpServer\Services\ToolService\Examples;
 
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
+use OPGG\LaravelMcpServer\JsonSchema\JsonSchema;
 use OPGG\LaravelMcpServer\Services\ToolService\Concerns\FormatsTabularToolResponses;
+use OPGG\LaravelMcpServer\Services\ToolService\Examples\Enums\Platform;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolResponse;
 
@@ -46,32 +49,24 @@ class HelloWorldTool implements ToolInterface
     public function inputSchema(): array
     {
         return [
-            'type' => 'object',
-            'properties' => [
-                'name' => [
-                    'type' => 'string',
-                    'description' => 'Developer Name',
-                ],
-            ],
-            'required' => ['name'],
+            'name' => JsonSchema::string()
+                ->description('Developer Name')
+                ->required(),
+            'platform' => JsonSchema::string()
+                ->enum(Platform::class)
+                ->description('Client platform'),
         ];
     }
 
     public function outputSchema(): array
     {
         return [
-            'type' => 'object',
-            'properties' => [
-                'name' => [
-                    'type' => 'string',
-                    'description' => 'Echoed developer name.',
-                ],
-                'message' => [
-                    'type' => 'string',
-                    'description' => 'Greeting message returned to the caller.',
-                ],
-            ],
-            'required' => ['name', 'message'],
+            'name' => JsonSchema::string()
+                ->description('Echoed developer name.')
+                ->required(),
+            'message' => JsonSchema::string()
+                ->description('Greeting message returned to the caller.')
+                ->required(),
         ];
     }
 
@@ -84,6 +79,7 @@ class HelloWorldTool implements ToolInterface
     {
         $validator = Validator::make($arguments, [
             'name' => ['required', 'string'],
+            'platform' => ['nullable', Rule::enum(Platform::class)],
         ]);
         if ($validator->fails()) {
             throw new JsonRpcErrorException(message: $validator->errors()->toJson(), code: JsonRpcErrorCode::INVALID_REQUEST);
