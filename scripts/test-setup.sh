@@ -86,8 +86,20 @@ print_success "Laravel project created"
 # Step 3: Configure local package repository
 print_step "Configuring local package repository..."
 composer config repositories.mcp-server "{\"type\": \"path\", \"url\": \"$PACKAGE_PATH\"}"
-# For EOL versions, also disable security advisory blocking in the project
-composer config audit '{"block-insecure":false}' 2>/dev/null || true
+# For EOL versions (Laravel 9/10), security advisories block install via `block-insecure`.
+# `composer config audit` doesn't support the key directly, so patch composer.json with PHP.
+if [ -n "$LARAVEL_VERSION" ] && [ "$LARAVEL_VERSION" -le 10 ] 2>/dev/null; then
+    print_step "Disabling Composer security advisory blocking for EOL Laravel ${LARAVEL_VERSION}..."
+    php -r '
+        $f = "composer.json";
+        $c = json_decode(file_get_contents($f), true);
+        if (!isset($c["config"])) { $c["config"] = []; }
+        if (!isset($c["config"]["audit"])) { $c["config"]["audit"] = []; }
+        $c["config"]["audit"]["block-insecure"] = false;
+        file_put_contents($f, json_encode($c, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    '
+    print_success "Security advisory blocking disabled in composer.json"
+fi
 print_success "Package repository configured"
 
 # Step 4: Install the MCP server package
