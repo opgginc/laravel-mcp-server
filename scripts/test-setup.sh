@@ -72,28 +72,42 @@ print_success "Test directory created"
 
 # Step 2: Create blank Laravel project
 print_step "Creating blank Laravel project..."
-# For EOL Laravel versions (e.g. 9/10), packagist security advisories block install via
+# For EOL Laravel versions (9/10), packagist security advisories block install via
 # `audit.block-insecure` (Composer 2.4+). This is a PROJECT-level config, not global.
-# Strategy:
-#   --no-install  : skip the internal `composer install` inside create-project
-#   --no-scripts  : skip post-create-project-cmd (e.g. `php artisan key:generate`) which
-#                   would fail because vendor/ doesn't exist yet with --no-install
-# We then patch composer.json, run `composer install`, and manually call key:generate.
+#
+# For EOL versions: use --no-install --no-scripts to create just the skeleton, then patch
+# composer.json to add `config.audit.block-insecure=false`, then run `composer install`.
+# Also copy .env.example to .env and run key:generate manually (skipped by --no-scripts).
+#
+# For non-EOL versions (Laravel 11+): use normal create-project (includes post-install scripts).
+IS_EOL_LARAVEL=false
+if [ -n "$LARAVEL_VERSION" ] && [ "$LARAVEL_VERSION" -le 10 ] 2>/dev/null; then
+    IS_EOL_LARAVEL=true
+fi
+
 if [ -n "$LARAVEL_VERSION" ]; then
     print_step "Using Laravel version constraint: ^${LARAVEL_VERSION}.0"
-    composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist --no-install --no-scripts
+    if [ "$IS_EOL_LARAVEL" = "true" ]; then
+        composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist --no-install --no-scripts
+    else
+        composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist
+    fi
 else
-    composer create-project laravel/laravel . --no-interaction --prefer-dist --no-install --no-scripts
+    composer create-project laravel/laravel . --no-interaction --prefer-dist
 fi
-print_success "Laravel project skeleton created (dependencies not yet installed)"
+
+if [ "$IS_EOL_LARAVEL" = "true" ]; then
+    print_success "Laravel project skeleton created (dependencies deferred for EOL patching)"
+else
+    print_success "Laravel project created"
+fi
 
 # Step 3: Configure local package repository and disable security advisory blocking
 print_step "Configuring local package repository..."
 composer config repositories.mcp-server "{\"type\": \"path\", \"url\": \"$PACKAGE_PATH\"}"
 
-# For EOL versions (Laravel 9/10), security advisories block install via `block-insecure`.
-# Patch project's composer.json directly (composer config command doesn't support audit key).
-if [ -n "$LARAVEL_VERSION" ] && [ "$LARAVEL_VERSION" -le 10 ] 2>/dev/null; then
+# For EOL versions (Laravel 9/10), patch composer.json to disable block-insecure, then install.
+if [ "$IS_EOL_LARAVEL" = "true" ]; then
     print_step "Disabling Composer security advisory blocking for EOL Laravel ${LARAVEL_VERSION}..."
     php -r '
         $f = "composer.json";
@@ -105,23 +119,22 @@ if [ -n "$LARAVEL_VERSION" ] && [ "$LARAVEL_VERSION" -le 10 ] 2>/dev/null; then
         echo "Patched audit.block-insecure=false in composer.json\n";
     '
     print_success "Security advisory blocking disabled in composer.json"
+
+    # Install dependencies now that composer.json is patched
+    print_step "Installing Laravel project dependencies..."
+    composer install --no-interaction --prefer-dist
+    print_success "Laravel project dependencies installed"
+
+    # Manually run the post-create-project-cmd scripts that were skipped with --no-scripts
+    print_step "Running post-install setup (app key generation)..."
+    if [ ! -f .env ] && [ -f .env.example ]; then
+        cp .env.example .env
+        print_success ".env file created from .env.example"
+    fi
+    php artisan key:generate --ansi
+    print_success "App key generated"
 fi
 print_success "Package repository configured"
-
-# Run composer install now that composer.json is fully configured
-print_step "Installing Laravel project dependencies..."
-composer install --no-interaction --prefer-dist
-print_success "Laravel project dependencies installed"
-
-# Manually run the post-create-project-cmd scripts that were skipped with --no-scripts
-print_step "Running post-install setup (app key generation)..."
-# --no-scripts also skips the .env setup step; copy .env.example manually
-if [ ! -f .env ] && [ -f .env.example ]; then
-    cp .env.example .env
-    print_success ".env file created from .env.example"
-fi
-php artisan key:generate --ansi
-print_success "App key generated"
 
 # Step 4: Install the MCP server package
 print_step "Installing laravel-mcp-server package..."
