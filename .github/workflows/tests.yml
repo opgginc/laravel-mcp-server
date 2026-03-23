@@ -67,6 +67,10 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Disable Composer security advisory blocking for EOL Laravel versions
+        if: matrix.laravel == 9
+        run: composer global config audit '{"block-insecure":false}'
+
       - name: Run MCP integration tests
         env:
           LARAVEL_VERSION: ${{ matrix.laravel }}

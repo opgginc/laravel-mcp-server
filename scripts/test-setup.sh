@@ -77,8 +77,6 @@ print_step "Creating blank Laravel project..."
 # GLOBAL composer config. Set global audit.block-insecure=false before create-project.
 if [ -n "$LARAVEL_VERSION" ]; then
     print_step "Using Laravel version constraint: ^${LARAVEL_VERSION}.0"
-    composer global config audit.abandoned ignore 2>/dev/null || true
-    composer global config audit.block-insecure false 2>/dev/null || true
     composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist
 else
     composer create-project laravel/laravel . --no-interaction --prefer-dist
@@ -88,9 +86,8 @@ print_success "Laravel project created"
 # Step 3: Configure local package repository
 print_step "Configuring local package repository..."
 composer config repositories.mcp-server "{\"type\": \"path\", \"url\": \"$PACKAGE_PATH\"}"
-# Propagate audit bypass to project-local config as well
-composer config audit.abandoned ignore 2>/dev/null || true
-composer config audit.block-insecure false 2>/dev/null || true
+# For EOL versions, also disable security advisory blocking in the project
+composer config audit '{"block-insecure":false}' 2>/dev/null || true
 print_success "Package repository configured"
 
 # Step 4: Install the MCP server package
