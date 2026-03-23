@@ -86,7 +86,7 @@ composer config repositories.mcp-server "{\"type\": \"path\", \"url\": \"$PACKAG
 # Allow EOL Laravel versions (e.g. 9) that have security advisories
 # 'block-insecure' prevents installing packages with advisories; disable for CI
 composer config audit.abandoned ignore
-composer config audit.blocked false 2>/dev/null || true
+composer config audit.block-insecure false
 print_success "Package repository configured"
 
 # Step 4: Install the MCP server package
