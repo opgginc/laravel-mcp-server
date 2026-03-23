@@ -67,6 +67,21 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Disable Composer security advisory blocking for EOL Laravel versions
+        if: matrix.laravel == 9 || matrix.laravel == 10
+        run: |
+          php -r '
+            $home = getenv("COMPOSER_HOME") ?: (getenv("HOME") . "/.composer");
+            @mkdir($home, 0755, true);
+            $f = $home . "/composer.json";
+            $c = file_exists($f) ? json_decode(file_get_contents($f), true) : [];
+            if (!isset($c["config"])) $c["config"] = [];
+            if (!isset($c["config"]["audit"])) $c["config"]["audit"] = [];
+            $c["config"]["audit"]["block-insecure"] = false;
+            file_put_contents($f, json_encode($c, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+            echo "Updated: " . $f . "\n";
+          '
+
       - name: Run MCP integration tests
         env:
           LARAVEL_VERSION: ${{ matrix.laravel }}
