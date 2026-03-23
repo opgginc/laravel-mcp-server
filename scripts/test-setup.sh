@@ -74,12 +74,16 @@ print_success "Test directory created"
 print_step "Creating blank Laravel project..."
 # For EOL Laravel versions (e.g. 9/10), packagist security advisories block install via
 # `audit.block-insecure` (Composer 2.4+). This is a PROJECT-level config, not global.
-# Strategy: use --no-install to create the project skeleton, patch composer.json, then install.
+# Strategy:
+#   --no-install  : skip the internal `composer install` inside create-project
+#   --no-scripts  : skip post-create-project-cmd (e.g. `php artisan key:generate`) which
+#                   would fail because vendor/ doesn't exist yet with --no-install
+# We then patch composer.json, run `composer install`, and manually call key:generate.
 if [ -n "$LARAVEL_VERSION" ]; then
     print_step "Using Laravel version constraint: ^${LARAVEL_VERSION}.0"
-    composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist --no-install
+    composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist --no-install --no-scripts
 else
-    composer create-project laravel/laravel . --no-interaction --prefer-dist --no-install
+    composer create-project laravel/laravel . --no-interaction --prefer-dist --no-install --no-scripts
 fi
 print_success "Laravel project skeleton created (dependencies not yet installed)"
 
@@ -108,6 +112,11 @@ print_success "Package repository configured"
 print_step "Installing Laravel project dependencies..."
 composer install --no-interaction --prefer-dist
 print_success "Laravel project dependencies installed"
+
+# Manually run the post-create-project-cmd scripts that were skipped with --no-scripts
+print_step "Running post-install setup (app key generation)..."
+php artisan key:generate --ansi 2>/dev/null || true
+print_success "App key generated"
 
 # Step 4: Install the MCP server package
 print_step "Installing laravel-mcp-server package..."
