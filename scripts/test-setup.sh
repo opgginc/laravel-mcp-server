@@ -115,7 +115,12 @@ print_success "Laravel project dependencies installed"
 
 # Manually run the post-create-project-cmd scripts that were skipped with --no-scripts
 print_step "Running post-install setup (app key generation)..."
-php artisan key:generate --ansi 2>/dev/null || true
+# --no-scripts also skips the .env setup step; copy .env.example manually
+if [ ! -f .env ] && [ -f .env.example ]; then
+    cp .env.example .env
+    print_success ".env file created from .env.example"
+fi
+php artisan key:generate --ansi
 print_success "App key generated"
 
 # Step 4: Install the MCP server package
