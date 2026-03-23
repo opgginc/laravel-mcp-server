@@ -87,7 +87,7 @@ print_success "Package repository configured"
 
 # Step 4: Install the MCP server package
 print_step "Installing laravel-mcp-server package..."
-composer require opgginc/laravel-mcp-server:@dev --no-interaction
+composer require opgginc/laravel-mcp-server:@dev --no-interaction --no-audit
 print_success "MCP server package installed"
 
 # Step 5: Register MCP routes
