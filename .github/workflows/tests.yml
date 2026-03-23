@@ -18,11 +18,19 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         php: [8.2, 8.3, 8.4]
+        laravel: [9, 10, 11, 12, 13]
+        exclude:
+          - php: 8.3
+            laravel: 9
+          - php: 8.4
+            laravel: 9
+          - php: 8.4
+            laravel: 10
 
-    name: PHP ${{ matrix.php }}
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
 
     steps:
       - name: Checkout code
@@ -55,6 +63,8 @@ jobs:
           node-version: '20'
 
       - name: Run MCP integration tests
+        env:
+          LARAVEL_VERSION: ${{ matrix.laravel }}
         run: |
           ./scripts/test-setup.sh
           cd laravel-mcp-test
