@@ -74,7 +74,7 @@ print_success "Test directory created"
 print_step "Creating blank Laravel project..."
 if [ -n "$LARAVEL_VERSION" ]; then
     print_step "Using Laravel version constraint: ^${LARAVEL_VERSION}.0"
-    composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist
+    composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist --no-audit
 else
     composer create-project laravel/laravel . --no-interaction --prefer-dist
 fi
