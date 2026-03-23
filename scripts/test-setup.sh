@@ -83,11 +83,15 @@ print_success "Laravel project created"
 # Step 3: Configure local package repository
 print_step "Configuring local package repository..."
 composer config repositories.mcp-server "{\"type\": \"path\", \"url\": \"$PACKAGE_PATH\"}"
+# Allow EOL Laravel versions (e.g. 9) that have security advisories
+# 'block-insecure' prevents installing packages with advisories; disable for CI
+composer config audit.abandoned ignore
+composer config audit.blocked false 2>/dev/null || true
 print_success "Package repository configured"
 
 # Step 4: Install the MCP server package
 print_step "Installing laravel-mcp-server package..."
-composer require opgginc/laravel-mcp-server:@dev --no-interaction --no-audit
+COMPOSER_NO_AUDIT=1 composer require opgginc/laravel-mcp-server:@dev --no-interaction
 print_success "MCP server package installed"
 
 # Step 5: Register MCP routes
