@@ -3,12 +3,14 @@
 # Laravel MCP Server Test Setup Script
 # This script creates a fresh Laravel project and configures it to test the MCP server package
 # Usage: ./scripts/test-setup.sh [test-directory-name]
+# Env: LARAVEL_VERSION=9|10|11|12|13 (default: latest stable)
 
 set -e  # Exit on any error
 
 # Configuration
 TEST_DIR="${1:-laravel-mcp-test}"
 PACKAGE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LARAVEL_VERSION="${LARAVEL_VERSION:-}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -70,12 +72,68 @@ print_success "Test directory created"
 
 # Step 2: Create blank Laravel project
 print_step "Creating blank Laravel project..."
-composer create-project laravel/laravel . --no-interaction --prefer-dist
-print_success "Laravel project created"
+# For EOL Laravel versions (9/10), packagist security advisories block install via
+# `audit.block-insecure` (Composer 2.4+). This is a PROJECT-level config, not global.
+#
+# For EOL versions: use --no-install --no-scripts to create just the skeleton, then patch
+# composer.json to add `config.audit.block-insecure=false`, then run `composer install`.
+# Also copy .env.example to .env and run key:generate manually (skipped by --no-scripts).
+#
+# For non-EOL versions (Laravel 11+): use normal create-project (includes post-install scripts).
+IS_EOL_LARAVEL=false
+if [ -n "$LARAVEL_VERSION" ] && [ "$LARAVEL_VERSION" -le 10 ] 2>/dev/null; then
+    IS_EOL_LARAVEL=true
+fi
 
-# Step 3: Configure local package repository
+if [ -n "$LARAVEL_VERSION" ]; then
+    print_step "Using Laravel version constraint: ^${LARAVEL_VERSION}.0"
+    if [ "$IS_EOL_LARAVEL" = "true" ]; then
+        composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist --no-install --no-scripts
+    else
+        composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist
+    fi
+else
+    composer create-project laravel/laravel . --no-interaction --prefer-dist
+fi
+
+if [ "$IS_EOL_LARAVEL" = "true" ]; then
+    print_success "Laravel project skeleton created (dependencies deferred for EOL patching)"
+else
+    print_success "Laravel project created"
+fi
+
+# Step 3: Configure local package repository and disable security advisory blocking
 print_step "Configuring local package repository..."
 composer config repositories.mcp-server "{\"type\": \"path\", \"url\": \"$PACKAGE_PATH\"}"
+
+# For EOL versions (Laravel 9/10), patch composer.json to disable block-insecure, then install.
+if [ "$IS_EOL_LARAVEL" = "true" ]; then
+    print_step "Disabling Composer security advisory blocking for EOL Laravel ${LARAVEL_VERSION}..."
+    php -r '
+        $f = "composer.json";
+        $c = json_decode(file_get_contents($f), true);
+        if (!isset($c["config"])) { $c["config"] = []; }
+        if (!isset($c["config"]["audit"])) { $c["config"]["audit"] = []; }
+        $c["config"]["audit"]["block-insecure"] = false;
+        file_put_contents($f, json_encode($c, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+        echo "Patched audit.block-insecure=false in composer.json\n";
+    '
+    print_success "Security advisory blocking disabled in composer.json"
+
+    # Install dependencies now that composer.json is patched
+    print_step "Installing Laravel project dependencies..."
+    composer install --no-interaction --prefer-dist
+    print_success "Laravel project dependencies installed"
+
+    # Manually run the post-create-project-cmd scripts that were skipped with --no-scripts
+    print_step "Running post-install setup (app key generation)..."
+    if [ ! -f .env ] && [ -f .env.example ]; then
+        cp .env.example .env
+        print_success ".env file created from .env.example"
+    fi
+    php artisan key:generate --ansi
+    print_success "App key generated"
+fi
 print_success "Package repository configured"
 
 # Step 4: Install the MCP server package
@@ -90,7 +148,10 @@ cat >> routes/web.php << 'EOF'
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 
-Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->group(function () {
+Route::withoutMiddleware([
+    \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+    \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class,
+])->group(function () {
     Route::mcp('/mcp')
         ->setServerInfo(
             name: 'Test MCP Server',
@@ -104,11 +165,21 @@ Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken
 EOF
 print_success "MCP routes registered at /mcp"
 
-# Step 6: Install and configure Laravel Octane
-print_step "Installing Laravel Octane..."
-composer require laravel/octane --no-interaction
-php artisan octane:install --server=frankenphp --no-interaction
-print_success "Laravel Octane installed with FrankenPHP"
+# Step 6: Install and configure server
+# Laravel Octane with FrankenPHP requires Laravel 11+
+# For Laravel 9/10, use artisan serve instead
+EFFECTIVE_LARAVEL_VERSION="${LARAVEL_VERSION:-$(php artisan --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f1)}"
+if [ "${EFFECTIVE_LARAVEL_VERSION}" -ge 11 ] 2>/dev/null; then
+    print_step "Installing Laravel Octane (Laravel ${EFFECTIVE_LARAVEL_VERSION})..."
+    composer require laravel/octane --no-interaction
+    php artisan octane:install --server=frankenphp --no-interaction
+    echo "octane" > .server.mode
+    print_success "Laravel Octane installed with FrankenPHP"
+else
+    print_step "Skipping Octane (Laravel ${EFFECTIVE_LARAVEL_VERSION} — using artisan serve instead)..."
+    echo "artisan" > .server.mode
+    print_success "Server mode set to artisan serve"
+fi
 
 # Step 7: Create test script for MCP HTTP testing
 print_step "Creating MCP HTTP test script..."
@@ -329,20 +400,23 @@ find_free_port() {
 
 echo "🚀 Starting Laravel MCP Server..."
 
-# Skip Redis check (not needed for Streamable HTTP)
-echo "🚀 Using Streamable HTTP transport (Redis not required)"
-
 # Find available port
 SERVER_PORT=$(find_free_port)
 echo "🔍 Found available port: $SERVER_PORT"
-
-# Start Laravel Octane server in background
-echo "🌐 Starting Laravel Octane server on http://localhost:$SERVER_PORT..."
-php artisan octane:start --host=0.0.0.0 --port=$SERVER_PORT &
-OCTANE_PID=$!
-echo $OCTANE_PID > .octane.pid
 echo $SERVER_PORT > .server.port
-echo "✅ Octane server started (PID: $OCTANE_PID) on port $SERVER_PORT"
+
+# Detect server mode (octane or artisan)
+SERVER_MODE=$(cat .server.mode 2>/dev/null || echo "octane")
+
+if [ "$SERVER_MODE" = "octane" ]; then
+    echo "🌐 Starting Laravel Octane (FrankenPHP) on http://localhost:$SERVER_PORT..."
+    php artisan octane:start --host=0.0.0.0 --port=$SERVER_PORT &
+else
+    echo "🌐 Starting artisan serve on http://localhost:$SERVER_PORT..."
+    php artisan serve --host=0.0.0.0 --port=$SERVER_PORT &
+fi
+SERVER_PID=$!
+echo $SERVER_PID > .server.pid
 
 # Wait for server to be ready
 echo "⏳ Waiting for server to be ready..."
@@ -354,8 +428,8 @@ for i in {1..30}; do
     fi
     if [ $i -eq 30 ]; then
         echo "❌ Server failed to start within 30 seconds (last /mcp status: $MCP_STATUS)"
-        kill $OCTANE_PID 2>/dev/null || true
-        rm -f .octane.pid .server.port
+        kill $SERVER_PID 2>/dev/null || true
+        rm -f .server.pid .server.port
         exit 1
     fi
     sleep 1
@@ -375,27 +449,23 @@ cat > stop-server.sh << 'EOF'
 
 echo "🛑 Stopping Laravel MCP Server..."
 
-# Stop Octane server
-if [ -f .octane.pid ]; then
-    OCTANE_PID=$(cat .octane.pid)
-    if kill -0 $OCTANE_PID 2>/dev/null; then
-        echo "🔴 Stopping Octane server (PID: $OCTANE_PID)..."
-        kill $OCTANE_PID
-        rm -f .octane.pid .server.port
-        echo "✅ Octane server stopped"
+if [ -f .server.pid ]; then
+    PID=$(cat .server.pid)
+    if kill -0 $PID 2>/dev/null; then
+        echo "🔴 Stopping server (PID: $PID)..."
+        kill $PID
+        rm -f .server.pid .server.port .server.mode
+        echo "✅ Server stopped"
     else
-        echo "⚠️  Octane server was not running"
-        rm -f .octane.pid .server.port
+        echo "⚠️  Server was not running"
+        rm -f .server.pid .server.port .server.mode
     fi
 else
-    echo "⚠️  No Octane PID file found, trying to stop any running Octane processes..."
-    pkill -f "octane:start" || echo "No Octane processes found"
-    rm -f .server.port
+    echo "⚠️  No PID file found, killing any octane/artisan serve processes..."
+    pkill -f "octane:start" 2>/dev/null || true
+    pkill -f "artisan serve" 2>/dev/null || true
+    rm -f .server.port .server.mode
 fi
-
-# Optionally stop Redis (commented out by default to avoid affecting other services)
-# echo "🔴 Stopping Redis server..."
-# redis-cli shutdown || echo "Redis was not running or failed to stop"
 
 echo "✅ Server stopped successfully"
 EOF
