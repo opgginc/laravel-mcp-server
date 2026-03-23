@@ -72,22 +72,23 @@ print_success "Test directory created"
 
 # Step 2: Create blank Laravel project
 print_step "Creating blank Laravel project..."
-# For EOL Laravel versions (e.g. 9), packagist security advisories block install.
-# composer create-project runs its own internal `composer install` which reads the
-# GLOBAL composer config. Set global audit.block-insecure=false before create-project.
+# For EOL Laravel versions (e.g. 9/10), packagist security advisories block install via
+# `audit.block-insecure` (Composer 2.4+). This is a PROJECT-level config, not global.
+# Strategy: use --no-install to create the project skeleton, patch composer.json, then install.
 if [ -n "$LARAVEL_VERSION" ]; then
     print_step "Using Laravel version constraint: ^${LARAVEL_VERSION}.0"
-    composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist
+    composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist --no-install
 else
-    composer create-project laravel/laravel . --no-interaction --prefer-dist
+    composer create-project laravel/laravel . --no-interaction --prefer-dist --no-install
 fi
-print_success "Laravel project created"
+print_success "Laravel project skeleton created (dependencies not yet installed)"
 
-# Step 3: Configure local package repository
+# Step 3: Configure local package repository and disable security advisory blocking
 print_step "Configuring local package repository..."
 composer config repositories.mcp-server "{\"type\": \"path\", \"url\": \"$PACKAGE_PATH\"}"
+
 # For EOL versions (Laravel 9/10), security advisories block install via `block-insecure`.
-# `composer config audit` doesn't support the key directly, so patch composer.json with PHP.
+# Patch project's composer.json directly (composer config command doesn't support audit key).
 if [ -n "$LARAVEL_VERSION" ] && [ "$LARAVEL_VERSION" -le 10 ] 2>/dev/null; then
     print_step "Disabling Composer security advisory blocking for EOL Laravel ${LARAVEL_VERSION}..."
     php -r '
@@ -97,10 +98,16 @@ if [ -n "$LARAVEL_VERSION" ] && [ "$LARAVEL_VERSION" -le 10 ] 2>/dev/null; then
         if (!isset($c["config"]["audit"])) { $c["config"]["audit"] = []; }
         $c["config"]["audit"]["block-insecure"] = false;
         file_put_contents($f, json_encode($c, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+        echo "Patched audit.block-insecure=false in composer.json\n";
     '
     print_success "Security advisory blocking disabled in composer.json"
 fi
 print_success "Package repository configured"
+
+# Run composer install now that composer.json is fully configured
+print_step "Installing Laravel project dependencies..."
+composer install --no-interaction --prefer-dist
+print_success "Laravel project dependencies installed"
 
 # Step 4: Install the MCP server package
 print_step "Installing laravel-mcp-server package..."
