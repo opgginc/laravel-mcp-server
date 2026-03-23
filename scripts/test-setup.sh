@@ -72,9 +72,14 @@ print_success "Test directory created"
 
 # Step 2: Create blank Laravel project
 print_step "Creating blank Laravel project..."
+# For EOL Laravel versions (e.g. 9), packagist security advisories block install.
+# composer create-project runs its own internal `composer install` which reads the
+# GLOBAL composer config. Set global audit.block-insecure=false before create-project.
 if [ -n "$LARAVEL_VERSION" ]; then
     print_step "Using Laravel version constraint: ^${LARAVEL_VERSION}.0"
-    composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist --no-audit
+    composer global config audit.abandoned ignore 2>/dev/null || true
+    composer global config audit.block-insecure false 2>/dev/null || true
+    composer create-project laravel/laravel . "^${LARAVEL_VERSION}.0" --no-interaction --prefer-dist
 else
     composer create-project laravel/laravel . --no-interaction --prefer-dist
 fi
@@ -83,15 +88,14 @@ print_success "Laravel project created"
 # Step 3: Configure local package repository
 print_step "Configuring local package repository..."
 composer config repositories.mcp-server "{\"type\": \"path\", \"url\": \"$PACKAGE_PATH\"}"
-# Allow EOL Laravel versions (e.g. 9) that have security advisories
-# 'block-insecure' prevents installing packages with advisories; disable for CI
-composer config audit.abandoned ignore
-composer config audit.block-insecure false
+# Propagate audit bypass to project-local config as well
+composer config audit.abandoned ignore 2>/dev/null || true
+composer config audit.block-insecure false 2>/dev/null || true
 print_success "Package repository configured"
 
 # Step 4: Install the MCP server package
 print_step "Installing laravel-mcp-server package..."
-COMPOSER_NO_AUDIT=1 composer require opgginc/laravel-mcp-server:@dev --no-interaction
+composer require opgginc/laravel-mcp-server:@dev --no-interaction
 print_success "MCP server package installed"
 
 # Step 5: Register MCP routes
