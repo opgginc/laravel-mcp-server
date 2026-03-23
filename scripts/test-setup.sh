@@ -90,7 +90,10 @@ cat >> routes/web.php << 'EOF'
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 
-Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->group(function () {
+Route::withoutMiddleware([
+    \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+    \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class,
+])->group(function () {
     Route::mcp('/mcp')
         ->setServerInfo(
             name: 'Test MCP Server',
