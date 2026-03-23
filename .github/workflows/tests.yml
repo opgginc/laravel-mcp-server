@@ -6,7 +6,7 @@ on:
       - main
       - "*.x"
   pull_request:
-    types: [opened]
+    types: [opened, synchronize]
   schedule:
     - cron: "0 0 * * *"
 
