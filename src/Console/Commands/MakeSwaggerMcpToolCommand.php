@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser;
 use OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 
 class MakeSwaggerMcpToolCommand extends Command
 {
@@ -768,12 +770,12 @@ class MakeSwaggerMcpToolCommand extends Command
                 $makeTool->setLaravel($this->getLaravel());
                 $makeTool->setDynamicParams($toolParams);
 
-                $input = new \Symfony\Component\Console\Input\ArrayInput([
+                $input = new ArrayInput([
                     'name' => $className,
                     '--programmatic' => true,
                 ]);
 
-                $output = new \Symfony\Component\Console\Output\NullOutput;
+                $output = new NullOutput;
 
                 try {
                     $makeTool->run($input, $output);
@@ -810,12 +812,12 @@ class MakeSwaggerMcpToolCommand extends Command
                 $makeResource->setLaravel($this->getLaravel());
                 $makeResource->setDynamicParams($resourceParams);
 
-                $input = new \Symfony\Component\Console\Input\ArrayInput([
+                $input = new ArrayInput([
                     'name' => $className,
                     '--programmatic' => true,
                 ]);
 
-                $output = new \Symfony\Component\Console\Output\NullOutput;
+                $output = new NullOutput;
 
                 try {
                     $makeResource->run($input, $output);

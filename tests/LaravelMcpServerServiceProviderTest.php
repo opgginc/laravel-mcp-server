@@ -212,15 +212,15 @@ it('stores dynamic tool resolver class from fluent route builder', function () {
 it('rejects non tools/call handler classes', function () {
     bootProvider();
 
-    expect(fn () => Route::mcp('/invalid-tools-handler')->toolsCallHandler(\stdClass::class))
-        ->toThrow(\InvalidArgumentException::class);
+    expect(fn () => Route::mcp('/invalid-tools-handler')->toolsCallHandler(stdClass::class))
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('rejects non dynamic tools resolver classes', function () {
     bootProvider();
 
-    expect(fn () => Route::mcp('/invalid-dynamic-tools-resolver')->dynamicTools(\stdClass::class))
-        ->toThrow(\InvalidArgumentException::class);
+    expect(fn () => Route::mcp('/invalid-dynamic-tools-resolver')->dynamicTools(stdClass::class))
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('rejects mixing static tools with dynamic tools resolvers', function () {
@@ -229,12 +229,12 @@ it('rejects mixing static tools with dynamic tools resolvers', function () {
     expect(fn () => Route::mcp('/mixed-static-first')
         ->tools([LegacyArrayTool::class])
         ->dynamicTools(PhaseToolResolver::class))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 
     expect(fn () => Route::mcp('/mixed-dynamic-first')
         ->dynamicTools(PhaseToolResolver::class)
         ->tools([LegacyArrayTool::class]))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('keeps existing name and version when setServerInfo is partially applied', function () {

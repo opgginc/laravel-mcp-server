@@ -3,6 +3,8 @@
 namespace OPGG\LaravelMcpServer\Routing;
 
 use OPGG\LaravelMcpServer\Enums\ProtocolVersion;
+use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
+use OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface;
 
 final class McpEndpointDefinition
 {
@@ -20,8 +22,8 @@ final class McpEndpointDefinition
      * @param  array<int, class-string>  $resourceTemplates
      * @param  array<int, class-string>  $prompts
      * @param  array<int, array{src: string, mimeType?: string, sizes?: array<int, string>, theme?: 'light'|'dark'}>  $icons
-     * @param  class-string<\OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface>|null  $dynamicToolsResolver
-     * @param  class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null  $toolsCallHandler
+     * @param  class-string<DynamicToolResolverInterface>|null  $dynamicToolsResolver
+     * @param  class-string<ToolsCallHandler>|null  $toolsCallHandler
      */
     public function __construct(
         public readonly string $id,
@@ -133,7 +135,7 @@ final class McpEndpointDefinition
     }
 
     /**
-     * @param  class-string<\OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface>|null  $resolverClass
+     * @param  class-string<DynamicToolResolverInterface>|null  $resolverClass
      */
     public function withDynamicToolsResolver(?string $resolverClass): self
     {
@@ -144,7 +146,7 @@ final class McpEndpointDefinition
     }
 
     /**
-     * @param  class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null  $handlerClass
+     * @param  class-string<ToolsCallHandler>|null  $handlerClass
      */
     public function withToolsCallHandler(?string $handlerClass): self
     {
@@ -202,8 +204,8 @@ final class McpEndpointDefinition
      *   resources: array<int, class-string>,
      *   resourceTemplates: array<int, class-string>,
      *   prompts: array<int, class-string>,
-     *   dynamicToolsResolver: class-string<\OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface>|null,
-     *   toolsCallHandler: class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null,
+     *   dynamicToolsResolver: class-string<DynamicToolResolverInterface>|null,
+     *   toolsCallHandler: class-string<ToolsCallHandler>|null,
      *   enabledApi: bool,
      *   toolListChanged: bool,
      *   resourcesSubscribe: bool,
@@ -286,8 +288,8 @@ final class McpEndpointDefinition
      *   resources?: array<int, class-string>,
      *   resourceTemplates?: array<int, class-string>,
      *   prompts?: array<int, class-string>,
-     *   dynamicToolsResolver?: class-string<\OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface>|null,
-     *   toolsCallHandler?: class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null,
+     *   dynamicToolsResolver?: class-string<DynamicToolResolverInterface>|null,
+     *   toolsCallHandler?: class-string<ToolsCallHandler>|null,
      *   enabledApi?: bool,
      *   toolListChanged?: bool,
      *   resourcesSubscribe?: bool,
@@ -344,8 +346,8 @@ final class McpEndpointDefinition
      *   resources: array<int, class-string>,
      *   resourceTemplates: array<int, class-string>,
      *   prompts: array<int, class-string>,
-     *   dynamicToolsResolver: class-string<\OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface>|null,
-     *   toolsCallHandler: class-string<\OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler>|null,
+     *   dynamicToolsResolver: class-string<DynamicToolResolverInterface>|null,
+     *   toolsCallHandler: class-string<ToolsCallHandler>|null,
      *   enabledApi: bool,
      *   toolListChanged: bool,
      *   resourcesSubscribe: bool,

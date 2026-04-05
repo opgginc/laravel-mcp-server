@@ -3,6 +3,8 @@
 namespace OPGG\LaravelMcpServer\Tests\Lumen;
 
 use Illuminate\Config\Repository as ConfigRepository;
+use Illuminate\Contracts\Config\Repository;
+use Laravel\Lumen\Application;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
@@ -16,14 +18,14 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        if (! class_exists(\Laravel\Lumen\Application::class)) {
+        if (! class_exists(Application::class)) {
             $this->markTestSkipped('Laravel Lumen is not installed.');
         }
 
         $this->app = new TestingApplication($this->basePath());
         $this->app->instance('path.config', $this->basePath('config'));
         $this->app->instance('config', new ConfigRepository);
-        $this->app->alias('config', \Illuminate\Contracts\Config\Repository::class);
+        $this->app->alias('config', Repository::class);
 
         $this->app->withFacades();
         $this->app->withEloquent();
