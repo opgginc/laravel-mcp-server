@@ -210,6 +210,41 @@ test('tools/call uses the same query string filter as tools/list', function () {
     $hiddenResponse->assertJsonPath('error.message', "Tool 'legacy-array-tool' not found");
 });
 
+test('tools/call succeeds for a lobby-phase tool when phase=lobby is set', function () {
+    Route::mcp('/filtered-call-mcp-lobby')
+        ->setServerInfo(
+            name: 'Filtered Lobby Call HTTP Test MCP',
+            version: '1.0.0',
+        )
+        ->dynamicTools(PhaseToolResolver::class);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 1206,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'legacy-array-tool',
+            'arguments' => [
+                'region' => 'KR',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson('/filtered-call-mcp-lobby?phase=lobby', $payload);
+    $response->assertStatus(200);
+
+    $data = $response->json('result');
+    expect($data)->toHaveKey('content');
+
+    $decoded = json_decode($data['content'][0]['text'], true, 512, JSON_THROW_ON_ERROR);
+    expect($decoded)->toBe([
+        'status' => 'ok',
+        'echo' => [
+            'region' => 'KR',
+        ],
+    ]);
+});
+
 test('custom tools/call handler receives query string filtered tool repository', function () {
     Route::mcp('/filtered-tracked-call-mcp')
         ->setServerInfo(

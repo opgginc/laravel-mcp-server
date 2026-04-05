@@ -174,8 +174,11 @@ The same filtered tool set is applied consistently to:
 - `tools/execute`
 - `POST /tools/{tool_name}` when `->enabledApi()` is enabled
 
-If the same endpoint also uses `POST /tools/{tool_name}`, expose a public `consumedQueryParameters(): array`
-hook on the resolver for query keys that should be used only for filtering and not forwarded as tool arguments.
+If the same endpoint also uses `POST /tools/{tool_name}`, you can optionally expose a public
+`consumedQueryParameters(): array` hook on the resolver for query keys that should be used only
+for filtering and not forwarded as tool arguments. This hook is a documented convention and is
+not part of `DynamicToolResolverInterface`; resolvers that omit it will forward those query keys
+as tool arguments.
 
 ## Lumen Setup
 

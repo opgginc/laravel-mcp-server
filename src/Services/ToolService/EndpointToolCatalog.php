@@ -19,32 +19,40 @@ final class EndpointToolCatalog
     /**
      * @return array<int, class-string<ToolInterface>>
      */
-    public function declaredToolClasses(McpEndpointDefinition $endpoint): array
-    {
+    public function declaredToolClasses(
+        McpEndpointDefinition $endpoint,
+        ?DynamicToolResolverInterface $resolver = null,
+    ): array {
         $this->assertConfigurationIsNotMixed($endpoint);
 
         if ($endpoint->dynamicToolsResolver === null) {
             return array_values(array_unique($endpoint->tools));
         }
 
-        return $this->normalizeToolClasses(
-            $this->resolver($endpoint->dynamicToolsResolver)->declaredTools($endpoint),
-            'declared tools'
+        $resolver ??= $this->resolverForEndpoint($endpoint);
+
+        return $this->declaredToolClassesFromResolver(
+            $resolver,
+            $endpoint,
         );
     }
 
     /**
      * @return array<int, class-string<ToolInterface>>
      */
-    public function visibleToolClasses(McpEndpointDefinition $endpoint, ?ToolResolutionContext $context = null): array
-    {
-        $declaredToolClasses = $this->declaredToolClasses($endpoint);
+    public function visibleToolClasses(
+        McpEndpointDefinition $endpoint,
+        ?ToolResolutionContext $context = null,
+        ?DynamicToolResolverInterface $resolver = null,
+    ): array {
         if ($endpoint->dynamicToolsResolver === null) {
-            return $declaredToolClasses;
+            return $this->declaredToolClasses($endpoint);
         }
 
+        $resolver ??= $this->resolverForEndpoint($endpoint);
+        $declaredToolClasses = $this->declaredToolClassesFromResolver($resolver, $endpoint);
         $resolvedToolClasses = $this->normalizeToolClasses(
-            $this->resolver($endpoint->dynamicToolsResolver)->resolve(
+            $resolver->resolve(
                 $endpoint,
                 $context ?? new ToolResolutionContext,
             ),
@@ -81,7 +89,7 @@ final class EndpointToolCatalog
 
     public function declaresToolName(McpEndpointDefinition $endpoint, string $toolName): bool
     {
-        return $this->containsToolName(
+        return $this->toolClassesContainName(
             toolClasses: $this->declaredToolClasses($endpoint),
             toolName: $toolName,
         );
@@ -92,10 +100,53 @@ final class EndpointToolCatalog
         string $toolName,
         ?ToolResolutionContext $context = null,
     ): bool {
-        return $this->containsToolName(
+        return $this->toolClassesContainName(
             toolClasses: $this->visibleToolClasses($endpoint, $context),
             toolName: $toolName,
         );
+    }
+
+    public function resolverForEndpoint(McpEndpointDefinition $endpoint): ?DynamicToolResolverInterface
+    {
+        if ($endpoint->dynamicToolsResolver === null) {
+            return null;
+        }
+
+        return $this->resolver($endpoint->dynamicToolsResolver);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function consumedQueryParameters(
+        McpEndpointDefinition $endpoint,
+        ?DynamicToolResolverInterface $resolver = null,
+    ): array {
+        $resolver ??= $this->resolverForEndpoint($endpoint);
+        if ($resolver === null) {
+            return [];
+        }
+
+        $callable = [$resolver, 'consumedQueryParameters'];
+        if (! is_callable($callable)) {
+            return [];
+        }
+
+        $parameterNames = call_user_func($callable);
+        if (! is_array($parameterNames)) {
+            return [];
+        }
+
+        $normalizedParameterNames = [];
+        foreach ($parameterNames as $parameterName) {
+            if (! is_string($parameterName) || $parameterName === '') {
+                continue;
+            }
+
+            $normalizedParameterNames[$parameterName] = $parameterName;
+        }
+
+        return array_values($normalizedParameterNames);
     }
 
     private function assertConfigurationIsNotMixed(McpEndpointDefinition $endpoint): void
@@ -131,6 +182,19 @@ final class EndpointToolCatalog
     }
 
     /**
+     * @return array<int, class-string<ToolInterface>>
+     */
+    private function declaredToolClassesFromResolver(
+        DynamicToolResolverInterface $resolver,
+        McpEndpointDefinition $endpoint,
+    ): array {
+        return $this->normalizeToolClasses(
+            $resolver->declaredTools($endpoint),
+            'declared tools'
+        );
+    }
+
+    /**
      * @param  array<int, mixed>  $toolClasses
      * @return array<int, class-string<ToolInterface>>
      */
@@ -155,7 +219,7 @@ final class EndpointToolCatalog
     /**
      * @param  array<int, class-string<ToolInterface>>  $toolClasses
      */
-    private function containsToolName(array $toolClasses, string $toolName): bool
+    public function toolClassesContainName(array $toolClasses, string $toolName): bool
     {
         foreach ($toolClasses as $toolClass) {
             if ($this->resolveToolName($toolClass) === $toolName) {
@@ -171,11 +235,15 @@ final class EndpointToolCatalog
      */
     private function resolveToolName(string $toolClass): string
     {
+        if (isset($this->toolNameByClass[$toolClass])) {
+            return $this->toolNameByClass[$toolClass];
+        }
+
         $tool = $this->container->make($toolClass);
         if (! $tool instanceof ToolInterface) {
             throw new InvalidArgumentException('Tool must implement the '.ToolInterface::class);
         }
 
-        return $this->toolNameByClass[$toolClass] ??= $tool->name();
+        return $this->toolNameByClass[$toolClass] = $tool->name();
     }
 }

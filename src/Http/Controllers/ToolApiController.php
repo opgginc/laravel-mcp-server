@@ -2,6 +2,7 @@
 
 namespace OPGG\LaravelMcpServer\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use JsonException;
@@ -12,6 +13,7 @@ use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Server\McpServerFactory;
 use OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface;
 use OPGG\LaravelMcpServer\Services\ToolService\EndpointToolCatalog;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use OPGG\LaravelMcpServer\Utils\RequestQueryParameterUtil;
 use Symfony\Component\HttpFoundation\Exception\JsonException as HttpFoundationJsonException;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,10 +36,12 @@ class ToolApiController
         }
 
         $queryParameters = RequestQueryParameterUtil::all($request);
+        $enabledEndpoints = $this->enabledEndpoints();
+        $endpointStates = $this->endpointStates($enabledEndpoints);
         try {
             $payloadArguments = $this->parsePayloadArguments($request);
         } catch (JsonException|HttpFoundationJsonException) {
-            if (! $this->shouldIgnorePayloadException($toolName, $queryParameters)) {
+            if (! $this->shouldIgnorePayloadException($toolName, $queryParameters, $endpointStates)) {
                 return response()->json([
                     'message' => 'Parse error',
                     'code' => JsonRpcErrorCode::PARSE_ERROR->value,
@@ -46,7 +50,7 @@ class ToolApiController
 
             $payloadArguments = [];
         } catch (\InvalidArgumentException $exception) {
-            if (! $this->shouldIgnorePayloadException($toolName, $queryParameters)) {
+            if (! $this->shouldIgnorePayloadException($toolName, $queryParameters, $endpointStates)) {
                 return response()->json([
                     'message' => $exception->getMessage(),
                     'code' => JsonRpcErrorCode::INVALID_REQUEST->value,
@@ -58,11 +62,12 @@ class ToolApiController
 
         $sessionId = $this->sessionId($request);
 
-        foreach ($this->enabledEndpoints() as $endpoint) {
+        foreach ($enabledEndpoints as $endpoint) {
+            $endpointState = $endpointStates[$endpoint->id];
             $arguments = $this->mergeArguments(
                 payloadArguments: $payloadArguments,
                 queryParameters: $queryParameters,
-                endpoint: $endpoint,
+                consumedQueryParameters: $endpointState['consumedQueryParameters'],
             );
             $message = $this->toolExecuteMessage($toolName, $arguments);
             $toolResolutionContext = new ToolResolutionContext(
@@ -70,11 +75,19 @@ class ToolApiController
                 requestMessage: $message,
             );
 
-            if (! $this->endpointToolCatalog->declaresToolName($endpoint, $toolName)) {
+            if (! $this->endpointToolCatalog->toolClassesContainName(
+                $endpointState['declaredToolClasses'],
+                $toolName,
+            )) {
                 continue;
             }
 
-            if (! $this->endpointToolCatalog->exposesToolName($endpoint, $toolName, $toolResolutionContext)) {
+            $visibleToolClasses = $this->endpointToolCatalog->visibleToolClasses(
+                $endpoint,
+                $toolResolutionContext,
+                $endpointState['resolver'],
+            );
+            if (! $this->endpointToolCatalog->toolClassesContainName($visibleToolClasses, $toolName)) {
                 return $this->toolNotFoundResponse($toolName);
             }
 
@@ -82,6 +95,7 @@ class ToolApiController
                 endpoint: $endpoint,
                 requestMessage: $message,
                 toolResolutionContext: $toolResolutionContext,
+                resolvedToolClasses: $visibleToolClasses,
             );
             $responseData = $server->requestMessage(clientId: $sessionId, message: $message)->toArray();
 
@@ -129,10 +143,13 @@ class ToolApiController
     /**
      * @return array<int|string, mixed>
      */
-    private function mergeArguments(array $payloadArguments, array $queryParameters, McpEndpointDefinition $endpoint): array
-    {
+    private function mergeArguments(
+        array $payloadArguments,
+        array $queryParameters,
+        array $consumedQueryParameters,
+    ): array {
         $queryArguments = $queryParameters;
-        foreach ($this->consumedQueryParameters($endpoint) as $parameterName) {
+        foreach ($consumedQueryParameters as $parameterName) {
             unset($queryArguments[$parameterName]);
         }
 
@@ -148,62 +165,30 @@ class ToolApiController
      * still receives at least one real tool argument after removing filter-only keys.
      *
      * @param  array<int|string, mixed>  $queryParameters
+     * @param  array<string, array{
+     *   resolver: DynamicToolResolverInterface|null,
+     *   declaredToolClasses: array<int, class-string<ToolInterface>>,
+     *   consumedQueryParameters: array<int, string>
+     * }>  $endpointStates
      */
-    private function shouldIgnorePayloadException(string $toolName, array $queryParameters): bool
+    private function shouldIgnorePayloadException(string $toolName, array $queryParameters, array $endpointStates): bool
     {
         if ($queryParameters === []) {
             return false;
         }
 
-        foreach ($this->enabledEndpoints() as $endpoint) {
-            if (! $this->endpointToolCatalog->declaresToolName($endpoint, $toolName)) {
+        foreach ($endpointStates as $endpointState) {
+            if (! $this->endpointToolCatalog->toolClassesContainName(
+                $endpointState['declaredToolClasses'],
+                $toolName,
+            )) {
                 continue;
             }
 
-            return $this->mergeArguments([], $queryParameters, $endpoint) !== [];
+            return $this->mergeArguments([], $queryParameters, $endpointState['consumedQueryParameters']) !== [];
         }
 
-        return true;
-    }
-
-    /**
-     * Dynamic resolvers can expose public consumedQueryParameters() to reserve
-     * endpoint-level selectors such as "phase" for filtering only.
-     *
-     * @return array<int, string>
-     */
-    private function consumedQueryParameters(McpEndpointDefinition $endpoint): array
-    {
-        $resolverClass = $endpoint->dynamicToolsResolver;
-        if ($resolverClass === null || ! is_a($resolverClass, DynamicToolResolverInterface::class, true)) {
-            return [];
-        }
-
-        $resolver = app()->make($resolverClass);
-        if (! $resolver instanceof DynamicToolResolverInterface) {
-            return [];
-        }
-
-        $callable = [$resolver, 'consumedQueryParameters'];
-        if (! is_callable($callable)) {
-            return [];
-        }
-
-        $parameterNames = call_user_func($callable);
-        if (! is_array($parameterNames)) {
-            return [];
-        }
-
-        $normalizedParameterNames = [];
-        foreach ($parameterNames as $parameterName) {
-            if (! is_string($parameterName) || $parameterName === '') {
-                continue;
-            }
-
-            $normalizedParameterNames[$parameterName] = $parameterName;
-        }
-
-        return array_values($normalizedParameterNames);
+        return false;
     }
 
     private function sessionId(Request $request): string
@@ -231,6 +216,29 @@ class ToolApiController
         }
 
         return $endpoints;
+    }
+
+    /**
+     * @param  array<int, McpEndpointDefinition>  $endpoints
+     * @return array<string, array{
+     *   resolver: DynamicToolResolverInterface|null,
+     *   declaredToolClasses: array<int, class-string<ToolInterface>>,
+     *   consumedQueryParameters: array<int, string>
+     * }>
+     */
+    private function endpointStates(array $endpoints): array
+    {
+        $states = [];
+        foreach ($endpoints as $endpoint) {
+            $resolver = $this->endpointToolCatalog->resolverForEndpoint($endpoint);
+            $states[$endpoint->id] = [
+                'resolver' => $resolver,
+                'declaredToolClasses' => $this->endpointToolCatalog->declaredToolClasses($endpoint, $resolver),
+                'consumedQueryParameters' => $this->endpointToolCatalog->consumedQueryParameters($endpoint, $resolver),
+            ];
+        }
+
+        return $states;
     }
 
     /**
@@ -264,7 +272,7 @@ class ToolApiController
         };
     }
 
-    private function toolNotFoundResponse(string $toolName)
+    private function toolNotFoundResponse(string $toolName): JsonResponse
     {
         return response()->json([
             'message' => "Tool '{$toolName}' not found",

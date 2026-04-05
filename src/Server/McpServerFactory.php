@@ -57,11 +57,13 @@ final class McpServerFactory
 
     /**
      * @param  array<string, mixed>|null  $requestMessage
+     * @param  array<int, class-string<ToolInterface>>|null  $resolvedToolClasses
      */
     public function make(
         McpEndpointDefinition $endpoint,
         ?array $requestMessage = null,
-        ?ToolResolutionContext $toolResolutionContext = null
+        ?ToolResolutionContext $toolResolutionContext = null,
+        ?array $resolvedToolClasses = null,
     ): MCPServer {
         $requestedMethod = $this->requestedMethod($requestMessage);
 
@@ -93,7 +95,7 @@ final class McpServerFactory
         // Intentionally lazy-register repositories by method namespace to avoid
         // constructing unnecessary services for initialize/ping/notifications.
         if ($this->supportsToolsMethod($requestedMethod)) {
-            $toolClasses = $this->endpointToolCatalog->visibleToolClasses($endpoint, $toolResolutionContext);
+            $toolClasses = $resolvedToolClasses ?? $this->endpointToolCatalog->visibleToolClasses($endpoint, $toolResolutionContext);
             $toolRepository = new ToolRepository(
                 $this->container,
                 $endpoint->compactEnumExampleCount,
@@ -236,6 +238,10 @@ final class McpServerFactory
         array $toolClasses,
         string $toolName
     ): ?string {
+        if ($endpoint->dynamicToolsResolver !== null) {
+            return $this->buildToolClassMap($toolClasses)[$toolName] ?? null;
+        }
+
         $endpointId = $endpoint->id;
         $fingerprint = $this->toolClassFingerprint($toolClasses);
 

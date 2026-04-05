@@ -4,8 +4,10 @@ use Illuminate\Support\Facades\Route;
 use OPGG\LaravelMcpServer\Data\ToolResolutionContext;
 use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
 use OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Resolvers\ConstructionCountingToolResolver;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Resolvers\PhaseToolResolver;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Resolvers\ToolApiPhaseToolResolver;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\ConstructionCounterTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\SharedNamePrimaryTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\SharedNameSecondaryTool;
@@ -161,6 +163,71 @@ test('tool api route returns parse error when only filter query parameters are p
 
     $response->assertStatus(400);
     $response->assertJsonPath('code', -32700);
+});
+
+test('tool api route keeps parse errors for unknown tools even when only filter query parameters are present', function () {
+    Route::mcp('/filtered-body-mcp')
+        ->setServerInfo(
+            name: 'Filtered Tool API Body Test MCP',
+            version: '1.0.0',
+        )
+        ->enabledApi()
+        ->dynamicTools(ToolApiPhaseToolResolver::class);
+
+    $response = $this->call(
+        method: 'POST',
+        uri: '/tools/unknown-tool?phase=lobby',
+        parameters: [],
+        cookies: [],
+        files: [],
+        server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+        ],
+        content: '{"invalid":',
+    );
+
+    $response->assertStatus(400);
+    $response->assertJsonPath('code', -32700);
+});
+
+test('tool api route forwards filter query parameters when resolver omits the hook', function () {
+    Route::mcp('/filtered-body-no-hook-mcp')
+        ->setServerInfo(
+            name: 'Filtered Tool API No Hook Test MCP',
+            version: '1.0.0',
+        )
+        ->enabledApi()
+        ->dynamicTools(PhaseToolResolver::class);
+
+    $response = $this->postJson('/tools/legacy-array-tool?phase=lobby&name=query-tester', [
+        'region' => 'NA',
+    ]);
+
+    $response->assertStatus(200);
+    $response->assertJsonPath('status', 'ok');
+    $response->assertJsonPath('echo.phase', 'lobby');
+    $response->assertJsonPath('echo.name', 'query-tester');
+    $response->assertJsonPath('echo.region', 'NA');
+});
+
+test('tool api route reuses a dynamic resolver instance across filtering and execution', function () {
+    ConstructionCountingToolResolver::resetCounter();
+    ConstructionCounterTool::resetCounter();
+
+    Route::mcp('/construction-count-mcp')
+        ->setServerInfo(
+            name: 'Construction Count Tool API Test MCP',
+            version: '1.0.0',
+        )
+        ->enabledApi()
+        ->dynamicTools(ConstructionCountingToolResolver::class);
+
+    $response = $this->postJson('/tools/construction-counter-tool?phase=lobby', []);
+
+    $response->assertStatus(200);
+    $response->assertJsonPath('content.0.text', 'ok');
+    expect(ConstructionCountingToolResolver::$constructionCount)->toBe(1);
 });
 
 test('tool api route respects query string tool filtering', function () {
