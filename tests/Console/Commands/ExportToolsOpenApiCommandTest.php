@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Resolvers\PhaseToolResolver;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\CompactEnumTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\DesiredOutputFieldsTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\EnumOnlyTool;
@@ -68,6 +69,21 @@ test('mcp:export-openapi generates openapi json from registered tools', function
         ->toBe(['csv', 'markdown'])
         ->and($json['components']['schemas']['TabularChampionsInput']['properties']['format']['enum'])
         ->toBe(['csv', 'markdown']);
+});
+
+test('mcp:export-openapi generates openapi json from declared dynamic tools', function () {
+    Route::mcp('/dynamic-mcp')->enabledApi()->dynamicTools(PhaseToolResolver::class);
+
+    $this->artisan('mcp:export-openapi', [
+        '--output' => exportCommandOutputPath(),
+    ])
+        ->expectsOutputToContain('Generated OpenAPI spec for 2 tool(s)')
+        ->assertExitCode(0);
+
+    $json = json_decode(File::get(exportCommandOutputPath()), true);
+
+    expect($json['paths'])->toHaveKey('/tools/legacy-array-tool')
+        ->and($json['paths'])->toHaveKey('/tools/structured-only-tool');
 });
 
 test('mcp:export-openapi can filter tools by endpoint id', function () {

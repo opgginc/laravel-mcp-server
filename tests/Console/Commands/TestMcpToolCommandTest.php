@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Resolvers\PhaseToolResolver;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 
@@ -42,6 +43,19 @@ test('mcp:test-tool warns when endpoint filter is not registered', function () {
         '--endpoint' => '/unknown',
     ])
         ->expectsOutputToContain("Endpoint '/unknown' is not registered via Route::mcp().")
-        ->expectsOutputToContain('No MCP tools are registered. Use Route::mcp(...)->tools([...]) to register endpoint tools.')
+        ->expectsOutputToContain('No MCP tools are registered. Use Route::mcp(...)->tools([...]) or ->dynamicTools(...) to register endpoint tools.')
+        ->assertExitCode(0);
+});
+
+test('mcp:test-tool lists declared tools from dynamic tool resolvers', function () {
+    Route::mcp('/dynamic-mcp')
+        ->dynamicTools(PhaseToolResolver::class);
+
+    $this->artisan('mcp:test-tool', [
+        '--list' => true,
+        '--endpoint' => '/dynamic-mcp',
+    ])
+        ->expectsOutputToContain('legacy-array-tool')
+        ->expectsOutputToContain('structured-only-tool')
         ->assertExitCode(0);
 });
