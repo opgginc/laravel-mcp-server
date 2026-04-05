@@ -1,6 +1,8 @@
 <?php
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\File;
+use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
 
 beforeEach(function () {
     File::deleteDirectory(app_path('MCP/Tools'));
@@ -23,8 +25,8 @@ test('make:mcp-tool generates tool in root directory by default', function () {
 });
 
 test('getPath returns correct path without tag directory', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'getPath');
     $method->setAccessible(true);
@@ -36,8 +38,8 @@ test('getPath returns correct path without tag directory', function () {
 });
 
 test('getPath returns correct path with tag directory', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpToolCommand($filesystem);
 
     $property = new ReflectionProperty($command, 'dynamicParams');
     $property->setAccessible(true);
@@ -53,8 +55,8 @@ test('getPath returns correct path with tag directory', function () {
 });
 
 test('replaceStubPlaceholders generates correct namespace without tag directory', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'replaceStubPlaceholders');
     $method->setAccessible(true);
@@ -68,8 +70,8 @@ test('replaceStubPlaceholders generates correct namespace without tag directory'
 });
 
 test('replaceStubPlaceholders generates correct namespace with tag directory', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpToolCommand($filesystem);
 
     $property = new ReflectionProperty($command, 'dynamicParams');
     $property->setAccessible(true);
@@ -87,8 +89,8 @@ test('replaceStubPlaceholders generates correct namespace with tag directory', f
 });
 
 test('makeDirectory creates nested directories', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'makeDirectory');
     $method->setAccessible(true);
@@ -110,8 +112,8 @@ test('programmatic mode works without config files', function () {
 });
 
 test('handles directory creation permissions gracefully', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'makeDirectory');
     $method->setAccessible(true);

@@ -2,13 +2,20 @@
 
 namespace OPGG\LaravelMcpServer\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use JsonException;
+use OPGG\LaravelMcpServer\Data\ToolResolutionContext;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Server\McpServerFactory;
+use OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface;
+use OPGG\LaravelMcpServer\Services\ToolService\EndpointToolCatalog;
+use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
+use OPGG\LaravelMcpServer\Utils\RequestQueryParameterUtil;
+use Symfony\Component\HttpFoundation\Exception\JsonException as HttpFoundationJsonException;
 use Symfony\Component\HttpFoundation\Response;
 
 class ToolApiController
@@ -16,6 +23,7 @@ class ToolApiController
     public function __construct(
         private readonly McpEndpointRegistry $endpointRegistry,
         private readonly McpServerFactory $serverFactory,
+        private readonly EndpointToolCatalog $endpointToolCatalog,
     ) {}
 
     public function handle(Request $request, string $tool_name)
@@ -27,25 +35,68 @@ class ToolApiController
             ], Response::HTTP_BAD_REQUEST);
         }
 
+        $queryParameters = RequestQueryParameterUtil::all($request);
+        $enabledEndpoints = $this->enabledEndpoints();
+        $endpointStates = $this->endpointStates($enabledEndpoints);
         try {
-            $arguments = $this->parseArguments($request);
-        } catch (JsonException) {
-            return response()->json([
-                'message' => 'Parse error',
-                'code' => JsonRpcErrorCode::PARSE_ERROR->value,
-            ], Response::HTTP_BAD_REQUEST);
+            $payloadArguments = $this->parsePayloadArguments($request);
+        } catch (JsonException|HttpFoundationJsonException) {
+            if (! $this->shouldIgnorePayloadException($toolName, $queryParameters, $endpointStates)) {
+                return response()->json([
+                    'message' => 'Parse error',
+                    'code' => JsonRpcErrorCode::PARSE_ERROR->value,
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $payloadArguments = [];
         } catch (\InvalidArgumentException $exception) {
-            return response()->json([
-                'message' => $exception->getMessage(),
-                'code' => JsonRpcErrorCode::INVALID_REQUEST->value,
-            ], Response::HTTP_BAD_REQUEST);
+            if (! $this->shouldIgnorePayloadException($toolName, $queryParameters, $endpointStates)) {
+                return response()->json([
+                    'message' => $exception->getMessage(),
+                    'code' => JsonRpcErrorCode::INVALID_REQUEST->value,
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $payloadArguments = [];
         }
 
         $sessionId = $this->sessionId($request);
 
-        foreach ($this->enabledEndpoints() as $endpoint) {
+        foreach ($enabledEndpoints as $endpoint) {
+            $endpointState = $endpointStates[$endpoint->id];
+            $arguments = $this->mergeArguments(
+                payloadArguments: $payloadArguments,
+                queryParameters: $queryParameters,
+                consumedQueryParameters: $endpointState['consumedQueryParameters'],
+            );
             $message = $this->toolExecuteMessage($toolName, $arguments);
-            $server = $this->serverFactory->make($endpoint, $message);
+            $toolResolutionContext = new ToolResolutionContext(
+                queryParameters: $queryParameters,
+                requestMessage: $message,
+            );
+
+            if (! $this->endpointToolCatalog->toolClassesContainName(
+                $endpointState['declaredToolClasses'],
+                $toolName,
+            )) {
+                continue;
+            }
+
+            $visibleToolClasses = $this->endpointToolCatalog->visibleToolClasses(
+                $endpoint,
+                $toolResolutionContext,
+                $endpointState['resolver'],
+            );
+            if (! $this->endpointToolCatalog->toolClassesContainName($visibleToolClasses, $toolName)) {
+                return $this->toolNotFoundResponse($toolName);
+            }
+
+            $server = $this->serverFactory->make(
+                endpoint: $endpoint,
+                requestMessage: $message,
+                toolResolutionContext: $toolResolutionContext,
+                resolvedToolClasses: $visibleToolClasses,
+            );
             $responseData = $server->requestMessage(clientId: $sessionId, message: $message)->toArray();
 
             $error = $responseData['error'] ?? null;
@@ -57,28 +108,20 @@ class ToolApiController
 
             $errorCode = $error['code'] ?? null;
             if ($errorCode === JsonRpcErrorCode::METHOD_NOT_FOUND->value) {
-                continue;
+                return response()->json($error, Response::HTTP_NOT_FOUND);
             }
 
             return response()->json($error, $this->errorHttpStatus($errorCode));
         }
 
-        return response()->json([
-            'message' => "Tool '{$toolName}' not found",
-            'code' => JsonRpcErrorCode::METHOD_NOT_FOUND->value,
-        ], Response::HTTP_NOT_FOUND);
+        return $this->toolNotFoundResponse($toolName);
     }
 
     /**
      * @return array<int|string, mixed>
      */
-    private function parseArguments(Request $request): array
+    private function parsePayloadArguments(Request $request): array
     {
-        $queryArguments = $this->parseQueryArguments($request);
-        if ($queryArguments !== []) {
-            return $queryArguments;
-        }
-
         $formArguments = $request->request->all();
         if ($formArguments !== []) {
             return $formArguments;
@@ -100,40 +143,52 @@ class ToolApiController
     /**
      * @return array<int|string, mixed>
      */
-    private function parseQueryArguments(Request $request): array
+    private function mergeArguments(
+        array $payloadArguments,
+        array $queryParameters,
+        array $consumedQueryParameters,
+    ): array {
+        $queryArguments = $queryParameters;
+        foreach ($consumedQueryParameters as $parameterName) {
+            unset($queryArguments[$parameterName]);
+        }
+
+        if ($queryArguments === []) {
+            return $payloadArguments;
+        }
+
+        return array_replace($payloadArguments, $queryArguments);
+    }
+
+    /**
+     * Preserve legacy query-precedence behavior only when the selected endpoint
+     * still receives at least one real tool argument after removing filter-only keys.
+     *
+     * @param  array<int|string, mixed>  $queryParameters
+     * @param  array<string, array{
+     *   resolver: DynamicToolResolverInterface|null,
+     *   declaredToolClasses: array<int, class-string<ToolInterface>>,
+     *   consumedQueryParameters: array<int, string>
+     * }>  $endpointStates
+     */
+    private function shouldIgnorePayloadException(string $toolName, array $queryParameters, array $endpointStates): bool
     {
-        $queryArguments = $request->query->all();
-
-        $queryString = $request->server('QUERY_STRING');
-        if (! is_string($queryString) || trim($queryString) === '') {
-            return $queryArguments;
+        if ($queryParameters === []) {
+            return false;
         }
 
-        $valuesByKey = [];
-        foreach (explode('&', $queryString) as $segment) {
-            if ($segment === '') {
+        foreach ($endpointStates as $endpointState) {
+            if (! $this->endpointToolCatalog->toolClassesContainName(
+                $endpointState['declaredToolClasses'],
+                $toolName,
+            )) {
                 continue;
             }
 
-            $parts = explode('=', $segment, 2);
-            $key = urldecode($parts[0]);
-            if ($key === '' || str_ends_with($key, '[]') || str_contains($key, '[')) {
-                continue;
-            }
-
-            $value = urldecode($parts[1] ?? '');
-            $valuesByKey[$key][] = $value;
+            return $this->mergeArguments([], $queryParameters, $endpointState['consumedQueryParameters']) !== [];
         }
 
-        foreach ($valuesByKey as $key => $values) {
-            if (count($values) <= 1) {
-                continue;
-            }
-
-            $queryArguments[$key] = $values;
-        }
-
-        return $queryArguments;
+        return false;
     }
 
     private function sessionId(Request $request): string
@@ -161,6 +216,29 @@ class ToolApiController
         }
 
         return $endpoints;
+    }
+
+    /**
+     * @param  array<int, McpEndpointDefinition>  $endpoints
+     * @return array<string, array{
+     *   resolver: DynamicToolResolverInterface|null,
+     *   declaredToolClasses: array<int, class-string<ToolInterface>>,
+     *   consumedQueryParameters: array<int, string>
+     * }>
+     */
+    private function endpointStates(array $endpoints): array
+    {
+        $states = [];
+        foreach ($endpoints as $endpoint) {
+            $resolver = $this->endpointToolCatalog->resolverForEndpoint($endpoint);
+            $states[$endpoint->id] = [
+                'resolver' => $resolver,
+                'declaredToolClasses' => $this->endpointToolCatalog->declaredToolClasses($endpoint, $resolver),
+                'consumedQueryParameters' => $this->endpointToolCatalog->consumedQueryParameters($endpoint, $resolver),
+            ];
+        }
+
+        return $states;
     }
 
     /**
@@ -192,5 +270,13 @@ class ToolApiController
             JsonRpcErrorCode::INVALID_PARAMS->value => Response::HTTP_BAD_REQUEST,
             default => Response::HTTP_INTERNAL_SERVER_ERROR,
         };
+    }
+
+    private function toolNotFoundResponse(string $toolName): JsonResponse
+    {
+        return response()->json([
+            'message' => "Tool '{$toolName}' not found",
+            'code' => JsonRpcErrorCode::METHOD_NOT_FOUND->value,
+        ], Response::HTTP_NOT_FOUND);
     }
 }

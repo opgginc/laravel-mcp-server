@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Str;
 use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
+use OPGG\LaravelMcpServer\Services\ToolService\EndpointToolCatalog;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use OPGG\LaravelMcpServer\Utils\JsonSchemaNormalizer;
 
@@ -307,7 +308,7 @@ class TestMcpToolCommand extends Command
         $configuredTools = $this->getRegisteredToolClasses();
 
         if (empty($configuredTools)) {
-            $this->warn('No MCP tools are registered. Use Route::mcp(...)->tools([...]) to register endpoint tools.');
+            $this->warn('No MCP tools are registered. Use Route::mcp(...)->tools([...]) or ->dynamicTools(...) to register endpoint tools.');
 
             return 0;
         }
@@ -349,7 +350,7 @@ class TestMcpToolCommand extends Command
         $configuredTools = $this->getRegisteredToolClasses();
 
         if (empty($configuredTools)) {
-            $this->warn('No MCP tools are registered. Use Route::mcp(...)->tools([...]) to register endpoint tools.');
+            $this->warn('No MCP tools are registered. Use Route::mcp(...)->tools([...]) or ->dynamicTools(...) to register endpoint tools.');
 
             return null;
         }
@@ -393,17 +394,26 @@ class TestMcpToolCommand extends Command
     {
         /** @var McpEndpointRegistry $registry */
         $registry = app(McpEndpointRegistry::class);
+        /** @var EndpointToolCatalog $toolCatalog */
+        $toolCatalog = app(EndpointToolCatalog::class);
 
         $endpointFilter = $this->option('endpoint');
         if (! is_string($endpointFilter) || trim($endpointFilter) === '') {
-            return $registry->allToolClasses();
+            $toolClasses = [];
+            foreach ($registry->all() as $definition) {
+                foreach ($toolCatalog->declaredToolClasses($definition) as $toolClass) {
+                    $toolClasses[$toolClass] = $toolClass;
+                }
+            }
+
+            return array_values($toolClasses);
         }
 
         $needle = trim($endpointFilter);
         $matchedTools = [];
         foreach ($registry->all() as $definition) {
             if ($this->matchesEndpoint($definition, $needle)) {
-                foreach ($definition->tools as $toolClass) {
+                foreach ($toolCatalog->declaredToolClasses($definition) as $toolClass) {
                     $matchedTools[$toolClass] = $toolClass;
                 }
             }

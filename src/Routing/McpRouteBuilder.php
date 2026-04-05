@@ -6,6 +6,7 @@ use InvalidArgumentException;
 use OPGG\LaravelMcpServer\Enums\ProtocolVersion;
 use OPGG\LaravelMcpServer\Server\McpServerFactory;
 use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
+use OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface;
 
 final class McpRouteBuilder
 {
@@ -86,7 +87,15 @@ final class McpRouteBuilder
      */
     public function tools(array $tools): self
     {
-        $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withTools($tools));
+        $this->mutate(function (McpEndpointDefinition $definition) use ($tools) {
+            if ($definition->dynamicToolsResolver !== null) {
+                throw new InvalidArgumentException(
+                    'Static tools cannot be configured after dynamic tools are declared.',
+                );
+            }
+
+            return $definition->withTools($tools);
+        });
 
         return $this;
     }
@@ -117,6 +126,32 @@ final class McpRouteBuilder
     public function prompts(array $prompts): self
     {
         $this->mutate(fn (McpEndpointDefinition $definition) => $definition->withPrompts($prompts));
+
+        return $this;
+    }
+
+    /**
+     * @param  class-string  $resolverClass
+     */
+    public function dynamicTools(string $resolverClass): self
+    {
+        if (! is_a(object_or_class: $resolverClass, class: DynamicToolResolverInterface::class, allow_string: true)) {
+            throw new InvalidArgumentException(sprintf(
+                'The dynamic tools resolver [%s] must implement %s.',
+                $resolverClass,
+                DynamicToolResolverInterface::class,
+            ));
+        }
+
+        $this->mutate(function (McpEndpointDefinition $definition) use ($resolverClass) {
+            if ($definition->tools !== []) {
+                throw new InvalidArgumentException(
+                    'Dynamic tools cannot be configured after static tools are declared.',
+                );
+            }
+
+            return $definition->withDynamicToolsResolver($resolverClass);
+        });
 
         return $this;
     }

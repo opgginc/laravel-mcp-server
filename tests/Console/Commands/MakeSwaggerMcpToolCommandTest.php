@@ -1,6 +1,10 @@
 <?php
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\File;
+use OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+use OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser;
+use OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter;
 
 beforeEach(function () {
     // Clean up directories before each test
@@ -16,10 +20,10 @@ afterEach(function () {
 
 // Test tag-based directory creation
 test('createDirectory returns tag-based directory by default', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     // Mock the command and set the groupingMethod property
-    $command = \Mockery::mock($command)->makePartial();
+    $command = Mockery::mock($command)->makePartial();
 
     // Use reflection to set the groupingMethod property
     $property = new ReflectionProperty($command, 'groupingMethod');
@@ -36,10 +40,10 @@ test('createDirectory returns tag-based directory by default', function () {
 });
 
 test('createDirectory returns path-based directory', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     // Mock the command and set the groupingMethod property
-    $command = \Mockery::mock($command)->makePartial();
+    $command = Mockery::mock($command)->makePartial();
 
     // Use reflection to set the groupingMethod property
     $property = new ReflectionProperty($command, 'groupingMethod');
@@ -56,10 +60,10 @@ test('createDirectory returns path-based directory', function () {
 });
 
 test('createDirectory returns empty string for none grouping', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     // Mock the command and set the groupingMethod property
-    $command = \Mockery::mock($command)->makePartial();
+    $command = Mockery::mock($command)->makePartial();
 
     // Use reflection to set the groupingMethod property
     $property = new ReflectionProperty($command, 'groupingMethod');
@@ -76,8 +80,8 @@ test('createDirectory returns empty string for none grouping', function () {
 });
 
 test('createTagDirectory returns StudlyCase for single tag', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     // Use reflection to access protected method
     $method = new ReflectionMethod($command, 'createTagDirectory');
@@ -90,8 +94,8 @@ test('createTagDirectory returns StudlyCase for single tag', function () {
 });
 
 test('createTagDirectory returns General for empty tags', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -103,8 +107,8 @@ test('createTagDirectory returns General for empty tags', function () {
 });
 
 test('createTagDirectory returns General for missing tags key', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -116,8 +120,8 @@ test('createTagDirectory returns General for missing tags key', function () {
 });
 
 test('createTagDirectory uses first tag when multiple tags exist', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -129,8 +133,8 @@ test('createTagDirectory uses first tag when multiple tags exist', function () {
 });
 
 test('createTagDirectory handles special characters in tags', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -142,8 +146,8 @@ test('createTagDirectory handles special characters in tags', function () {
 });
 
 test('createTagDirectory handles snake_case tags', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -155,8 +159,8 @@ test('createTagDirectory handles snake_case tags', function () {
 });
 
 test('createTagDirectory handles numbers in tags', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -169,7 +173,7 @@ test('createTagDirectory handles numbers in tags', function () {
 
 // Test path-based directory creation
 test('createPathDirectory returns StudlyCase for path segments', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     $method = new ReflectionMethod($command, 'createPathDirectory');
     $method->setAccessible(true);
@@ -181,7 +185,7 @@ test('createPathDirectory returns StudlyCase for path segments', function () {
 });
 
 test('createPathDirectory returns Root for empty path', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     $method = new ReflectionMethod($command, 'createPathDirectory');
     $method->setAccessible(true);
@@ -193,7 +197,7 @@ test('createPathDirectory returns Root for empty path', function () {
 });
 
 test('createPathDirectory handles snake_case path segments', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     $method = new ReflectionMethod($command, 'createPathDirectory');
     $method->setAccessible(true);
@@ -205,7 +209,7 @@ test('createPathDirectory handles snake_case path segments', function () {
 });
 
 test('createPathDirectory handles kebab-case path segments', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     $method = new ReflectionMethod($command, 'createPathDirectory');
     $method->setAccessible(true);
@@ -217,7 +221,7 @@ test('createPathDirectory handles kebab-case path segments', function () {
 });
 
 test('createPathDirectory handles missing path key', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     $method = new ReflectionMethod($command, 'createPathDirectory');
     $method->setAccessible(true);
@@ -406,10 +410,10 @@ test('swagger tool generation creates path-based directories', function () {
 
 // Test interactive grouping option selection
 test('getGroupingOption returns provided option when set', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     // Mock the option method to return a value
-    $command = \Mockery::mock($command)->makePartial();
+    $command = Mockery::mock($command)->makePartial();
     $command->shouldReceive('option')->with('group-by')->andReturn('path');
     $command->shouldReceive('option')->with('no-interaction')->andReturn(false);
 
@@ -422,10 +426,10 @@ test('getGroupingOption returns provided option when set', function () {
 });
 
 test('getGroupingOption returns tag for non-interactive mode when no option provided', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     // Mock the option method to return null (no option provided)
-    $command = \Mockery::mock($command)->makePartial();
+    $command = Mockery::mock($command)->makePartial();
     $command->shouldReceive('option')->with('group-by')->andReturn(null);
     $command->shouldReceive('option')->with('no-interaction')->andReturn(true);
 
@@ -454,11 +458,11 @@ test('getGroupingOption handles none selection in interactive mode', function ()
 
 // Test generateGroupingPreviews method
 test('generateGroupingPreviews returns preview examples for all grouping options', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     // Mock the parser and converter
-    $mockParser = \Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser::class);
-    $mockConverter = \Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter::class);
+    $mockParser = Mockery::mock(SwaggerParser::class);
+    $mockConverter = Mockery::mock(SwaggerToMcpConverter::class);
 
     // Sample endpoints for testing
     $sampleEndpoints = [
@@ -496,11 +500,11 @@ test('generateGroupingPreviews returns preview examples for all grouping options
 });
 
 test('generateGroupingPreviews handles endpoints with no tags', function () {
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
+    $command = new MakeSwaggerMcpToolCommand;
 
     // Mock the parser and converter
-    $mockParser = \Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerParser::class);
-    $mockConverter = \Mockery::mock(\OPGG\LaravelMcpServer\Services\SwaggerParser\SwaggerToMcpConverter::class);
+    $mockParser = Mockery::mock(SwaggerParser::class);
+    $mockConverter = Mockery::mock(SwaggerToMcpConverter::class);
 
     // Endpoints without tags
     $sampleEndpoints = [
@@ -531,7 +535,7 @@ test('generateGroupingPreviews handles endpoints with no tags', function () {
 });
 
 test('getGroupingOption displays previews in interactive mode', function () {
-    $command = \Mockery::mock(\OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand::class)->makePartial()->shouldAllowMockingProtectedMethods();
+    $command = Mockery::mock(MakeSwaggerMcpToolCommand::class)->makePartial()->shouldAllowMockingProtectedMethods();
 
     // Mock the option method to return null (no group-by option provided)
     $command->shouldReceive('option')->with('group-by')->andReturn(null);
@@ -553,7 +557,7 @@ test('getGroupingOption displays previews in interactive mode', function () {
 
     // Mock choice method
     $command->shouldReceive('choice')
-        ->with('Select grouping method', \Mockery::any(), 0)
+        ->with('Select grouping method', Mockery::any(), 0)
         ->andReturn('Tag-based grouping (organize by OpenAPI tags)');
 
     $method = new ReflectionMethod($command, 'getGroupingOption');

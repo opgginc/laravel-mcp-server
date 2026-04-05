@@ -125,7 +125,7 @@ abstract class Type extends JsonSchema
      *
      * @param  class-string|array<int, mixed>  $values
      *
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function enum(array|string $values): static
     {
@@ -145,7 +145,7 @@ abstract class Type extends JsonSchema
      * @param  class-string  $enumClass
      * @return array<int, int|string>
      *
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     private function resolveBackedEnumValues(string $enumClass): array
     {

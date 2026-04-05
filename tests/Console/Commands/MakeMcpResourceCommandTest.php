@@ -1,6 +1,8 @@
 <?php
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\File;
+use OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand;
 
 beforeEach(function () {
     File::deleteDirectory(app_path('MCP/Resources'));
@@ -21,8 +23,8 @@ test('make:mcp-resource generates a resource class', function () {
 });
 
 test('getPath returns correct path without tag directory', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpResourceCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'getPath');
     $method->setAccessible(true);
@@ -34,8 +36,8 @@ test('getPath returns correct path without tag directory', function () {
 });
 
 test('getPath returns correct path with tag directory', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpResourceCommand($filesystem);
 
     $property = new ReflectionProperty($command, 'dynamicParams');
     $property->setAccessible(true);
@@ -51,8 +53,8 @@ test('getPath returns correct path with tag directory', function () {
 });
 
 test('replaceStubPlaceholders generates correct namespace without tag directory', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpResourceCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'replaceStubPlaceholders');
     $method->setAccessible(true);
@@ -65,8 +67,8 @@ test('replaceStubPlaceholders generates correct namespace without tag directory'
 });
 
 test('replaceStubPlaceholders generates correct namespace with tag directory', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpResourceCommand($filesystem);
 
     $property = new ReflectionProperty($command, 'dynamicParams');
     $property->setAccessible(true);
@@ -83,8 +85,8 @@ test('replaceStubPlaceholders generates correct namespace with tag directory', f
 });
 
 test('makeDirectory creates nested directories for resources', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeMcpResourceCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'makeDirectory');
     $method->setAccessible(true);

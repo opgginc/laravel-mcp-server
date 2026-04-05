@@ -15,6 +15,7 @@ use OPGG\LaravelMcpServer\Console\Commands\TestMcpToolCommand;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
 use OPGG\LaravelMcpServer\Server\McpServerFactory;
+use OPGG\LaravelMcpServer\Services\ToolService\EndpointToolCatalog;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -49,6 +50,7 @@ class LaravelMcpServerServiceProvider extends PackageServiceProvider
         $this->app->singleton(LaravelMcpServer::class);
         $this->app->singleton(McpEndpointRegistry::class);
         $this->app->singleton(McpRouteRegistrar::class);
+        $this->app->singleton(EndpointToolCatalog::class);
         $this->app->singleton(McpServerFactory::class);
     }
 

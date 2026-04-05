@@ -3,49 +3,56 @@
 namespace OPGG\LaravelMcpServer\Contracts\JsonSchema;
 
 use Closure;
+use OPGG\LaravelMcpServer\JsonSchema\Types\ArrayType;
+use OPGG\LaravelMcpServer\JsonSchema\Types\BooleanType;
+use OPGG\LaravelMcpServer\JsonSchema\Types\IntegerType;
+use OPGG\LaravelMcpServer\JsonSchema\Types\NumberType;
+use OPGG\LaravelMcpServer\JsonSchema\Types\ObjectType;
+use OPGG\LaravelMcpServer\JsonSchema\Types\StringType;
+use OPGG\LaravelMcpServer\JsonSchema\Types\Type;
 
 interface JsonSchema
 {
     /**
      * Create a new object schema instance.
      *
-     * @param  (Closure(JsonSchema): array<string, \OPGG\LaravelMcpServer\JsonSchema\Types\Type>)|array<string, \OPGG\LaravelMcpServer\JsonSchema\Types\Type>  $properties
-     * @return \OPGG\LaravelMcpServer\JsonSchema\Types\ObjectType
+     * @param  (Closure(JsonSchema): array<string, Type>)|array<string, Type>  $properties
+     * @return ObjectType
      */
     public function object(Closure|array $properties = []);
 
     /**
      * Create a new array property instance.
      *
-     * @return \OPGG\LaravelMcpServer\JsonSchema\Types\ArrayType
+     * @return ArrayType
      */
     public function array();
 
     /**
      * Create a new string property instance.
      *
-     * @return \OPGG\LaravelMcpServer\JsonSchema\Types\StringType
+     * @return StringType
      */
     public function string();
 
     /**
      * Create a new integer property instance.
      *
-     * @return \OPGG\LaravelMcpServer\JsonSchema\Types\IntegerType
+     * @return IntegerType
      */
     public function integer();
 
     /**
      * Create a new number property instance.
      *
-     * @return \OPGG\LaravelMcpServer\JsonSchema\Types\NumberType
+     * @return NumberType
      */
     public function number();
 
     /**
      * Create a new boolean property instance.
      *
-     * @return \OPGG\LaravelMcpServer\JsonSchema\Types\BooleanType
+     * @return BooleanType
      */
     public function boolean();
 }

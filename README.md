@@ -108,6 +108,78 @@ curl -X POST http://localhost:8000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
+### Dynamic Tool Filtering by Query String
+
+If one endpoint needs to expose different tool sets based on the incoming URL, attach a dynamic tools resolver to the route.
+The resolver owns both the declared tool catalog for the endpoint and the per-request visible subset.
+
+```php
+use OPGG\LaravelMcpServer\Data\ToolResolutionContext;
+use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
+use OPGG\LaravelMcpServer\Services\ToolService\DynamicToolResolverInterface;
+
+final class LolPhaseToolResolver implements DynamicToolResolverInterface
+{
+    public function declaredTools(McpEndpointDefinition $endpoint): array
+    {
+        return [
+            \App\MCP\Tools\LolSearchChampionMetaTool::class,
+            \App\MCP\Tools\LolGetChampionAnalysisTool::class,
+            \App\MCP\Tools\LolGetLiveItemRecommendationsTool::class,
+        ];
+    }
+
+    public function resolve(
+        McpEndpointDefinition $endpoint,
+        ToolResolutionContext $context,
+    ): array {
+        return match ($context->queryParameters['phase'] ?? null) {
+            'lobby' => [
+                \App\MCP\Tools\LolSearchChampionMetaTool::class,
+                \App\MCP\Tools\LolGetChampionAnalysisTool::class,
+            ],
+            'inprogress' => [
+                \App\MCP\Tools\LolGetLiveItemRecommendationsTool::class,
+            ],
+            default => $this->declaredTools($endpoint),
+        };
+    }
+
+    public function consumedQueryParameters(): array
+    {
+        return ['phase'];
+    }
+}
+```
+
+```php
+Route::mcp('/mcp/voice/lol/live')
+    ->setServerInfo(
+        name: 'OP.GG MCP Server - Voice lol Live',
+        version: '1.0.0',
+    )
+    ->dynamicTools(LolPhaseToolResolver::class);
+```
+
+Example requests:
+
+```text
+/mcp/voice/lol/live?phase=lobby
+/mcp/voice/lol/live?phase=inprogress
+```
+
+The same filtered tool set is applied consistently to:
+- `tools/list`
+- `tools/call`
+- `tools/execute`
+- `POST /tools/{tool_name}` when `->enabledApi()` is enabled
+
+If the same endpoint also uses `POST /tools/{tool_name}`, you can optionally expose a public
+`consumedQueryParameters(): array` hook on the resolver for query keys that should be used only
+for filtering and not forwarded as tool arguments. This hook is a documented convention and is
+not part of `DynamicToolResolverInterface`; resolvers that omit it will forward those query keys
+as tool arguments.
+
 ## Lumen Setup
 
 ```php
@@ -256,7 +328,7 @@ Route::mcp('/mcp')
 
 ## MCP Tools -> OpenAPI Export
 
-Export all registered `ToolInterface` classes (via `Route::mcp(...)->tools([...])`) to an OpenAPI JSON document using each tool's `inputSchema()`.
+Export all registered `ToolInterface` classes (via `Route::mcp(...)->tools([...])` or `->dynamicTools(...)`) to an OpenAPI JSON document using each tool's `inputSchema()`.
 Only endpoints configured with `->enabledApi()` are included in this export and exposed through `POST /tools/{tool_name}`.
 Operations are grouped by endpoint `name` using OpenAPI `tags`.
 If multiple endpoints register the same tool name, the operation keeps first-registration behavior and merges all matching endpoint names into `tags`.

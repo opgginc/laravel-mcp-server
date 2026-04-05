@@ -18,7 +18,7 @@ class Serializer
      *
      * @return array<string, mixed>
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public static function serialize(Types\Type $type, ?int $compactEnumExampleCount = null): array
     {

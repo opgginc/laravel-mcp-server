@@ -4,12 +4,14 @@ namespace OPGG\LaravelMcpServer\Server;
 
 use Illuminate\Container\Container;
 use InvalidArgumentException;
+use OPGG\LaravelMcpServer\Data\ToolResolutionContext;
 use OPGG\LaravelMcpServer\Protocol\MCPProtocol;
 use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
 use OPGG\LaravelMcpServer\Server\Request\ToolsCallHandler;
 use OPGG\LaravelMcpServer\Server\Request\ToolsListHandler;
 use OPGG\LaravelMcpServer\Services\PromptService\PromptRepository;
 use OPGG\LaravelMcpServer\Services\ResourceService\ResourceRepository;
+use OPGG\LaravelMcpServer\Services\ToolService\EndpointToolCatalog;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolRepository;
 use OPGG\LaravelMcpServer\Transports\StreamableHttpTransport;
@@ -17,9 +19,9 @@ use OPGG\LaravelMcpServer\Transports\StreamableHttpTransport;
 final class McpServerFactory
 {
     /**
-     * Cached tool-name to class map by endpoint ID.
+     * Cached tool-name to class map by endpoint ID and filtered tool fingerprint.
      *
-     * @var array<string, array<string, class-string<ToolInterface>>>
+     * @var array<string, array<string, array<string, class-string<ToolInterface>>>>
      */
     private array $toolClassMapByEndpoint = [];
 
@@ -30,7 +32,10 @@ final class McpServerFactory
      */
     private array $toolNameByClass = [];
 
-    public function __construct(private readonly Container $container) {}
+    public function __construct(
+        private readonly Container $container,
+        private readonly EndpointToolCatalog $endpointToolCatalog,
+    ) {}
 
     /**
      * Clears all endpoint and class caches.
@@ -52,9 +57,14 @@ final class McpServerFactory
 
     /**
      * @param  array<string, mixed>|null  $requestMessage
+     * @param  array<int, class-string<ToolInterface>>|null  $resolvedToolClasses
      */
-    public function make(McpEndpointDefinition $endpoint, ?array $requestMessage = null): MCPServer
-    {
+    public function make(
+        McpEndpointDefinition $endpoint,
+        ?array $requestMessage = null,
+        ?ToolResolutionContext $toolResolutionContext = null,
+        ?array $resolvedToolClasses = null,
+    ): MCPServer {
         $requestedMethod = $this->requestedMethod($requestMessage);
 
         $capabilities = new ServerCapabilities;
@@ -85,6 +95,7 @@ final class McpServerFactory
         // Intentionally lazy-register repositories by method namespace to avoid
         // constructing unnecessary services for initialize/ping/notifications.
         if ($this->supportsToolsMethod($requestedMethod)) {
+            $toolClasses = $resolvedToolClasses ?? $this->endpointToolCatalog->visibleToolClasses($endpoint, $toolResolutionContext);
             $toolRepository = new ToolRepository(
                 $this->container,
                 $endpoint->compactEnumExampleCount,
@@ -93,15 +104,15 @@ final class McpServerFactory
             if ($this->isToolCallMethod($requestedMethod)) {
                 $requestedToolName = $this->requestedToolName($requestMessage);
                 if ($requestedToolName !== null) {
-                    $toolClass = $this->resolveToolClassByName($endpoint, $requestedToolName);
+                    $toolClass = $this->resolveToolClassByName($endpoint, $toolClasses, $requestedToolName);
                     if ($toolClass !== null) {
                         $toolRepository->register($toolClass);
                     }
                 }
             } elseif ($this->isToolsListMethod($requestedMethod)) {
-                $toolRepository->registerSchemaMany($endpoint->tools);
+                $toolRepository->registerSchemaMany($toolClasses);
             } else {
-                $toolRepository->registerMany($endpoint->tools);
+                $toolRepository->registerMany($toolClasses);
             }
 
             if ($endpoint->toolsCallHandler === null) {
@@ -219,23 +230,35 @@ final class McpServerFactory
         return is_string($name) && $name !== '' ? $name : null;
     }
 
-    private function resolveToolClassByName(McpEndpointDefinition $endpoint, string $toolName): ?string
-    {
-        $endpointId = $endpoint->id;
-        if (! isset($this->toolClassMapByEndpoint[$endpointId])) {
-            $this->toolClassMapByEndpoint[$endpointId] = $this->buildToolClassMap($endpoint);
+    /**
+     * @param  array<int, class-string<ToolInterface>>  $toolClasses
+     */
+    private function resolveToolClassByName(
+        McpEndpointDefinition $endpoint,
+        array $toolClasses,
+        string $toolName
+    ): ?string {
+        if ($endpoint->dynamicToolsResolver !== null) {
+            return $this->buildToolClassMap($toolClasses)[$toolName] ?? null;
         }
 
-        return $this->toolClassMapByEndpoint[$endpointId][$toolName] ?? null;
+        $endpointId = $endpoint->id;
+        $fingerprint = $this->toolClassFingerprint($toolClasses);
+
+        if (! isset($this->toolClassMapByEndpoint[$endpointId][$fingerprint])) {
+            $this->toolClassMapByEndpoint[$endpointId][$fingerprint] = $this->buildToolClassMap($toolClasses);
+        }
+
+        return $this->toolClassMapByEndpoint[$endpointId][$fingerprint][$toolName] ?? null;
     }
 
     /**
      * @return array<string, class-string<ToolInterface>>
      */
-    private function buildToolClassMap(McpEndpointDefinition $endpoint): array
+    private function buildToolClassMap(array $toolClasses): array
     {
         $map = [];
-        foreach ($endpoint->tools as $toolClass) {
+        foreach ($toolClasses as $toolClass) {
             $toolName = $this->toolNameByClass[$toolClass] ??= $this->resolveToolName($toolClass);
             $map[$toolName] = $toolClass;
         }
@@ -254,5 +277,13 @@ final class McpServerFactory
         }
 
         return $tool->name();
+    }
+
+    /**
+     * @param  array<int, class-string<ToolInterface>>  $toolClasses
+     */
+    private function toolClassFingerprint(array $toolClasses): string
+    {
+        return sha1(implode("\n", $toolClasses));
     }
 }
