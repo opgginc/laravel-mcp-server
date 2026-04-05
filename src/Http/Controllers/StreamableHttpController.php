@@ -8,12 +8,14 @@ use Illuminate\Support\Str;
 use JsonException;
 use OPGG\LaravelMcpServer\Data\Resources\JsonRpc\JsonRpcErrorResource;
 use OPGG\LaravelMcpServer\Data\Resources\JsonRpc\JsonRpcResultResource;
+use OPGG\LaravelMcpServer\Data\ToolResolutionContext;
 use OPGG\LaravelMcpServer\Exceptions\Enums\JsonRpcErrorCode;
 use OPGG\LaravelMcpServer\Exceptions\JsonRpcErrorException;
 use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
 use OPGG\LaravelMcpServer\Server\McpServerFactory;
+use OPGG\LaravelMcpServer\Utils\RequestQueryParameterUtil;
 
 class StreamableHttpController
 {
@@ -54,7 +56,14 @@ class StreamableHttpController
             );
         }
 
-        $server = $this->serverFactory->make($endpoint, $messageJson);
+        $server = $this->serverFactory->make(
+            endpoint: $endpoint,
+            requestMessage: $messageJson,
+            toolResolutionContext: new ToolResolutionContext(
+                queryParameters: RequestQueryParameterUtil::all($request),
+                requestMessage: is_array($messageJson) ? $messageJson : null,
+            ),
+        );
 
         $mcpSessionId = $this->resolveSessionId($request);
 

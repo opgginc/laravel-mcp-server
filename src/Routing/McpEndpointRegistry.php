@@ -3,6 +3,7 @@
 namespace OPGG\LaravelMcpServer\Routing;
 
 use Illuminate\Support\Str;
+use OPGG\LaravelMcpServer\Services\ToolService\EndpointToolCatalog;
 
 final class McpEndpointRegistry
 {
@@ -49,8 +50,11 @@ final class McpEndpointRegistry
     public function allToolClasses(): array
     {
         $tools = [];
+        /** @var EndpointToolCatalog $toolCatalog */
+        $toolCatalog = app(EndpointToolCatalog::class);
+
         foreach ($this->definitions as $definition) {
-            foreach ($definition->tools as $toolClass) {
+            foreach ($toolCatalog->declaredToolClasses($definition) as $toolClass) {
                 $tools[] = $toolClass;
             }
         }

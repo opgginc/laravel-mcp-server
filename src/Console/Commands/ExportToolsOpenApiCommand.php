@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use OPGG\LaravelMcpServer\JsonSchema\Types\Type;
 use OPGG\LaravelMcpServer\Routing\McpEndpointDefinition;
 use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
+use OPGG\LaravelMcpServer\Services\ToolService\EndpointToolCatalog;
 use OPGG\LaravelMcpServer\Services\ToolService\ToolInterface;
 use OPGG\LaravelMcpServer\Utils\JsonSchemaNormalizer;
 use stdClass;
@@ -46,7 +47,7 @@ class ExportToolsOpenApiCommand extends Command
         if ($toolEntries === []) {
             $this->warn(
                 'No MCP tools are available for API export. '.
-                'Use Route::mcp(...)->enabledApi()->tools([...]) to register endpoint tools.'
+                'Use Route::mcp(...)->enabledApi()->tools([...]) or ->dynamicTools(...) to register endpoint tools.'
             );
 
             return 0;
@@ -226,6 +227,8 @@ class ExportToolsOpenApiCommand extends Command
     {
         /** @var McpEndpointRegistry $registry */
         $registry = app(McpEndpointRegistry::class);
+        /** @var EndpointToolCatalog $toolCatalog */
+        $toolCatalog = app(EndpointToolCatalog::class);
 
         $endpointFilter = $this->option('endpoint');
         $needle = is_string($endpointFilter) && trim($endpointFilter) !== '' ? trim($endpointFilter) : null;
@@ -248,7 +251,7 @@ class ExportToolsOpenApiCommand extends Command
             $matchedApiEnabledEndpoint = true;
             $tag = $this->resolveEndpointTag($definition);
 
-            foreach ($definition->tools as $toolClass) {
+            foreach ($toolCatalog->declaredToolClasses($definition) as $toolClass) {
                 $tool = $this->resolveToolInstance($toolClass);
                 if ($tool === null) {
                     continue;

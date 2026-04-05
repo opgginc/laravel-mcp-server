@@ -1,6 +1,10 @@
 <?php
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\File;
+use OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand;
+use OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand;
+use OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand;
 
 beforeEach(function () {
     // Clean up directories before each test
@@ -15,8 +19,8 @@ afterEach(function () {
 });
 
 test('tag directory handles complex special characters', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -40,8 +44,8 @@ test('tag directory handles complex special characters', function () {
 });
 
 test('tag directory handles empty strings and whitespace', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -59,8 +63,8 @@ test('tag directory handles empty strings and whitespace', function () {
 });
 
 test('tag directory handles unicode characters', function () {
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $command = new \OPGG\LaravelMcpServer\Console\Commands\MakeSwaggerMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $command = new MakeSwaggerMcpToolCommand($filesystem);
 
     $method = new ReflectionMethod($command, 'createTagDirectory');
     $method->setAccessible(true);
@@ -79,9 +83,9 @@ test('tag directory handles unicode characters', function () {
 
 test('tool and resource creation in same tag directory works correctly', function () {
     // Simulate swagger generating both tool and resource with same tag
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $toolCommand = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
-    $resourceCommand = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpResourceCommand($filesystem);
+    $filesystem = new Filesystem;
+    $toolCommand = new MakeMcpToolCommand($filesystem);
+    $resourceCommand = new MakeMcpResourceCommand($filesystem);
 
     // Set up both commands with same tag directory
     $toolProperty = new ReflectionProperty($toolCommand, 'dynamicParams');
@@ -111,8 +115,8 @@ test('tool and resource creation in same tag directory works correctly', functio
 
 test('deeply nested tag directories work correctly', function () {
     // Test creating very deep directory structures
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $toolCommand = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $toolCommand = new MakeMcpToolCommand($filesystem);
 
     $property = new ReflectionProperty($toolCommand, 'dynamicParams');
     $property->setAccessible(true);
@@ -136,9 +140,9 @@ test('deeply nested tag directories work correctly', function () {
 
 test('namespace collision prevention with different tags', function () {
     // Test that tools with same name but different tags get different namespaces
-    $filesystem = new \Illuminate\Filesystem\Filesystem;
-    $toolCommand1 = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
-    $toolCommand2 = new \OPGG\LaravelMcpServer\Console\Commands\MakeMcpToolCommand($filesystem);
+    $filesystem = new Filesystem;
+    $toolCommand1 = new MakeMcpToolCommand($filesystem);
+    $toolCommand2 = new MakeMcpToolCommand($filesystem);
 
     // Set up different tag directories
     $property1 = new ReflectionProperty($toolCommand1, 'dynamicParams');

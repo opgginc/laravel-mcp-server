@@ -8,6 +8,8 @@ use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\HelloWorldTool;
 use OPGG\LaravelMcpServer\Services\ToolService\Examples\VersionCheckTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Handlers\CustomToolsCallHandler;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Resolvers\ExplodingToolResolver;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Resolvers\PhaseToolResolver;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\CompactEnumTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\ConstructionCounterTool;
@@ -137,6 +139,119 @@ test('tools/list still works when custom tools/call handler is configured', func
     expect(collect($tools)->pluck('name')->all())->toContain('hello-world', 'check-version');
 });
 
+test('tools/list filters tools using query string resolver', function () {
+    Route::mcp('/filtered-mcp')
+        ->setServerInfo(
+            name: 'Filtered HTTP Test MCP',
+            version: '1.0.0',
+        )
+        ->dynamicTools(PhaseToolResolver::class);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 1201,
+        'method' => 'tools/list',
+        'params' => [],
+    ];
+
+    $lobbyResponse = $this->postJson('/filtered-mcp?phase=lobby', $payload);
+    $lobbyResponse->assertStatus(200);
+    expect(collect($lobbyResponse->json('result.tools'))->pluck('name')->all())
+        ->toBe(['legacy-array-tool']);
+
+    $inProgressResponse = $this->postJson('/filtered-mcp?phase=inprogress', $payload);
+    $inProgressResponse->assertStatus(200);
+    expect(collect($inProgressResponse->json('result.tools'))->pluck('name')->all())
+        ->toBe(['structured-only-tool']);
+
+    $defaultResponse = $this->postJson('/filtered-mcp', $payload);
+    $defaultResponse->assertStatus(200);
+    expect(collect($defaultResponse->json('result.tools'))->pluck('name')->all())
+        ->toBe(['legacy-array-tool', 'structured-only-tool']);
+});
+
+test('tools/call uses the same query string filter as tools/list', function () {
+    Route::mcp('/filtered-call-mcp')
+        ->setServerInfo(
+            name: 'Filtered Call HTTP Test MCP',
+            version: '1.0.0',
+        )
+        ->dynamicTools(PhaseToolResolver::class);
+
+    $visiblePayload = [
+        'jsonrpc' => '2.0',
+        'id' => 1202,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'structured-only-tool',
+            'arguments' => [
+                'region' => 'KR',
+            ],
+        ],
+    ];
+
+    $visibleResponse = $this->postJson('/filtered-call-mcp?phase=inprogress', $visiblePayload);
+    $visibleResponse->assertStatus(200);
+    $visibleResponse->assertJsonPath('result.structuredContent.region', 'KR');
+
+    $hiddenPayload = [
+        'jsonrpc' => '2.0',
+        'id' => 1203,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'legacy-array-tool',
+            'arguments' => [],
+        ],
+    ];
+
+    $hiddenResponse = $this->postJson('/filtered-call-mcp?phase=inprogress', $hiddenPayload);
+    $hiddenResponse->assertStatus(200);
+    $hiddenResponse->assertJsonPath('error.code', -32601);
+    $hiddenResponse->assertJsonPath('error.message', "Tool 'legacy-array-tool' not found");
+});
+
+test('custom tools/call handler receives query string filtered tool repository', function () {
+    Route::mcp('/filtered-tracked-call-mcp')
+        ->setServerInfo(
+            name: 'Filtered Tracked Call HTTP Test MCP',
+            version: '1.0.0',
+        )
+        ->dynamicTools(PhaseToolResolver::class)
+        ->toolsCallHandler(CustomToolsCallHandler::class);
+
+    $visiblePayload = [
+        'jsonrpc' => '2.0',
+        'id' => 1204,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'structured-only-tool',
+            'arguments' => [
+                'region' => 'EUW',
+            ],
+        ],
+    ];
+
+    $visibleResponse = $this->postJson('/filtered-tracked-call-mcp?phase=inprogress', $visiblePayload);
+    $visibleResponse->assertStatus(200);
+    $visibleResponse->assertJsonPath('result.structuredContent.region', 'EUW');
+    $visibleResponse->assertJsonPath('result._meta.handler', 'custom-tools-call-handler');
+
+    $hiddenPayload = [
+        'jsonrpc' => '2.0',
+        'id' => 1205,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'legacy-array-tool',
+            'arguments' => [],
+        ],
+    ];
+
+    $hiddenResponse = $this->postJson('/filtered-tracked-call-mcp?phase=inprogress', $hiddenPayload);
+    $hiddenResponse->assertStatus(200);
+    $hiddenResponse->assertJsonPath('error.code', -32601);
+    $hiddenResponse->assertJsonPath('error.message', "Tool 'legacy-array-tool' not found");
+});
+
 test('initialize does not instantiate tool classes for non-tool requests', function () {
     ConstructionCounterTool::resetCounter();
     registerMcpEndpoint([ConstructionCounterTool::class]);
@@ -159,6 +274,33 @@ test('initialize does not instantiate tool classes for non-tool requests', funct
     $response->assertStatus(200);
     expect($response->json('result.protocolVersion'))->toBe('2025-11-25');
     expect(ConstructionCounterTool::$constructionCount)->toBe(0);
+});
+
+test('initialize does not evaluate dynamic tool resolvers for non-tool requests', function () {
+    Route::mcp('/dynamic-mcp')
+        ->setServerInfo(
+            name: 'Dynamic HTTP Test MCP',
+            version: '1.0.0',
+        )
+        ->dynamicTools(ExplodingToolResolver::class);
+
+    $payload = [
+        'jsonrpc' => '2.0',
+        'id' => 9011,
+        'method' => 'initialize',
+        'params' => [
+            'protocolVersion' => '2025-11-25',
+            'capabilities' => [],
+            'clientInfo' => [
+                'name' => 'perf-test-client',
+                'version' => '1.0.0',
+            ],
+        ],
+    ];
+
+    $response = $this->postJson('/dynamic-mcp', $payload);
+    $response->assertStatus(200);
+    expect($response->json('result.protocolVersion'))->toBe('2025-11-25');
 });
 
 test('tool classes are instantiated when tools endpoints are requested', function () {

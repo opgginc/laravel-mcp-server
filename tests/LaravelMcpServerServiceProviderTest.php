@@ -8,6 +8,7 @@ use OPGG\LaravelMcpServer\Routing\McpEndpointRegistry;
 use OPGG\LaravelMcpServer\Routing\McpRouteBuilder;
 use OPGG\LaravelMcpServer\Routing\McpRouteRegistrar;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Handlers\CustomToolsCallHandler;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Resolvers\PhaseToolResolver;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
 
@@ -58,6 +59,8 @@ it('exposes setServerInfo as the only public server metadata mutator', function 
     expect(method_exists(McpRouteBuilder::class, 'setServerInfo'))->toBeTrue();
     expect(method_exists(McpRouteBuilder::class, 'setConfig'))->toBeTrue();
     expect(method_exists(McpRouteBuilder::class, 'enabledApi'))->toBeTrue();
+    expect(method_exists(McpRouteBuilder::class, 'dynamicTools'))->toBeTrue();
+    expect(method_exists(McpRouteBuilder::class, 'toolFilterResolver'))->toBeFalse();
     expect(method_exists(McpRouteBuilder::class, 'setName'))->toBeFalse();
     expect(method_exists(McpRouteBuilder::class, 'setVersion'))->toBeFalse();
     expect(method_exists(McpRouteBuilder::class, 'setTitle'))->toBeFalse();
@@ -187,11 +190,51 @@ it('stores custom tools/call handler class from fluent route builder', function 
     expect($definitions[0]->toolsCallHandler)->toBe(CustomToolsCallHandler::class);
 });
 
+it('stores dynamic tool resolver class from fluent route builder', function () {
+    bootProvider();
+
+    Route::mcp('/filtered-tools')
+        ->setServerInfo(
+            name: 'Filtered Tools',
+            version: '2.0.0',
+        )
+        ->dynamicTools(PhaseToolResolver::class);
+
+    /** @var McpEndpointRegistry $registry */
+    $registry = app(McpEndpointRegistry::class);
+    $definitions = array_values($registry->all());
+
+    expect($definitions)->toHaveCount(1);
+    expect($definitions[0]->dynamicToolsResolver)->toBe(PhaseToolResolver::class);
+    expect($definitions[0]->tools)->toBe([]);
+});
+
 it('rejects non tools/call handler classes', function () {
     bootProvider();
 
-    expect(fn () => Route::mcp('/invalid-tools-handler')->toolsCallHandler(\stdClass::class))
-        ->toThrow(\InvalidArgumentException::class);
+    expect(fn () => Route::mcp('/invalid-tools-handler')->toolsCallHandler(stdClass::class))
+        ->toThrow(InvalidArgumentException::class);
+});
+
+it('rejects non dynamic tools resolver classes', function () {
+    bootProvider();
+
+    expect(fn () => Route::mcp('/invalid-dynamic-tools-resolver')->dynamicTools(stdClass::class))
+        ->toThrow(InvalidArgumentException::class);
+});
+
+it('rejects mixing static tools with dynamic tools resolvers', function () {
+    bootProvider();
+
+    expect(fn () => Route::mcp('/mixed-static-first')
+        ->tools([LegacyArrayTool::class])
+        ->dynamicTools(PhaseToolResolver::class))
+        ->toThrow(InvalidArgumentException::class);
+
+    expect(fn () => Route::mcp('/mixed-dynamic-first')
+        ->dynamicTools(PhaseToolResolver::class)
+        ->tools([LegacyArrayTool::class]))
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('keeps existing name and version when setServerInfo is partially applied', function () {
@@ -318,7 +361,7 @@ it('replaces existing endpoint definition when same path and domain are register
     expect($definitions[0]->tools)->toBe([AutoStructuredArrayTool::class]);
 });
 
-it('stores endpoint definition payload on registered routes and keeps it synchronized', function () {
+it('stores dynamic endpoint definition payload on registered routes and keeps it synchronized', function () {
     bootProvider();
 
     Route::mcp('/cached-mcp')
@@ -328,7 +371,7 @@ it('stores endpoint definition payload on registered routes and keeps it synchro
             description: 'Route cache payload',
         )
         ->setConfig(compactEnumExampleCount: 4)
-        ->tools([LegacyArrayTool::class])
+        ->dynamicTools(PhaseToolResolver::class)
         ->toolListChanged()
         ->resourcesSubscribe()
         ->resourcesListChanged()
@@ -349,7 +392,8 @@ it('stores endpoint definition payload on registered routes and keeps it synchro
         expect($definition['name'])->toBe('Cached MCP');
         expect($definition['version'])->toBe('3.1.4');
         expect($definition['description'])->toBe('Route cache payload');
-        expect($definition['tools'])->toBe([LegacyArrayTool::class]);
+        expect($definition['tools'])->toBe([]);
+        expect($definition['dynamicToolsResolver'])->toBe(PhaseToolResolver::class);
         expect($definition['toolListChanged'])->toBeTrue();
         expect($definition['resourcesSubscribe'])->toBeTrue();
         expect($definition['resourcesListChanged'])->toBeTrue();
