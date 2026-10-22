@@ -72,16 +72,16 @@ print_success "Test directory created"
 
 # Step 2: Create blank Laravel project
 print_step "Creating blank Laravel project..."
-# For EOL Laravel versions (9/10), packagist security advisories block install via
+# For EOL Laravel versions (9/10/11), packagist security advisories block install via
 # `audit.block-insecure` (Composer 2.4+). This is a PROJECT-level config, not global.
 #
 # For EOL versions: use --no-install --no-scripts to create just the skeleton, then patch
 # composer.json to add `config.audit.block-insecure=false`, then run `composer install`.
-# Also copy .env.example to .env and run key:generate manually (skipped by --no-scripts).
+# Also copy .env.example to .env and run post-create-project-cmd manually (skipped by --no-scripts).
 #
-# For non-EOL versions (Laravel 11+): use normal create-project (includes post-install scripts).
+# For non-EOL versions (Laravel 12+): use normal create-project (includes post-install scripts).
 IS_EOL_LARAVEL=false
-if [ -n "$LARAVEL_VERSION" ] && [ "$LARAVEL_VERSION" -le 10 ] 2>/dev/null; then
+if [ -n "$LARAVEL_VERSION" ] && [ "$LARAVEL_VERSION" -le 11 ] 2>/dev/null; then
     IS_EOL_LARAVEL=true
 fi
 
@@ -106,7 +106,7 @@ fi
 print_step "Configuring local package repository..."
 composer config repositories.mcp-server "{\"type\": \"path\", \"url\": \"$PACKAGE_PATH\"}"
 
-# For EOL versions (Laravel 9/10), patch composer.json to disable block-insecure, then install.
+# For EOL versions (Laravel 9/10/11), patch composer.json to disable block-insecure, then install.
 if [ "$IS_EOL_LARAVEL" = "true" ]; then
     print_step "Disabling Composer security advisory blocking for EOL Laravel ${LARAVEL_VERSION}..."
     php -r '
@@ -126,13 +126,14 @@ if [ "$IS_EOL_LARAVEL" = "true" ]; then
     print_success "Laravel project dependencies installed"
 
     # Manually run the post-create-project-cmd scripts that were skipped with --no-scripts
-    print_step "Running post-install setup (app key generation)..."
+    # (key:generate; Laravel 11 also creates database.sqlite and runs migrations)
+    print_step "Running post-install setup (post-create-project-cmd)..."
     if [ ! -f .env ] && [ -f .env.example ]; then
         cp .env.example .env
         print_success ".env file created from .env.example"
     fi
-    php artisan key:generate --ansi
-    print_success "App key generated"
+    composer run-script post-create-project-cmd --no-interaction
+    print_success "Post-install setup completed"
 fi
 print_success "Package repository configured"
 
