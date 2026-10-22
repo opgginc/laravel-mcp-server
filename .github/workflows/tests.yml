@@ -65,7 +65,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24.22.1'
 
       - name: Disable Composer security advisory blocking for EOL Laravel versions
         if: matrix.laravel == 9 || matrix.laravel == 10
