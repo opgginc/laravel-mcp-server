@@ -139,6 +139,22 @@ test('tools/list still works when custom tools/call handler is configured', func
     expect(collect($tools)->pluck('name')->all())->toContain('hello-world', 'check-version');
 });
 
+test('tools/list sends empty input properties as a JSON object', function () {
+    Route::mcp('/empty-properties-mcp')->tools([LegacyArrayTool::class]);
+
+    $response = $this->postJson(uri: '/empty-properties-mcp', data: [
+        'jsonrpc' => '2.0',
+        'id' => 1003,
+        'method' => 'tools/list',
+        'params' => [],
+    ]);
+
+    $response->assertStatus(200);
+
+    $tool = collect(json_decode($response->getContent())->result->tools)->firstWhere('name', 'legacy-array-tool');
+    expect($tool->inputSchema->properties)->toBeInstanceOf(stdClass::class);
+});
+
 test('tools/list filters tools using query string resolver', function () {
     Route::mcp('/filtered-mcp')
         ->setServerInfo(

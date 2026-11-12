@@ -55,3 +55,12 @@ test('json schema normalizer encodes empty nested properties as a JSON object', 
 
     expect(json_encode($normalized))->toBe('{"type":"object","properties":{"filters":{"type":"object","properties":{}}}}');
 });
+
+test('json schema normalizer encodes every empty map of schemas as a JSON object', function (string $keyword) {
+    $normalized = JsonSchemaNormalizer::normalize([
+        'type' => 'object',
+        $keyword => [],
+    ]);
+
+    expect(json_encode($normalized))->toBe('{"type":"object","'.$keyword.'":{}}');
+})->with(['patternProperties', 'definitions', '$defs', 'dependentSchemas']);
