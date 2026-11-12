@@ -34,3 +34,33 @@ test('json schema normalizer keeps full schema arrays and expands enum classes',
     expect($normalized['type'])->toBe('object');
     expect($normalized['properties']['platform']['enum'])->toBe(['web', 'desktop']);
 });
+
+test('json schema normalizer encodes empty properties as a JSON object', function () {
+    $normalized = JsonSchemaNormalizer::normalize([
+        'type' => 'object',
+        'properties' => [],
+        'required' => [],
+    ]);
+
+    expect(json_encode($normalized))->toBe('{"type":"object","properties":{},"required":[]}');
+});
+
+test('json schema normalizer encodes empty nested properties as a JSON object', function () {
+    $normalized = JsonSchemaNormalizer::normalize([
+        'type' => 'object',
+        'properties' => [
+            'filters' => ['type' => 'object', 'properties' => []],
+        ],
+    ]);
+
+    expect(json_encode($normalized))->toBe('{"type":"object","properties":{"filters":{"type":"object","properties":{}}}}');
+});
+
+test('json schema normalizer encodes every empty map of schemas as a JSON object', function (string $keyword) {
+    $normalized = JsonSchemaNormalizer::normalize([
+        'type' => 'object',
+        $keyword => [],
+    ]);
+
+    expect(json_encode($normalized))->toBe('{"type":"object","'.$keyword.'":{}}');
+})->with(['patternProperties', 'definitions', '$defs', 'dependentSchemas']);
