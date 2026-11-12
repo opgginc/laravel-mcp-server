@@ -162,11 +162,11 @@ class TestMcpToolCommand extends Command
     {
         if (isset($schema['properties']) && is_array($schema['properties'])) {
             foreach ($schema['properties'] as $propName => $propSchema) {
-                $type = $propSchema['type'] ?? 'any';
+                $type = $this->primaryType($propSchema['type'] ?? null, 'any');
                 $description = $propSchema['description'] ?? '';
                 $required = in_array($propName, $schema['required'] ?? []) ? '(required)' : '(optional)';
 
-                $this->line("{$indent}- {$propName}: {$type} {$required}");
+                $this->line("{$indent}- {$propName}: {$this->typeLabel($propSchema['type'] ?? null, 'any')} {$required}");
                 if ($description) {
                     $this->line("{$indent}  Description: {$description}");
                 }
@@ -179,7 +179,7 @@ class TestMcpToolCommand extends Command
 
                 // If this is an array with items
                 if ($type === 'array' && isset($propSchema['items'])) {
-                    $itemType = $propSchema['items']['type'] ?? 'any';
+                    $itemType = $this->typeLabel($propSchema['items']['type'] ?? null, 'any');
                     $this->line("{$indent}  Items: {$itemType}");
                     if (isset($propSchema['items']['properties'])) {
                         $this->line("{$indent}  Item Properties:");
@@ -188,6 +188,25 @@ class TestMcpToolCommand extends Command
                 }
             }
         }
+    }
+
+    /**
+     * The type a property is handled as. A JSON Schema type can be a list, such as
+     * ["integer", "null"], in which case its first type other than "null" counts.
+     */
+    protected function primaryType(mixed $type, string $default): string
+    {
+        $types = array_values(array_diff((array) ($type ?? $default), ['null']));
+
+        return is_string($types[0] ?? null) ? $types[0] : $default;
+    }
+
+    /**
+     * The type of a property as shown, with the types of a list joined, e.g. "integer|null".
+     */
+    protected function typeLabel(mixed $type, string $default): string
+    {
+        return implode('|', array_filter((array) ($type ?? $default), 'is_string'));
     }
 
     /**
@@ -220,11 +239,11 @@ class TestMcpToolCommand extends Command
         }
 
         foreach ($schema['properties'] as $propName => $propSchema) {
-            $type = $propSchema['type'] ?? 'string';
+            $type = $this->primaryType($propSchema['type'] ?? null, 'string');
             $description = $propSchema['description'] ?? '';
             $required = in_array($propName, $schema['required'] ?? []);
 
-            $this->line("Property: {$propName} ({$type})");
+            $this->line("Property: {$propName} ({$this->typeLabel($propSchema['type'] ?? null, 'string')})");
             if ($description) {
                 $this->line("Description: {$description}");
             }
