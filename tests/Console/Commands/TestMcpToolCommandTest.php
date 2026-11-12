@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Resolvers\PhaseToolResolver;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\AutoStructuredArrayTool;
 use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\LegacyArrayTool;
+use OPGG\LaravelMcpServer\Tests\Fixtures\Tools\UnionTypeTool;
 
 test('mcp:test-tool can filter by endpoint id', function () {
     $builder = Route::mcp('/primary-mcp')
@@ -57,5 +58,28 @@ test('mcp:test-tool lists declared tools from dynamic tool resolvers', function 
     ])
         ->expectsOutputToContain('legacy-array-tool')
         ->expectsOutputToContain('structured-only-tool')
+        ->assertExitCode(0);
+});
+
+test('mcp:test-tool shows a property whose type is a list of types', function () {
+    Route::mcp('/mcp')->tools([UnionTypeTool::class]);
+
+    $this->artisan('mcp:test-tool', [
+        'tool' => 'union-type-tool',
+        '--input' => '{"results_size":10}',
+    ])
+        ->expectsOutputToContain('- results_size: integer|null (optional)')
+        ->expectsOutputToContain('Items: string|null')
+        ->assertExitCode(0);
+});
+
+test('mcp:test-tool asks for a nullable integer as a number', function () {
+    Route::mcp('/mcp')->tools([UnionTypeTool::class]);
+
+    $this->artisan('mcp:test-tool', ['tool' => 'union-type-tool'])
+        ->expectsOutputToContain('Property: results_size (integer|null)')
+        ->expectsQuestion('Value', '10')
+        ->expectsQuestion('JSON', '')
+        ->expectsOutputToContain('"results_size": 10')
         ->assertExitCode(0);
 });
