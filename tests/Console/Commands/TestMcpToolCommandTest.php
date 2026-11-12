@@ -72,3 +72,14 @@ test('mcp:test-tool shows a property whose type is a list of types', function ()
         ->expectsOutputToContain('Items: string|null')
         ->assertExitCode(0);
 });
+
+test('mcp:test-tool asks for a nullable integer as a number', function () {
+    Route::mcp('/mcp')->tools([UnionTypeTool::class]);
+
+    $this->artisan('mcp:test-tool', ['tool' => 'union-type-tool'])
+        ->expectsOutputToContain('Property: results_size (integer|null)')
+        ->expectsQuestion('Value', '10')
+        ->expectsQuestion('JSON', '')
+        ->expectsOutputToContain('"results_size": 10')
+        ->assertExitCode(0);
+});

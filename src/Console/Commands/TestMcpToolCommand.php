@@ -191,14 +191,23 @@ class TestMcpToolCommand extends Command
     }
 
     /**
-     * The type a property is handled as. A JSON Schema type can be a list, such as
-     * ["integer", "null"], in which case its first type other than "null" counts.
+     * The types a property declares. A JSON Schema type can be a list, such as ["integer", "null"].
+     *
+     * @return list<string>
+     */
+    protected function types(mixed $type, string $default): array
+    {
+        $types = array_values(array_filter((array) $type, 'is_string'));
+
+        return $types !== [] ? $types : [$default];
+    }
+
+    /**
+     * The type a property is handled as: its first type other than "null".
      */
     protected function primaryType(mixed $type, string $default): string
     {
-        $types = array_values(array_diff((array) ($type ?? $default), ['null']));
-
-        return is_string($types[0] ?? null) ? $types[0] : $default;
+        return array_values(array_diff($this->types($type, $default), ['null']))[0] ?? $default;
     }
 
     /**
@@ -206,7 +215,7 @@ class TestMcpToolCommand extends Command
      */
     protected function typeLabel(mixed $type, string $default): string
     {
-        return implode('|', array_filter((array) ($type ?? $default), 'is_string'));
+        return implode('|', $this->types($type, $default));
     }
 
     /**
