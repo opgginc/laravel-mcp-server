@@ -5,6 +5,7 @@ namespace OPGG\LaravelMcpServer\Utils;
 use OPGG\LaravelMcpServer\JsonSchema\Serializer;
 use OPGG\LaravelMcpServer\JsonSchema\Types\ObjectType;
 use OPGG\LaravelMcpServer\JsonSchema\Types\Type;
+use stdClass;
 
 class JsonSchemaNormalizer
 {
@@ -30,6 +31,19 @@ class JsonSchemaNormalizer
         'default',
         'enum',
         'nullable',
+    ];
+
+    /**
+     * Keywords whose value maps names to schemas, so it must reach JSON as an object even when empty.
+     *
+     * @var array<int, string>
+     */
+    private const SCHEMA_MAP_KEYS = [
+        'properties',
+        'patternProperties',
+        'definitions',
+        '$defs',
+        'dependentSchemas',
     ];
 
     /**
@@ -91,7 +105,10 @@ class JsonSchemaNormalizer
 
         $normalized = [];
         foreach ($value as $key => $childValue) {
-            $normalized[$key] = self::normalizeValue($childValue, $compactEnumExampleCount);
+            // An empty PHP array is encoded as [], which is not a valid map of schemas
+            $normalized[$key] = $childValue === [] && in_array($key, self::SCHEMA_MAP_KEYS, true)
+                ? new stdClass
+                : self::normalizeValue($childValue, $compactEnumExampleCount);
         }
 
         return $normalized;
